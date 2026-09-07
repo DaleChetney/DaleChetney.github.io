@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>Dice Roller — dalechetney.github.io</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 2rem;
+        font-family: system-ui, sans-serif;
+        line-height: 1.5;
+      }
+      #output {
+        margin-top: 1rem;
+        font-size: 1.25rem;
+      }
+    </style>
+  </head>
+  <body>
+    <label>Dice: <input id="count" type="number" min="1" max="12" value="2" /></label>
+    <button id="roll">Roll</button>
+    <div id="output"></div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
