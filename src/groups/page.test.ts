@@ -39,6 +39,9 @@ const completing = (): string[] =>
 const checkedCount = (): number => document.querySelectorAll(".element input:checked").length;
 const arrows = (): SVGPathElement[] =>
   Array.from(document.querySelectorAll("#diagram .edges path"));
+const arrowColours = (): string[] => [
+  ...new Set(arrows().map((path) => path.getAttribute("stroke") ?? "")),
+];
 
 /** Paths that share a from/to pair, grouped by that pair. */
 const sharedPaths = (): SVGPathElement[][] => {
@@ -75,6 +78,19 @@ describe("groups page", () => {
     expect(sectionFor("C₆").querySelectorAll(".element")).toHaveLength(2);
     expect(checkedCount()).toBe(1);
     expect(completing()).toEqual(["₃C₄"]);
+  });
+
+  it("colours only the swatches of the elements being drawn", () => {
+    const swatches = Array.from(sectionFor("C₆").querySelectorAll<HTMLElement>(".element")).map(
+      (row) => ({
+        checked: row.querySelector<HTMLInputElement>("input")?.checked,
+        background: row.querySelector<HTMLElement>(".swatch")?.style.background?.toLowerCase(),
+      }),
+    );
+    // An unselected element has no colour: colours belong to the drawn series.
+    expect(swatches.map((s) => s.checked)).toEqual([true, false]);
+    expect(swatches[0].background).not.toBe("currentcolor");
+    expect(swatches[1].background).toBe("currentcolor");
   });
 
   it("opens a second section, grouped by conjugate, when C_4 is selected", () => {
@@ -142,5 +158,24 @@ describe("groups page", () => {
     latticeNode("₃C₄").dispatchEvent(new MouseEvent("click"));
     expect(document.querySelectorAll(".element-section")).toHaveLength(0);
     expect(document.querySelector("#element-sections")?.textContent).toContain("Select a subgroup");
+  });
+
+  it("respreads the colours as the number of generators drawn changes", () => {
+    const inputs = () =>
+      Array.from(sectionFor("₃C₄").querySelectorAll<HTMLInputElement>(".element input"));
+    latticeNode("₃C₄").dispatchEvent(new MouseEvent("click"));
+    expect(arrowColours()).toHaveLength(1);
+
+    // Elements 2 and 4 open the other two conjugates.
+    inputs()[2].click();
+    const two = arrowColours();
+    expect(two).toHaveLength(2);
+
+    inputs()[4].click();
+    const three = arrowColours();
+    expect(three).toHaveLength(3);
+    // The wheel is re-divided rather than extended, so only the colour at the
+    // start of it survives adding a third generator.
+    expect(three.filter((colour) => two.includes(colour))).toHaveLength(1);
   });
 });

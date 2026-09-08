@@ -1,3 +1,4 @@
+import { equidistantColours } from "@shared/colours";
 import { mount, qs } from "@shared/dom";
 import { permutationOrbits, type Permutation } from "@shared/permutations";
 import {
@@ -10,7 +11,7 @@ import { C3_C4 } from "./data";
 import { elementKey, renderElementSections, type ElementSection } from "./elements-panel";
 import { actionArrows, layoutOrbits } from "./layout";
 import { classLabel, layoutLattice, renderLattice } from "./lattice";
-import { generatorColour, renderDiagram } from "./render";
+import { renderDiagram } from "./render";
 
 /** How many generators a subgroup section will offer. */
 const ELEMENT_LIMIT = 12;
@@ -46,8 +47,9 @@ const choicesFor = (classIndex: number): GeneratorChoices =>
 
 /**
  * Every choosable element, in a fixed order. A permutation generates exactly one
- * cyclic subgroup, so each appears once, and its position here fixes its colour
- * for the session rather than letting colours shuffle as the selection changes.
+ * cyclic subgroup, so each appears once, and its position here orders the
+ * selection for colouring — which keeps the assignment independent of the order
+ * the elements happened to be clicked in.
  */
 const palette = selectableClasses.flatMap((classIndex) =>
   choicesFor(classIndex).elements.map((choice) => choice.permutation),
@@ -63,8 +65,6 @@ const classOfElement = new Map(
   ),
 );
 
-const colourOf = (key: string): string => generatorColour(paletteIndex.get(key) ?? 0);
-
 /**
  * Chosen element keys, per selected class. A class with an empty set stays open:
  * clearing a section should not make it vanish under the pointer.
@@ -74,6 +74,20 @@ const selection = new Map<number, Set<string>>();
 const chosenKeys = (): string[] => [...selection.values()].flatMap((keys) => [...keys]);
 const chosenPermutations = (): Permutation[] =>
   chosenKeys().map((key) => permutationFor.get(key) ?? []);
+
+/**
+ * A colour per drawn element, spread evenly over however many are drawn rather
+ * than taken from a fixed list. Colours therefore shift as the selection grows,
+ * but they stay as far apart as the count allows and never run out.
+ */
+const spreadColours = (): Map<string, string> => {
+  const keys = chosenKeys().sort((a, b) => (paletteIndex.get(a) ?? 0) - (paletteIndex.get(b) ?? 0));
+  const scale = equidistantColours(keys.length);
+  return new Map(keys.map((key, index) => [key, scale[index]]));
+};
+
+let colours = new Map<string, string>();
+const colourOf = (key: string): string | null => colours.get(key) ?? null;
 
 /**
  * Classes offering an element that would complete the current choice into a
@@ -140,9 +154,16 @@ const restoreFocus = (selector: string | null): void => {
 
 const draw = (): void => {
   const focused = focusedSelector();
-  const chosen = new Set(chosenKeys());
-  const drawn = new Set([...chosen].map((key) => paletteIndex.get(key) ?? 0));
-  mount(stage, renderDiagram(diagram, actionArrows(diagram, palette, drawn)));
+  colours = spreadColours();
+  const drawn = new Set([...colours.keys()].map((key) => paletteIndex.get(key) ?? 0));
+  mount(
+    stage,
+    renderDiagram(
+      diagram,
+      actionArrows(diagram, palette, drawn),
+      (generator) => colourOf(elementKey(palette[generator])) ?? "currentColor",
+    ),
+  );
   mount(
     latticeHost,
     renderLattice(
@@ -158,7 +179,7 @@ const draw = (): void => {
   mount(
     panel,
     renderElementSections(sections(), {
-      isSelected: (key) => chosen.has(key),
+      isSelected: (key) => colours.has(key),
       colourOf,
       onToggle: toggleElement,
     }),

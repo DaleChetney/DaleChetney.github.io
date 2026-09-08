@@ -14,7 +14,8 @@ export interface ElementSection {
 
 export interface ElementSelectionView {
   isSelected: (key: string) => boolean;
-  colourOf: (key: string) => string;
+  /** The colour this element is drawn in, or null when it is not being drawn. */
+  colourOf: (key: string) => string | null;
   onToggle: (key: string) => void;
 }
 
@@ -29,7 +30,9 @@ const elementRow = (permutation: Permutation, view: ElementSelectionView): HTMLE
   });
 
   const swatch = el("span", { className: "swatch" });
-  swatch.style.background = view.colourOf(key);
+  // An unselected element has no colour yet: colours are spread over the
+  // selection, so which one it would take depends on what else is drawn.
+  swatch.style.background = view.colourOf(key) ?? "currentColor";
 
   const row = el("label", { className: "element" }, [
     input,

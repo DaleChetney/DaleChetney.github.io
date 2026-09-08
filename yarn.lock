@@ -458,6 +458,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/chroma-js@npm:^3.1.2":
+  version: 3.1.2
+  resolution: "@types/chroma-js@npm:3.1.2"
+  checksum: 10c0/d2a7d9612c5abe3733a113d339eb8158cb36aeeeb571a3c371e81e8f3a682cd70f1649cea521716fbb5d79eb96f585a539b304be44e3fa818bd56b2a05f29f73
+  languageName: node
+  linkType: hard
+
 "@types/deep-eql@npm:*":
   version: 4.0.2
   resolution: "@types/deep-eql@npm:4.0.2"
@@ -762,6 +769,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"chroma-js@npm:^3.2.0":
+  version: 3.2.0
+  resolution: "chroma-js@npm:3.2.0"
+  checksum: 10c0/6ff6213d234e096ad3536291b1e1f11a506ea0fccfe163dd8eff69afa5f4f8a905b31a4a7ebc22b7eb722590887fed77073805ce89485f6d563edd1ea2d0a1db
+  languageName: node
+  linkType: hard
+
 "cross-spawn@npm:^7.0.6":
   version: 7.0.6
   resolution: "cross-spawn@npm:7.0.6"
@@ -788,7 +802,9 @@ __metadata:
   resolution: "dalechetney-github-io@workspace:."
   dependencies:
     "@eslint/js": "npm:^10.0.1"
+    "@types/chroma-js": "npm:^3.1.2"
     "@types/node": "npm:^26.4.1"
+    chroma-js: "npm:^3.2.0"
     eslint: "npm:^10.10.0"
     eslint-config-prettier: "npm:^10.1.8"
     fast-glob: "npm:^3.3.3"
