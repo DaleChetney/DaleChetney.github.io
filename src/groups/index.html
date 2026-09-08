@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>Abstract Groups — dalechetney.github.io</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --panel: color-mix(in srgb, canvas 92%, canvastext 8%);
+        --edge: color-mix(in srgb, canvas 76%, canvastext 24%);
+        font-family: system-ui, sans-serif;
+      }
+
+      body {
+        margin: 0;
+        height: 100vh;
+        display: grid;
+        grid-template-columns: 240px 1fr 260px;
+        gap: 1px;
+        background: var(--edge);
+      }
+
+      section {
+        background: canvas;
+        padding: 1rem;
+        overflow: auto;
+      }
+
+      h1 {
+        font-size: 1.25rem;
+        margin: 0;
+      }
+
+      h2 {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        opacity: 0.6;
+        margin: 0 0 0.75rem;
+      }
+
+      .placeholder {
+        opacity: 0.5;
+        font-size: 0.85rem;
+      }
+
+      .stage-header {
+        display: flex;
+        align-items: baseline;
+        gap: 0.75rem;
+        margin-bottom: 0.25rem;
+      }
+
+      #group-label,
+      #representation-title {
+        font-size: 0.8rem;
+        opacity: 0.65;
+      }
+
+      #diagram {
+        display: grid;
+        place-items: center;
+        margin: 1rem 0;
+      }
+
+      .diagram {
+        max-width: 100%;
+        height: auto;
+      }
+
+      .diagram .node circle {
+        fill: var(--panel);
+        stroke: currentColor;
+        stroke-width: 1.5;
+      }
+
+      .diagram .node text {
+        font-size: 15px;
+        fill: currentColor;
+      }
+
+      .generator-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+      }
+
+      .generator {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.3rem 0.6rem;
+        border: 1px solid var(--edge);
+        border-radius: 999px;
+        cursor: pointer;
+      }
+
+      .swatch {
+        width: 0.7rem;
+        height: 0.7rem;
+        border-radius: 50%;
+      }
+    </style>
+  </head>
+  <body>
+    <section id="panel-left">
+      <h2>Group</h2>
+      <p class="placeholder">Group and representation selection lands here.</p>
+    </section>
+
+    <section id="panel-main">
+      <div class="stage-header">
+        <h1 id="group-name"></h1>
+        <span id="group-label"></span>
+      </div>
+      <div id="representation-title"></div>
+      <div id="diagram"></div>
+      <h2>Generators</h2>
+      <div id="generators"></div>
+    </section>
+
+    <section id="panel-right">
+      <h2>Selection</h2>
+      <p class="placeholder">Details of the selected element or subgroup land here.</p>
+    </section>
+
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
