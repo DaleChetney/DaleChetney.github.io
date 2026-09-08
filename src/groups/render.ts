@@ -1,5 +1,5 @@
 import type { ActionArrow, Diagram } from "./layout";
-import { NODE_RADIUS } from "./layout";
+import { arrowStrokeWidths, NODE_RADIUS } from "./layout";
 import { svg } from "./svg";
 
 /** Colours for generator arrows, readable against both light and dark grounds. */
@@ -75,12 +75,17 @@ export const renderDiagram = (diagram: Diagram, arrows: readonly ActionArrow[]):
   root.append(defs);
 
   const edges = svg("g", { class: "edges", fill: "none" });
-  for (const arrow of arrows) {
+  const widths = arrowStrokeWidths(arrows);
+  // Widest first, so an arrow sharing a path is drawn over the ones behind it
+  // rather than under them.
+  const order = arrows.map((_, index) => index).sort((a, b) => widths[b] - widths[a]);
+  for (const index of order) {
+    const arrow = arrows[index];
     edges.append(
       svg("path", {
         d: arrowPath(arrow),
         stroke: generatorColour(arrow.generator),
-        "stroke-width": 2,
+        "stroke-width": widths[index],
         "marker-end": `url(#${arrowheadId(arrow.generator)})`,
         "data-generator": arrow.generator,
         "data-from": arrow.from.point,
