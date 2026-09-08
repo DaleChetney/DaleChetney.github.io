@@ -6,87 +6,124 @@ import {
   generatesWholeGroup,
   generatorElements,
   type GeneratorChoices,
+  type SubgroupLattice,
 } from "@shared/subgroups";
-import { C3_C4 } from "./data";
+import {
+  byLabel,
+  fetchCatalogue,
+  type CatalogueGroup,
+  type CatalogueRepresentation,
+} from "./catalogue";
 import { elementKey, renderElementSections, type ElementSection } from "./elements-panel";
-import { actionArrows, layoutOrbits } from "./layout";
-import { classLabel, layoutLattice, renderLattice } from "./lattice";
+import { filterGroups, groupListCaption, renderGroupList } from "./group-list";
+import { actionArrows, layoutOrbits, type Diagram } from "./layout";
+import { classLabel, layoutLattice, renderLattice, type LatticeDiagram } from "./lattice";
 import { renderDiagram } from "./render";
+import { renderRepresentationRow } from "./representation-row";
 
 /** How many generators a subgroup section will offer. */
 const ELEMENT_LIMIT = 12;
 
-const group = C3_C4;
-// The left panel will choose this; until it exists, show the minimal faithful one.
-const representation = group.representations[0];
-const degree = representation.degree;
-const diagram = layoutOrbits(permutationOrbits(representation.generators, degree));
+/** The group the page opens on. */
+const DEFAULT_LABEL = "12.1";
 
-const lattice = computeSubgroupLattice(representation.generators, degree);
-const latticeDiagram = layoutLattice(lattice, group.order, group.displayName);
+const catalogue = await fetchCatalogue();
+const groups = byLabel(catalogue);
 
-/**
- * Generators are chosen by clicking cyclic subgroups: a cyclic subgroup is
- * exactly one that has elements lying in no smaller subgroup. The trivial
- * subgroup offers nothing.
- */
-const selectableClasses = lattice.classes
-  .map((subgroupClass, index) => ({ subgroupClass, index }))
-  .filter(({ subgroupClass }) => subgroupClass.cyclic && subgroupClass.order > 1)
-  .map(({ index }) => index);
+/** Everything derived from one group in one representation. */
+interface Scene {
+  group: CatalogueGroup;
+  representation: CatalogueRepresentation;
+  diagram: Diagram;
+  lattice: SubgroupLattice;
+  latticeDiagram: LatticeDiagram;
+  /**
+   * Classes a generator can be chosen from: a cyclic subgroup is exactly one
+   * with elements lying in no smaller subgroup, and the trivial one offers
+   * nothing.
+   */
+  selectableClasses: number[];
+  choices: Map<number, GeneratorChoices>;
+  /**
+   * Every choosable element, in a fixed order. A permutation generates exactly
+   * one cyclic subgroup, so each appears once, and its position here orders the
+   * selection for colouring — keeping that independent of click order.
+   */
+  palette: Permutation[];
+  paletteIndex: Map<string, number>;
+  permutationFor: Map<string, Permutation>;
+  classOfElement: Map<string, number>;
+}
 
-const choicesByClass = new Map<number, GeneratorChoices>(
-  selectableClasses.map((index) => [
-    index,
-    generatorElements(lattice.classes[index], ELEMENT_LIMIT),
-  ]),
-);
+const buildScene = (group: CatalogueGroup, representation: CatalogueRepresentation): Scene => {
+  const { generators, degree } = representation;
+  const lattice = computeSubgroupLattice(generators, degree);
+  const selectableClasses = lattice.classes
+    .map((subgroupClass, index) => ({ subgroupClass, index }))
+    .filter(({ subgroupClass }) => subgroupClass.cyclic && subgroupClass.order > 1)
+    .map(({ index }) => index);
+  const choices = new Map(
+    selectableClasses.map((index) => [
+      index,
+      generatorElements(lattice.classes[index], ELEMENT_LIMIT),
+    ]),
+  );
+  const palette = selectableClasses.flatMap(
+    (index) => choices.get(index)?.elements.map((choice) => choice.permutation) ?? [],
+  );
+
+  return {
+    group,
+    representation,
+    diagram: layoutOrbits(permutationOrbits(generators, degree)),
+    lattice,
+    latticeDiagram: layoutLattice(lattice, group.order, group.displayName),
+    selectableClasses,
+    choices,
+    palette,
+    paletteIndex: new Map(palette.map((permutation, i) => [elementKey(permutation), i])),
+    permutationFor: new Map(palette.map((p) => [elementKey(p), p])),
+    classOfElement: new Map(
+      selectableClasses.flatMap((index) =>
+        (choices.get(index)?.elements ?? []).map((choice): [string, number] => [
+          elementKey(choice.permutation),
+          index,
+        ]),
+      ),
+    ),
+  };
+};
+
+const groupFor = (label: string): CatalogueGroup => {
+  const group = groups.get(label) ?? catalogue.groups[0];
+  return group;
+};
+
+let scene = buildScene(groupFor(DEFAULT_LABEL), groupFor(DEFAULT_LABEL).representations[0]);
+/** Chosen element keys, per selected class. A class with an empty set stays open. */
+let selection = new Map<number, Set<string>>();
+let colours = new Map<string, string>();
+let query = "";
 
 const choicesFor = (classIndex: number): GeneratorChoices =>
-  choicesByClass.get(classIndex) ?? { elements: [], total: 0 };
-
-/**
- * Every choosable element, in a fixed order. A permutation generates exactly one
- * cyclic subgroup, so each appears once, and its position here orders the
- * selection for colouring — which keeps the assignment independent of the order
- * the elements happened to be clicked in.
- */
-const palette = selectableClasses.flatMap((classIndex) =>
-  choicesFor(classIndex).elements.map((choice) => choice.permutation),
-);
-const paletteIndex = new Map(palette.map((permutation, i) => [elementKey(permutation), i]));
-const permutationFor = new Map(palette.map((p) => [elementKey(p), p]));
-const classOfElement = new Map(
-  selectableClasses.flatMap((classIndex) =>
-    choicesFor(classIndex).elements.map((choice): [string, number] => [
-      elementKey(choice.permutation),
-      classIndex,
-    ]),
-  ),
-);
-
-/**
- * Chosen element keys, per selected class. A class with an empty set stays open:
- * clearing a section should not make it vanish under the pointer.
- */
-const selection = new Map<number, Set<string>>();
+  scene.choices.get(classIndex) ?? { elements: [], total: 0 };
 
 const chosenKeys = (): string[] => [...selection.values()].flatMap((keys) => [...keys]);
 const chosenPermutations = (): Permutation[] =>
-  chosenKeys().map((key) => permutationFor.get(key) ?? []);
+  chosenKeys().map((key) => scene.permutationFor.get(key) ?? []);
 
 /**
  * A colour per drawn element, spread evenly over however many are drawn rather
- * than taken from a fixed list. Colours therefore shift as the selection grows,
- * but they stay as far apart as the count allows and never run out.
+ * than taken from a fixed list, so they stay as far apart as the count allows.
  */
 const spreadColours = (): Map<string, string> => {
-  const keys = chosenKeys().sort((a, b) => (paletteIndex.get(a) ?? 0) - (paletteIndex.get(b) ?? 0));
+  const keys = chosenKeys().sort(
+    (a, b) => (scene.paletteIndex.get(a) ?? 0) - (scene.paletteIndex.get(b) ?? 0),
+  );
   const scale = equidistantColours(keys.length);
   return new Map(keys.map((key, index) => [key, scale[index]]));
 };
 
-let colours = new Map<string, string>();
 const colourOf = (key: string): string | null => colours.get(key) ?? null;
 
 /**
@@ -97,11 +134,12 @@ const colourOf = (key: string): string | null => colours.get(key) ?? null;
 const completingClasses = (): Set<number> => {
   const chosen = chosenPermutations();
   const completing = new Set<number>();
-  if (generatesWholeGroup(chosen, degree, group.order)) return completing;
-  for (const classIndex of selectableClasses) {
+  const { degree } = scene.representation;
+  if (generatesWholeGroup(chosen, degree, scene.group.order)) return completing;
+  for (const classIndex of scene.selectableClasses) {
     if (selection.has(classIndex)) continue;
     const completes = choicesFor(classIndex).elements.some((choice) =>
-      generatesWholeGroup([...chosen, choice.permutation], degree, group.order),
+      generatesWholeGroup([...chosen, choice.permutation], degree, scene.group.order),
     );
     if (completes) completing.add(classIndex);
   }
@@ -119,22 +157,30 @@ const nodeColour = (classIndex: number): string | null => {
 };
 
 const sections = (): ElementSection[] =>
-  selectableClasses
+  scene.selectableClasses
     .filter((classIndex) => selection.has(classIndex))
     .map((classIndex) => ({
       classIndex,
-      label: classLabel(lattice.classes[classIndex], group.order, group.displayName),
-      conjugateCount: lattice.classes[classIndex].count,
+      label: classLabel(
+        scene.lattice.classes[classIndex],
+        scene.group.order,
+        scene.group.displayName,
+      ),
+      conjugateCount: scene.lattice.classes[classIndex].count,
       choices: choicesFor(classIndex),
     }));
 
 const stage = qs("#diagram");
 const latticeHost = qs("#lattice");
 const panel = qs("#element-sections");
+const listHost = qs("#group-list");
+const countHost = qs("#group-count");
+const representationHost = qs("#representation-row");
+const search = qs<HTMLInputElement>("#group-search");
 
 /**
  * Redrawing replaces every node, which would drop focus after each toggle and
- * make the checkboxes unusable from the keyboard. Remember what had focus by a
+ * make the controls unusable from the keyboard. Remember what had focus by a
  * selector that survives the rebuild, and restore it afterwards.
  */
 const focusedSelector = (): string | null => {
@@ -142,6 +188,8 @@ const focusedSelector = (): string | null => {
   if (!(active instanceof Element)) return null;
   const element = active.closest("[data-element]")?.getAttribute("data-element");
   if (element != null) return `[data-element="${element}"] input`;
+  const row = active.closest(".group-row[data-label]")?.getAttribute("data-label");
+  if (row != null) return `.group-row[data-label="${row}"]`;
   const node = active.closest(".lattice-node[data-class]")?.getAttribute("data-class");
   return node == null ? null : `.lattice-node[data-class="${node}"]`;
 };
@@ -152,22 +200,31 @@ const restoreFocus = (selector: string | null): void => {
   if (target instanceof HTMLElement || target instanceof SVGElement) target.focus();
 };
 
+/** The left panel. Kept off the toggle path: 526 rows is a lot to rebuild. */
+const drawGroups = (): void => {
+  const focused = focusedSelector();
+  const matches = filterGroups(catalogue.groups, query);
+  countHost.textContent = groupListCaption(matches.length, catalogue.groups.length);
+  mount(listHost, renderGroupList(matches, { selected: scene.group.label, onSelect: selectGroup }));
+  restoreFocus(focused);
+};
+
 const draw = (): void => {
   const focused = focusedSelector();
   colours = spreadColours();
-  const drawn = new Set([...colours.keys()].map((key) => paletteIndex.get(key) ?? 0));
+  const drawn = new Set([...colours.keys()].map((key) => scene.paletteIndex.get(key) ?? 0));
   mount(
     stage,
     renderDiagram(
-      diagram,
-      actionArrows(diagram, palette, drawn),
-      (generator) => colourOf(elementKey(palette[generator])) ?? "currentColor",
+      scene.diagram,
+      actionArrows(scene.diagram, scene.palette, drawn),
+      (generator) => colourOf(elementKey(scene.palette[generator])) ?? "currentColor",
     ),
   );
   mount(
     latticeHost,
     renderLattice(
-      latticeDiagram,
+      scene.latticeDiagram,
       {
         selected: new Set(selection.keys()),
         completing: completingClasses(),
@@ -184,6 +241,13 @@ const draw = (): void => {
       onToggle: toggleElement,
     }),
   );
+  mount(
+    representationHost,
+    renderRepresentationRow(scene.group.representations, {
+      selected: scene.representation.id,
+      onSelect: selectRepresentation,
+    }),
+  );
   restoreFocus(focused);
 };
 
@@ -198,7 +262,7 @@ const toggleClass = (classIndex: number): void => {
 };
 
 const toggleElement = (key: string): void => {
-  const classIndex = classOfElement.get(key);
+  const classIndex = scene.classOfElement.get(key);
   if (classIndex === undefined) return;
   const keys = selection.get(classIndex);
   if (keys === undefined) return;
@@ -207,8 +271,35 @@ const toggleElement = (key: string): void => {
   draw();
 };
 
-qs("#group-name").textContent = group.displayName;
-qs("#group-label").textContent = `LMFDB ${group.label}`;
-qs("#representation-title").textContent = representation.title;
+/** Open a scene with one generator already drawn, so the diagram is never bare. */
+const showScene = (next: Scene): void => {
+  scene = next;
+  selection = new Map();
+  qs("#group-name").textContent = scene.group.displayName;
+  const label = qs<HTMLAnchorElement>("#group-label");
+  label.textContent = scene.group.label;
+  label.href = `https://www.lmfdb.org/Groups/Abstract/${scene.group.label}`;
+  const last = scene.selectableClasses[scene.selectableClasses.length - 1];
+  if (last !== undefined) toggleClass(last);
+  else draw();
+};
 
-toggleClass(selectableClasses[selectableClasses.length - 1]);
+function selectGroup(label: string): void {
+  const group = groupFor(label);
+  showScene(buildScene(group, group.representations[0]));
+  drawGroups();
+}
+
+function selectRepresentation(id: string): void {
+  const representation =
+    scene.group.representations.find((rep) => rep.id === id) ?? scene.group.representations[0];
+  showScene(buildScene(scene.group, representation));
+}
+
+search.addEventListener("input", () => {
+  query = search.value;
+  drawGroups();
+});
+
+showScene(scene);
+drawGroups();
