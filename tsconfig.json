@@ -13,6 +13,9 @@
     "skipLibCheck": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
+    // scripts/ runs under Node's TypeScript stripping, which needs the .ts
+    // extension in the specifier; nothing here is emitted.
+    "allowImportingTsExtensions": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
     "paths": {
@@ -20,5 +23,5 @@
       "@shared/*": ["./src/shared/*"]
     }
   },
-  "include": ["src", "*.config.ts"]
+  "include": ["src", "scripts", "*.config.ts"]
 }
