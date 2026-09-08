@@ -81,26 +81,67 @@
         fill: currentColor;
       }
 
-      .generator-list {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.75rem;
+      #lattice-panel {
+        max-width: 24rem;
       }
 
-      .generator {
-        display: flex;
-        align-items: center;
-        gap: 0.4rem;
-        padding: 0.3rem 0.6rem;
-        border: 1px solid var(--edge);
-        border-radius: 999px;
+      .hint {
+        font-size: 0.8rem;
+        opacity: 0.65;
+        margin: 0 0 0.5rem;
+      }
+
+      .lattice {
+        max-width: 100%;
+        height: auto;
+        overflow: visible;
+      }
+
+      .lattice-edges line {
+        stroke: currentColor;
+        stroke-width: 1;
+        opacity: 0.4;
+      }
+
+      .lattice-node text {
+        font-size: 15px;
+        font-style: italic;
+        fill: currentColor;
+      }
+
+      .lattice-node rect {
+        fill: transparent;
+      }
+
+      .lattice-node.fixed {
+        opacity: 0.7;
+      }
+
+      .lattice-node.selectable {
         cursor: pointer;
       }
 
-      .swatch {
-        width: 0.7rem;
-        height: 0.7rem;
-        border-radius: 50%;
+      .lattice-node.selectable:hover rect {
+        fill: color-mix(in srgb, canvas 88%, canvastext 12%);
+      }
+
+      .lattice-node.selected rect {
+        fill: color-mix(in srgb, canvas 84%, canvastext 16%);
+      }
+
+      .lattice-node.completing rect {
+        stroke: currentColor;
+        stroke-dasharray: 3 3;
+        opacity: 0.75;
+      }
+
+      .lattice-node:focus-visible {
+        outline: none;
+      }
+
+      .lattice-node:focus-visible rect {
+        stroke: currentColor;
+        stroke-width: 2;
       }
     </style>
   </head>
@@ -117,8 +158,14 @@
       </div>
       <div id="representation-title"></div>
       <div id="diagram"></div>
-      <h2>Generators</h2>
-      <div id="generators"></div>
+      <div id="lattice-panel">
+        <h2>Subgroups up to conjugacy</h2>
+        <p class="hint">
+          Click a cyclic subgroup to draw one of its generators. Dashed nodes would complete the
+          selection into a generating set.
+        </p>
+        <div id="lattice"></div>
+      </div>
     </section>
 
     <section id="panel-right">
