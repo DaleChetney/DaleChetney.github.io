@@ -2,21 +2,6 @@ import type { ActionArrow, Diagram } from "./layout";
 import { arrowStrokeWidths, NODE_RADIUS } from "./layout";
 import { svg } from "./svg";
 
-/** Colours for generator arrows, readable against both light and dark grounds. */
-export const GENERATOR_COLOURS = [
-  "#c1436d",
-  "#1f8a76",
-  "#6d5bd0",
-  "#b3701a",
-  "#2f6fb0",
-  "#8a7a12",
-  "#a8442a",
-  "#4a7a2c",
-];
-
-export const generatorColour = (index: number): string =>
-  GENERATOR_COLOURS[index % GENERATOR_COLOURS.length];
-
 /** How far an arrow bows away from the straight chord, in user units. */
 const bowOffset = (distance: number): number => Math.min(distance * 0.18, 34) + 6;
 
@@ -50,7 +35,7 @@ const arrowPath = (arrow: ActionArrow): string => {
   return `M ${start.x} ${start.y} Q ${controlX} ${controlY} ${end.x} ${end.y}`;
 };
 
-const arrowheadMarker = (generator: number): SVGMarkerElement => {
+const arrowheadMarker = (generator: number, colour: string): SVGMarkerElement => {
   const marker = svg("marker", {
     id: arrowheadId(generator),
     viewBox: "0 0 10 10",
@@ -60,15 +45,21 @@ const arrowheadMarker = (generator: number): SVGMarkerElement => {
     markerHeight: 5,
     orient: "auto-start-reverse",
   });
-  marker.append(svg("path", { d: "M 0 0 L 10 5 L 0 10 z", fill: generatorColour(generator) }));
+  marker.append(svg("path", { d: "M 0 0 L 10 5 L 0 10 z", fill: colour }));
   return marker;
 };
 
 /**
  * Render the diagram: one node per point of the permutation domain, plus an
- * arrow `p -> g(p)` for each moved point of each selected generator.
+ * arrow `p -> g(p)` for each moved point of each selected generator. Colours
+ * come from the caller, which knows how many generators are being drawn and can
+ * therefore spread them.
  */
-export const renderDiagram = (diagram: Diagram, arrows: readonly ActionArrow[]): SVGSVGElement => {
+export const renderDiagram = (
+  diagram: Diagram,
+  arrows: readonly ActionArrow[],
+  colourOf: (generator: number) => string,
+): SVGSVGElement => {
   const root = svg("svg", {
     viewBox: `0 0 ${diagram.width} ${diagram.height}`,
     width: diagram.width,
@@ -79,7 +70,7 @@ export const renderDiagram = (diagram: Diagram, arrows: readonly ActionArrow[]):
 
   const defs = svg("defs");
   for (const generator of new Set(arrows.map((arrow) => arrow.generator))) {
-    defs.append(arrowheadMarker(generator));
+    defs.append(arrowheadMarker(generator, colourOf(generator)));
   }
   root.append(defs);
 
@@ -93,7 +84,7 @@ export const renderDiagram = (diagram: Diagram, arrows: readonly ActionArrow[]):
     edges.append(
       svg("path", {
         d: arrowPath(arrow),
-        stroke: generatorColour(arrow.generator),
+        stroke: colourOf(arrow.generator),
         "stroke-width": widths[index],
         "marker-end": `url(#${arrowheadId(arrow.generator)})`,
         "data-generator": arrow.generator,

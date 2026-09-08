@@ -2,12 +2,14 @@
 import { describe, it, expect } from "vitest";
 import { decodePermutation, permutationOrbits } from "@shared/permutations";
 import { actionArrows, layoutOrbits } from "./layout";
-import { generatorColour, renderDiagram } from "./render";
+import { renderDiagram } from "./render";
 
 const generators = [129, 16, 840].map((code) => decodePermutation(code, 7));
 const diagram = layoutOrbits(permutationOrbits(generators, 7));
+const colours = ["#aa1144", "#008866", "#4455cc"];
+const colourOf = (generator: number): string => colours[generator];
 const render = (selected: number[]) =>
-  renderDiagram(diagram, actionArrows(diagram, generators, new Set(selected)));
+  renderDiagram(diagram, actionArrows(diagram, generators, new Set(selected)), colourOf);
 
 describe("renderDiagram", () => {
   it("draws one node per point", () => {
@@ -32,13 +34,18 @@ describe("renderDiagram", () => {
   it("colours edges by generator and points them at a matching marker", () => {
     const root = render([0, 2]);
     const path = root.querySelector<SVGPathElement>('.edges path[data-generator="2"]');
-    expect(path?.getAttribute("stroke")).toBe(generatorColour(2));
+    expect(path?.getAttribute("stroke")).toBe(colours[2]);
     expect(path?.getAttribute("marker-end")).toBe("url(#arrowhead-2)");
     expect(root.querySelector("#arrowhead-2")).not.toBeNull();
   });
 
   it("defines a marker only for the generators actually drawn", () => {
     expect(render([1]).querySelectorAll("defs marker")).toHaveLength(1);
+  });
+
+  it("gives the arrowhead the same colour as its edge", () => {
+    const head = render([1]).querySelector("#arrowhead-1 path");
+    expect(head?.getAttribute("fill")).toBe(colours[1]);
   });
 
   it("records the action on each edge", () => {
@@ -65,6 +72,7 @@ describe("renderDiagram with overlapping arrows", () => {
   const root = renderDiagram(
     overlapDiagram,
     actionArrows(overlapDiagram, overlapping, new Set([0, 1])),
+    colourOf,
   );
   const widthsOf = (selector: string): number[] =>
     Array.from(root.querySelectorAll(selector)).map((path) =>
