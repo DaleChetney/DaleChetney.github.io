@@ -4,9 +4,14 @@
  */
 export type Permutation = readonly number[];
 
-const factorial = (n: number): number => {
-  let result = 1;
-  for (let i = 2; i <= n; i++) result *= i;
+/**
+ * Exact factorial. `bigint` because the permutation codes are indices into
+ * `degree!`, which passes `Number.MAX_SAFE_INTEGER` at degree 19 — LMFDB's
+ * codes for a degree-32 representation run to 36 digits.
+ */
+const factorial = (n: number): bigint => {
+  let result = 1n;
+  for (let i = 2n; i <= BigInt(n); i++) result *= i;
   return result;
 };
 
@@ -33,21 +38,44 @@ export const identityPermutation = (degree: number): Permutation =>
  * downstream; it is just how the column is stored.
  * https://github.com/LMFDB/lmfdb/blob/07c4985/lmfdb/groups/abstract/web_groups.py#L2004
  */
-export const decodePermutation = (index: number, degree: number): Permutation => {
-  if (!Number.isInteger(index) || index < 0 || index >= factorial(degree)) {
-    throw new RangeError(`Permutation index ${index} is out of range for degree ${degree}`);
-  }
+export const decodePermutation = (index: number | bigint | string, degree: number): Permutation => {
+  const code = permutationCode(index, degree);
   const available = Array.from({ length: degree }, (_, i) => i + 1);
   const image: number[] = [];
-  let remaining = index;
+  let remaining = code;
   let block = factorial(degree - 1);
   for (let position = degree - 1; position >= 0; position--) {
-    const choice = Math.floor(remaining / block);
+    // `block` divides into `degree!`, so the quotient is at most `degree`.
+    const choice = Number(remaining / block);
     remaining %= block;
     image.push(...available.splice(choice, 1));
-    if (position > 0) block /= position;
+    if (position > 0) block /= BigInt(position);
   }
   return image;
+};
+
+/**
+ * Read a permutation code, which arrives as a number in hand-written data and
+ * as a decimal string from LMFDB once it outgrows a double.
+ */
+const permutationCode = (index: number | bigint | string, degree: number): bigint => {
+  const code = asInteger(index);
+  if (code === null || code < 0n || code >= factorial(degree)) {
+    throw new RangeError(`Permutation index ${index} is out of range for degree ${degree}`);
+  }
+  return code;
+};
+
+/** `null` for anything that is not a whole number, however it was written. */
+const asInteger = (value: number | bigint | string): bigint | null => {
+  if (typeof value === "number" && !Number.isInteger(value)) return null;
+  // BigInt("") is 0n, which would quietly turn a missing code into the identity.
+  if (typeof value === "string" && value.trim() === "") return null;
+  try {
+    return BigInt(value);
+  } catch {
+    return null;
+  }
 };
 
 /** Composition `a ∘ b`: apply `b` first, then `a`. */

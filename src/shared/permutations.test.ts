@@ -53,9 +53,89 @@ describe("decodePermutation", () => {
     expect(() => decodePermutation(-1, 4)).toThrow(RangeError);
   });
 
-  // The encoding is not documented alongside the data, so these cases pin it
-  // against groups whose structure is independently known. Each generator set
-  // is the verbatim `representations.Perm.gens` array from LMFDB.
+  it("rejects an index that is not a whole number", () => {
+    expect(() => decodePermutation(1.5, 4)).toThrow(RangeError);
+    expect(() => decodePermutation("twelve", 4)).toThrow(RangeError);
+    expect(() => decodePermutation("", 4)).toThrow(RangeError);
+  });
+});
+
+// A code is an index into `degree!`, which passes Number.MAX_SAFE_INTEGER at
+// degree 19 — so every group whose representation needs more than 18 points
+// arrives as a number a double cannot hold.
+describe("decodePermutation beyond a double", () => {
+  const factorial = (n: number): bigint => {
+    let result = 1n;
+    for (let i = 2n; i <= BigInt(n); i++) result *= i;
+    return result;
+  };
+
+  it("takes the index as a bigint or a decimal string", () => {
+    expect(decodePermutation(23n, 4)).toEqual([4, 3, 2, 1]);
+    expect(decodePermutation("23", 4)).toEqual([4, 3, 2, 1]);
+  });
+
+  it("decodes the last index of a degree past the safe range", () => {
+    // 21! - 1 is the reversal, and 21! is about 5.1e19.
+    const last = (factorial(21) - 1n).toString();
+    expect(decodePermutation(last, 21)).toEqual(Array.from({ length: 21 }, (_, i) => 21 - i));
+  });
+
+  it("still bounds the index at degree!", () => {
+    expect(() => decodePermutation(factorial(21).toString(), 21)).toThrow(RangeError);
+  });
+
+  it("separates two indices a double would collapse together", () => {
+    // Both round to the same double, so a number-based decoder cannot tell them
+    // apart; as bigints they differ in the last transposition.
+    const base = factorial(20);
+    const [a, b] = [base + 1n, base + 2n].map((code) => decodePermutation(code.toString(), 21));
+    expect(Number(base + 1n)).toBe(Number(base + 2n));
+    expect(a).not.toEqual(b);
+  });
+
+  // Verbatim `representations.Perm.gens` from LMFDB, at the 32-point ceiling
+  // our bounds allow. These codes are 36 digits long.
+  it.each([
+    {
+      label: "32.1",
+      name: "C_32",
+      codes: [
+        "263121961682809333227690318495744000",
+        "127165970120440293996769393998336000",
+        "59187974339659933956082255161332976",
+        "25199055155429228508133415361942982",
+        "8231691320578226211046411712681647",
+      ],
+      order: 32,
+      largestElementOrder: 32,
+    },
+    {
+      label: "32.20",
+      name: "Q_32",
+      codes: [
+        "144187682882947265441986938703872000",
+        "76209687101520605238972892335527736",
+        "50973977447395947166374977137321656",
+        "25199055155403427461045987627105862",
+        "8231691320578226211046411712681647",
+      ],
+      order: 32,
+      largestElementOrder: 16,
+    },
+  ])("reproduces LMFDB $label ($name) at degree 32", ({ codes, order, largestElementOrder }) => {
+    const generators = codes.map((code) => decodePermutation(code, 32));
+    const elements = generatePermutationGroup(generators, 32);
+    expect(elements).toHaveLength(order);
+    // C_32 is cyclic and Q_32 is not, which the largest element order separates.
+    expect(Math.max(...elements.map(permutationOrder))).toBe(largestElementOrder);
+  });
+});
+
+// The encoding is not documented alongside the data, so these cases pin it
+// against groups whose structure is independently known. Each generator set is
+// the verbatim `representations.Perm.gens` array from LMFDB.
+describe("decodePermutation against LMFDB", () => {
   it.each([
     { label: "8.3", name: "D_4", codes: [6, 16, 7], degree: 4, order: 8 },
     { label: "12.1", name: "C_3:C_4", codes: [129, 16, 840], degree: 7, order: 12 },
