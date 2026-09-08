@@ -53,10 +53,95 @@
         margin-bottom: 0.25rem;
       }
 
-      #group-label,
-      #representation-title {
+      #group-label {
         font-size: 0.8rem;
         opacity: 0.65;
+        color: inherit;
+      }
+
+      /* The list scrolls; the search box and count above it stay put. */
+      #panel-left {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      #group-search {
+        font: inherit;
+        padding: 0.35rem 0.5rem;
+        border: 1px solid var(--edge);
+        border-radius: 0.35rem;
+        background: canvas;
+        color: canvastext;
+      }
+
+      #group-count {
+        margin: 0.5rem 0 0.35rem;
+      }
+
+      #group-list {
+        overflow: auto;
+        flex: 1;
+        margin: 0 -0.35rem;
+      }
+
+      .group-row {
+        display: flex;
+        flex-direction: column;
+        gap: 0.1rem;
+        width: 100%;
+        text-align: left;
+        font: inherit;
+        color: inherit;
+        background: none;
+        border: 0;
+        border-radius: 0.35rem;
+        padding: 0.3rem 0.35rem;
+        cursor: pointer;
+      }
+
+      .group-row:hover {
+        background: var(--panel);
+      }
+
+      .group-row.selected {
+        background: color-mix(in srgb, canvas 84%, canvastext 16%);
+      }
+
+      .group-name {
+        font-size: 0.95rem;
+      }
+
+      .group-meta {
+        font-size: 0.7rem;
+        opacity: 0.55;
+      }
+
+      .representation-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3rem;
+        margin-top: 0.35rem;
+      }
+
+      .representation {
+        font: inherit;
+        font-size: 0.75rem;
+        color: inherit;
+        background: none;
+        border: 1px solid var(--edge);
+        border-radius: 999px;
+        padding: 0.12rem 0.55rem;
+        cursor: pointer;
+      }
+
+      .representation:hover {
+        background: var(--panel);
+      }
+
+      .representation.selected {
+        background: color-mix(in srgb, canvas 84%, canvastext 16%);
+        border-color: currentColor;
       }
 
       #diagram {
@@ -198,15 +283,23 @@
   <body>
     <section id="panel-left">
       <h2>Group</h2>
-      <p class="placeholder">Group and representation selection lands here.</p>
+      <input
+        id="group-search"
+        type="search"
+        placeholder="Name or label"
+        autocomplete="off"
+        aria-label="Filter groups"
+      />
+      <p id="group-count" class="hint"></p>
+      <div id="group-list"></div>
     </section>
 
     <section id="panel-main">
       <div class="stage-header">
         <h1 id="group-name"></h1>
-        <span id="group-label"></span>
+        <a id="group-label" target="_blank" rel="noreferrer"></a>
       </div>
-      <div id="representation-title"></div>
+      <div id="representation-row"></div>
       <div id="diagram"></div>
       <div id="lattice-panel">
         <h2>Subgroups up to conjugacy</h2>

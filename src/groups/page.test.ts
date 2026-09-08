@@ -1,14 +1,22 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { C3_C4 } from "./data";
 
 // main.ts reaches into index.html by id and throws if one is missing, which no
-// type check can see. Running it against the real markup pins the two together.
+// type check can see. Running it against the real markup pins the two together,
+// over the catalogue the site actually ships.
 beforeAll(async () => {
   const html = readFileSync(resolve(import.meta.dirname, "index.html"), "utf8");
   document.body.innerHTML = /<body>([\s\S]*)<\/body>/.exec(html)?.[1] ?? "";
+  const catalogue: unknown = JSON.parse(
+    readFileSync(resolve(import.meta.dirname, "../../public/groups.json"), "utf8"),
+  );
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve(catalogue) })),
+  );
   await import("./main");
 });
 
@@ -37,6 +45,20 @@ const completing = (): string[] =>
     (text) => text.textContent ?? "",
   );
 const checkedCount = (): number => document.querySelectorAll(".element input:checked").length;
+const groupRow = (label: string): HTMLElement => {
+  const found = document.querySelector<HTMLElement>(`.group-row[data-label="${label}"]`);
+  if (found === null) throw new Error(`no row for group ${label}`);
+  return found;
+};
+const search = (): HTMLInputElement => {
+  const input = document.querySelector<HTMLInputElement>("#group-search");
+  if (input === null) throw new Error("no search box");
+  return input;
+};
+const typeQuery = (value: string): void => {
+  search().value = value;
+  search().dispatchEvent(new Event("input"));
+};
 const arrows = (): SVGPathElement[] =>
   Array.from(document.querySelectorAll("#diagram .edges path"));
 const arrowColours = (): string[] => [
@@ -160,7 +182,59 @@ describe("groups page", () => {
     expect(document.querySelector("#element-sections")?.textContent).toContain("Select a subgroup");
   });
 
+  it("lists the whole catalogue in the left panel", () => {
+    expect(document.querySelectorAll(".group-row")).toHaveLength(526);
+    expect(document.querySelector("#group-count")?.textContent).toBe("526 groups");
+    expect(groupRow(C3_C4.label).classList.contains("selected")).toBe(true);
+  });
+
+  it("narrows the list as you type, and puts it back", () => {
+    typeQuery("60.5");
+    expect(document.querySelectorAll(".group-row")).toHaveLength(1);
+    expect(groupRow("60.5")).not.toBeNull();
+    expect(document.querySelector("#group-count")?.textContent).toContain("of 526");
+    typeQuery("");
+    expect(document.querySelectorAll(".group-row")).toHaveLength(526);
+  });
+
+  it("offers both of C_3:C_4's representations, the smallest first", () => {
+    const row = Array.from(document.querySelectorAll("#representation-row .representation"));
+    expect(row.map((button) => button.getAttribute("data-representation"))).toEqual([
+      "perm-7",
+      "12T5",
+    ]);
+    expect(row[0].getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("redraws at the new degree when the representation changes", () => {
+    document.querySelector<HTMLElement>('[data-representation="12T5"]')?.click();
+    expect(document.querySelectorAll("#diagram .node")).toHaveLength(12);
+    // The regular representation is transitive, so the points are one orbit.
+    document.querySelector<HTMLElement>('[data-representation="perm-7"]')?.click();
+    expect(document.querySelectorAll("#diagram .node")).toHaveLength(7);
+  });
+
+  it("switches group, resetting the diagram and the selection", () => {
+    groupRow("8.3").click();
+    expect(document.querySelector("#group-name")?.textContent).toBe("D₄");
+    expect(document.querySelector("#group-label")?.textContent).toBe("8.3");
+    expect(document.querySelectorAll("#diagram .node")).toHaveLength(4);
+    expect(groupRow("8.3").classList.contains("selected")).toBe(true);
+    expect(groupRow(C3_C4.label).classList.contains("selected")).toBe(false);
+    // A new group opens with one generator already drawn.
+    expect(checkedCount()).toBe(1);
+    expect(arrows().length).toBeGreaterThan(0);
+  });
+
+  it("links the label to LMFDB", () => {
+    expect(document.querySelector<HTMLAnchorElement>("#group-label")?.href).toBe(
+      "https://www.lmfdb.org/Groups/Abstract/8.3",
+    );
+  });
+
   it("respreads the colours as the number of generators drawn changes", () => {
+    groupRow(C3_C4.label).click();
+    latticeNode("C₆").dispatchEvent(new MouseEvent("click"));
     const inputs = () =>
       Array.from(sectionFor("₃C₄").querySelectorAll<HTMLInputElement>(".element input"));
     latticeNode("₃C₄").dispatchEvent(new MouseEvent("click"));
