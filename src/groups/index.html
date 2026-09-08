@@ -216,8 +216,13 @@
         opacity: 0.25;
       }
 
+      /*
+        The lattice is scaled whole rather than re-laid-out: stretching it is
+        just a bigger picture of the same diagram, so the SVG fills the panel
+        and the viewBox carries the height along with it.
+      */
       #lattice-panel {
-        max-width: 24rem;
+        max-width: 60%;
       }
 
       .hint {
@@ -227,7 +232,7 @@
       }
 
       .lattice {
-        max-width: 100%;
+        width: 100%;
         height: auto;
         overflow: visible;
       }
