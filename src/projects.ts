@@ -16,4 +16,9 @@ export const projects: Project[] = [
     title: "Dice Roller",
     description: "Roll a handful of dice; your last roll is remembered.",
   },
+  {
+    slug: "groups",
+    title: "Abstract Groups",
+    description: "Permutation diagrams for abstract groups, with data baked from the LMFDB.",
+  },
 ];
