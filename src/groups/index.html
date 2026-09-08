@@ -17,7 +17,7 @@
         margin: 0;
         height: 100vh;
         display: grid;
-        grid-template-columns: 240px 1fr 260px;
+        grid-template-columns: 240px 1fr 300px;
         gap: 1px;
         background: var(--edge);
       }
@@ -79,6 +79,56 @@
       .diagram .node text {
         font-size: 15px;
         fill: currentColor;
+      }
+
+      .element-sections {
+        display: flex;
+        flex-direction: column;
+        gap: 1.1rem;
+      }
+
+      .element-section h3 {
+        font-size: 0.9rem;
+        font-style: italic;
+        margin: 0 0 0.35rem;
+      }
+
+      .element-section .muted {
+        font-style: normal;
+        font-weight: 400;
+        font-size: 0.72rem;
+        opacity: 0.55;
+      }
+
+      .conjugate h4 {
+        font-size: 0.68rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        opacity: 0.5;
+        margin: 0.45rem 0 0.2rem;
+      }
+
+      .element {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.12rem 0;
+        cursor: pointer;
+      }
+
+      .element code {
+        font-size: 0.78rem;
+      }
+
+      .swatch {
+        width: 0.7rem;
+        height: 0.7rem;
+        border-radius: 50%;
+        flex: none;
+      }
+
+      .element input:not(:checked) + .swatch {
+        opacity: 0.25;
       }
 
       #lattice-panel {
@@ -169,8 +219,8 @@
     </section>
 
     <section id="panel-right">
-      <h2>Selection</h2>
-      <p class="placeholder">Details of the selected element or subgroup land here.</p>
+      <h2>Generators</h2>
+      <div id="element-sections"></div>
     </section>
 
     <script type="module" src="./main.ts"></script>

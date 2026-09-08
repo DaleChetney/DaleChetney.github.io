@@ -20,16 +20,41 @@ const latticeNode = (label: string): SVGGElement => {
   return found;
 };
 
-const arrowCount = (): number => document.querySelectorAll("#diagram .edges path").length;
+const sectionFor = (label: string): HTMLElement => {
+  const found = Array.from(document.querySelectorAll<HTMLElement>(".element-section")).find(
+    (node) => node.querySelector("h3")?.firstChild?.textContent === label,
+  );
+  if (found === undefined) throw new Error(`no section for ${label}`);
+  return found;
+};
+
+const sectionLabels = (): string[] =>
+  Array.from(document.querySelectorAll(".element-section h3")).map(
+    (h3) => h3.firstChild?.textContent ?? "",
+  );
 const completing = (): string[] =>
   Array.from(document.querySelectorAll(".lattice-node.completing text")).map(
     (text) => text.textContent ?? "",
   );
+const checkedCount = (): number => document.querySelectorAll(".element input:checked").length;
+const arrows = (): SVGPathElement[] =>
+  Array.from(document.querySelectorAll("#diagram .edges path"));
+
+/** Paths that share a from/to pair, grouped by that pair. */
+const sharedPaths = (): SVGPathElement[][] => {
+  const bundles = new Map<string, SVGPathElement[]>();
+  for (const path of arrows()) {
+    const key = `${path.getAttribute("data-from")}->${path.getAttribute("data-to")}`;
+    bundles.set(key, [...(bundles.get(key) ?? []), path]);
+  }
+  return [...bundles.values()].filter((bundle) => bundle.length > 1);
+};
 
 describe("groups page", () => {
-  it("mounts both diagrams", () => {
+  it("mounts all three views", () => {
     expect(document.querySelector("#diagram svg")).not.toBeNull();
     expect(document.querySelector("#lattice svg")).not.toBeNull();
+    expect(document.querySelector("#element-sections .element-sections")).not.toBeNull();
   });
 
   it("draws a node for every point of the default representation", () => {
@@ -43,43 +68,79 @@ describe("groups page", () => {
     expect(document.querySelector("#group-label")?.textContent).toContain(C3_C4.label);
   });
 
-  it("labels the lattice the way LMFDB does", () => {
-    const labels = Array.from(document.querySelectorAll(".lattice-node text")).map(
-      (text) => text.textContent,
-    );
-    expect(labels.sort()).toEqual(["C₁", "C₂", "C₃", "C₆", "C₃ ⋊ C₄", "₃C₄"].sort());
-  });
-
-  it("starts with one cyclic subgroup selected and its arrows drawn", () => {
-    expect(document.querySelectorAll(".lattice-node.selected")).toHaveLength(1);
-    expect(arrowCount()).toBeGreaterThan(0);
-  });
-
-  it("marks only C_4 as completing the selection of C_6", () => {
-    // <C_6, C_4> is the whole group; C_2 and C_3 both lie inside C_6.
-    expect(latticeNode("C₆").classList).toContain("selected");
+  it("opens a section for the subgroup selected by default", () => {
+    expect(sectionLabels()).toEqual(["C₆"]);
+    // C_6 has one conjugate, so its two generators are listed flat.
+    expect(sectionFor("C₆").querySelectorAll(".conjugate")).toHaveLength(0);
+    expect(sectionFor("C₆").querySelectorAll(".element")).toHaveLength(2);
+    expect(checkedCount()).toBe(1);
     expect(completing()).toEqual(["₃C₄"]);
   });
 
-  it("draws more arrows and clears the prompt once a generating set is chosen", () => {
-    const before = arrowCount();
+  it("opens a second section, grouped by conjugate, when C_4 is selected", () => {
     latticeNode("₃C₄").dispatchEvent(new MouseEvent("click"));
-    expect(document.querySelectorAll(".lattice-node.selected")).toHaveLength(2);
-    expect(arrowCount()).toBeGreaterThan(before);
-    // <C_6, C_4> generates, so nothing is outstanding.
+    expect(sectionLabels().sort()).toEqual(["C₆", "₃C₄"].sort());
+    const c4 = sectionFor("₃C₄");
+    expect(c4.querySelectorAll(".conjugate")).toHaveLength(3);
+    expect(c4.querySelectorAll(".element")).toHaveLength(6);
+    expect(c4.querySelector(".muted")?.textContent).toContain("6 generators");
+    // <C_6, C_4> is the whole group, so nothing is outstanding.
     expect(completing()).toEqual([]);
   });
 
-  it("re-marks what is missing when the selection drops back", () => {
+  it("asks for more again once C_6 is dropped", () => {
     latticeNode("C₆").dispatchEvent(new MouseEvent("click"));
-    expect(document.querySelectorAll(".lattice-node.selected")).toHaveLength(1);
+    expect(sectionLabels()).toEqual(["₃C₄"]);
+    expect(checkedCount()).toBe(1);
     expect(completing().sort()).toEqual(["C₃", "C₆"]);
   });
 
-  it("ignores clicks on the trivial subgroup and the whole group", () => {
-    const before = document.querySelectorAll(".lattice-node.selected").length;
-    latticeNode("C₁").dispatchEvent(new MouseEvent("click"));
-    latticeNode("C₃ ⋊ C₄").dispatchEvent(new MouseEvent("click"));
-    expect(document.querySelectorAll(".lattice-node.selected")).toHaveLength(before);
+  it("completes the group from two C_4 generators in different conjugates", () => {
+    const groups = sectionFor("₃C₄").querySelectorAll(".conjugate");
+    const second = groups[1].querySelector<HTMLInputElement>(".element input");
+    second?.click();
+    expect(checkedCount()).toBe(2);
+    // Two order-4 elements generate C_3:C_4 exactly when their conjugates differ.
+    expect(completing()).toEqual([]);
+  });
+
+  it("thins the arrows that now share a path", () => {
+    // Both chosen generators contain the 4-cycle (4 5 6 7), so four arrows coincide.
+    const bundles = sharedPaths();
+    expect(bundles).toHaveLength(4);
+    for (const bundle of bundles) {
+      const widths = bundle.map((path) => Number(path.getAttribute("stroke-width")));
+      expect(new Set(widths).size).toBe(widths.length);
+    }
+  });
+
+  it("keeps the section open when its last element is cleared", () => {
+    // Each click redraws the panel, so re-query rather than walking a snapshot.
+    const nextChecked = () =>
+      sectionFor("₃C₄").querySelector<HTMLInputElement>(".element input:checked");
+    for (let input = nextChecked(); input !== null; input = nextChecked()) {
+      input.click();
+    }
+    expect(sectionLabels()).toEqual(["₃C₄"]);
+    expect(checkedCount()).toBe(0);
+    expect(arrows()).toHaveLength(0);
+  });
+
+  it("keeps focus on a checkbox across the redraw it triggers", () => {
+    latticeNode("C₆").dispatchEvent(new MouseEvent("click"));
+    const input = sectionFor("C₆").querySelector<HTMLInputElement>(".element input");
+    input?.focus();
+    const key = input?.closest("[data-element]")?.getAttribute("data-element");
+    input?.click();
+    expect(document.activeElement?.closest("[data-element]")?.getAttribute("data-element")).toBe(
+      key,
+    );
+    latticeNode("C₆").dispatchEvent(new MouseEvent("click"));
+  });
+
+  it("prompts again when every subgroup is dropped", () => {
+    latticeNode("₃C₄").dispatchEvent(new MouseEvent("click"));
+    expect(document.querySelectorAll(".element-section")).toHaveLength(0);
+    expect(document.querySelector("#element-sections")?.textContent).toContain("Select a subgroup");
   });
 });

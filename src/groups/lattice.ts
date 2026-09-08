@@ -1,5 +1,4 @@
 import type { SubgroupClass, SubgroupLattice } from "@shared/subgroups";
-import { generatorColour } from "./render";
 import { svg } from "./svg";
 
 export interface LatticeNode {
@@ -127,13 +126,13 @@ export interface LatticeView {
 }
 
 /**
- * Render the lattice. Selectable nodes carry the colour their generator's
- * arrows use in the main diagram, so the two panels read as one selection.
+ * Render the lattice. A node carries the colour of the first generator chosen
+ * from it, so the lattice and the main diagram read as one selection.
  */
 export const renderLattice = (
   diagram: LatticeDiagram,
   view: LatticeView,
-  generatorIndex: (nodeIndex: number) => number,
+  nodeColour: (nodeIndex: number) => string | null,
 ): SVGSVGElement => {
   const root = svg("svg", {
     viewBox: `0 0 ${diagram.width} ${diagram.height}`,
@@ -171,7 +170,8 @@ export const renderLattice = (
       "dominant-baseline": "central",
     });
     label.textContent = node.label;
-    if (selected) label.setAttribute("fill", generatorColour(generatorIndex(node.index)));
+    const colour = nodeColour(node.index);
+    if (colour !== null) label.setAttribute("fill", colour);
 
     // A transparent pill behind the label gives the node a usable hit area and
     // somewhere for the selected and completing styles to land.

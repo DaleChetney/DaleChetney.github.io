@@ -3,7 +3,16 @@ import { arrowStrokeWidths, NODE_RADIUS } from "./layout";
 import { svg } from "./svg";
 
 /** Colours for generator arrows, readable against both light and dark grounds. */
-export const GENERATOR_COLOURS = ["#c1436d", "#1f8a76", "#6d5bd0", "#b3701a"];
+export const GENERATOR_COLOURS = [
+  "#c1436d",
+  "#1f8a76",
+  "#6d5bd0",
+  "#b3701a",
+  "#2f6fb0",
+  "#8a7a12",
+  "#a8442a",
+  "#4a7a2c",
+];
 
 export const generatorColour = (index: number): string =>
   GENERATOR_COLOURS[index % GENERATOR_COLOURS.length];
