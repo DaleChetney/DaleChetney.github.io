@@ -6,6 +6,7 @@ import {
   generatePermutationGroup,
   identityPermutation,
   permutationCycles,
+  permutationFromCycles,
   permutationOrbits,
   permutationOrder,
   type Permutation,
@@ -187,6 +188,63 @@ describe("permutationCycles", () => {
       [1, 2, 3],
       [4, 6, 5],
     ]);
+  });
+});
+
+describe("permutationFromCycles", () => {
+  it("fixes every point when there are no cycles", () => {
+    expect(permutationFromCycles([], 5)).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it("fixes the points no cycle mentions", () => {
+    expect(permutationFromCycles([[2, 3]], 4)).toEqual([1, 3, 2, 4]);
+  });
+
+  it("sends the last point of a cycle back to the first", () => {
+    expect(permutationFromCycles([[1, 2, 3]], 3)).toEqual([2, 3, 1]);
+  });
+
+  it("takes a fixed point written as a cycle of one", () => {
+    expect(permutationFromCycles([[1], [2, 3]], 3)).toEqual([1, 3, 2]);
+  });
+
+  it("rejects a point outside the degree", () => {
+    expect(() => permutationFromCycles([[1, 5]], 4)).toThrow(RangeError);
+    expect(() => permutationFromCycles([[0, 1]], 4)).toThrow(RangeError);
+  });
+
+  it("rejects a point used twice", () => {
+    expect(() =>
+      permutationFromCycles(
+        [
+          [1, 2],
+          [2, 3],
+        ],
+        4,
+      ),
+    ).toThrow(RangeError);
+    expect(() => permutationFromCycles([[1, 2, 1]], 4)).toThrow(RangeError);
+  });
+
+  it("inverts permutationCycles", () => {
+    const perm = [8, 1, 6, 11, 4, 9, 2, 7, 12, 5, 10, 3];
+    expect(permutationFromCycles(permutationCycles(perm), 12)).toEqual(perm);
+  });
+
+  // gps_transitive stores generators as cycles, so this is the shape a
+  // transitive representation actually arrives in. 12T5 is C_3:C_4 acting
+  // regularly, and this generator is the one already baked in one-line form.
+  it("reads LMFDB 12T5's first generator", () => {
+    expect(
+      permutationFromCycles(
+        [
+          [1, 8, 7, 2],
+          [3, 6, 9, 12],
+          [4, 11, 10, 5],
+        ],
+        12,
+      ),
+    ).toEqual([8, 1, 6, 11, 4, 9, 2, 7, 12, 5, 10, 3]);
   });
 });
 

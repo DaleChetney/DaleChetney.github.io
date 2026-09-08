@@ -108,6 +108,34 @@ export const permutationCycles = (perm: Permutation): number[][] => {
   return result;
 };
 
+/**
+ * A permutation from its cycles, the inverse of `permutationCycles`.
+ *
+ * `gps_transitive.gens` records generators this way rather than as codes, so a
+ * transitive representation arrives as a list of cycles and has to be turned
+ * back into one-line form. Points left out of every cycle are fixed.
+ */
+export const permutationFromCycles = (
+  cycles: readonly (readonly number[])[],
+  degree: number,
+): Permutation => {
+  const image = Array.from({ length: degree }, (_, i) => i + 1);
+  const moved = new Set<number>();
+  for (const cycle of cycles) {
+    for (const point of cycle) {
+      if (!Number.isInteger(point) || point < 1 || point > degree) {
+        throw new RangeError(`Point ${point} is outside 1..${degree}`);
+      }
+      if (moved.has(point)) throw new RangeError(`Point ${point} appears in two cycles`);
+      moved.add(point);
+    }
+    cycle.forEach((point, i) => {
+      image[point - 1] = cycle[(i + 1) % cycle.length];
+    });
+  }
+  return image;
+};
+
 /** Cycle notation, e.g. `(1 2 3)(4 5)`. The identity renders as `()`. */
 export const formatPermutation = (perm: Permutation): string => {
   const cycles = permutationCycles(perm);
