@@ -1,24 +1,12 @@
 import type { ActionArrow, Diagram } from "./layout";
 import { NODE_RADIUS } from "./layout";
-
-const SVG_NS = "http://www.w3.org/2000/svg";
+import { svg } from "./svg";
 
 /** Colours for generator arrows, readable against both light and dark grounds. */
 export const GENERATOR_COLOURS = ["#c1436d", "#1f8a76", "#6d5bd0", "#b3701a"];
 
 export const generatorColour = (index: number): string =>
   GENERATOR_COLOURS[index % GENERATOR_COLOURS.length];
-
-const svg = <K extends keyof SVGElementTagNameMap>(
-  tag: K,
-  attributes: Record<string, string | number> = {},
-): SVGElementTagNameMap[K] => {
-  const node = document.createElementNS(SVG_NS, tag);
-  for (const [name, value] of Object.entries(attributes)) {
-    node.setAttribute(name, String(value));
-  }
-  return node;
-};
 
 /** How far an arrow bows away from the straight chord, in user units. */
 const bowOffset = (distance: number): number => Math.min(distance * 0.18, 34) + 6;
