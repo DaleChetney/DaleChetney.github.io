@@ -81,7 +81,7 @@ describe("renderLattice", () => {
     renderLattice(
       diagram,
       { selected: new Set(), completing: new Set(), onToggle: () => {}, ...over },
-      () => 0,
+      () => null,
     );
 
   it("draws every node and cover", () => {
