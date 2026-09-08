@@ -226,6 +226,30 @@ describe("groups page", () => {
     expect(arrows().length).toBeGreaterThan(0);
   });
 
+  it("lays the diagram out again when the window resizes", () => {
+    const diagramWidth = (): number =>
+      Number(document.querySelector("#diagram svg")?.getAttribute("width"));
+    const stage = document.querySelector("#diagram");
+    const before = diagramWidth();
+
+    // jsdom reports every element as zero-width, so the measurement the layout
+    // makes has to be stood up by hand.
+    Object.defineProperty(stage, "clientWidth", { value: 1600, configurable: true });
+    window.dispatchEvent(new Event("resize"));
+    const after = diagramWidth();
+
+    expect(after).toBeGreaterThan(before);
+    // Wider, but not a bigger picture: the nodes are the same size as before.
+    const radii = Array.from(document.querySelectorAll("#diagram .node circle")).map((node) =>
+      node.getAttribute("r"),
+    );
+    expect(new Set(radii)).toEqual(new Set(["17"]));
+
+    Object.defineProperty(stage, "clientWidth", { value: 0, configurable: true });
+    window.dispatchEvent(new Event("resize"));
+    expect(diagramWidth()).toBe(before);
+  });
+
   it("links the label to LMFDB", () => {
     expect(document.querySelector<HTMLAnchorElement>("#group-label")?.href).toBe(
       "https://www.lmfdb.org/Groups/Abstract/8.3",

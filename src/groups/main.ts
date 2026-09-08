@@ -16,7 +16,13 @@ import {
 } from "./catalogue";
 import { elementKey, renderElementSections, type ElementSection } from "./elements-panel";
 import { filterGroups, groupListCaption, renderGroupList } from "./group-list";
-import { actionArrows, layoutOrbits, type Diagram } from "./layout";
+import {
+  actionArrows,
+  diagramWidthShare,
+  DEFAULT_TARGET_WIDTH,
+  layoutOrbits,
+  type Diagram,
+} from "./layout";
 import { classLabel, layoutLattice, renderLattice, type LatticeDiagram } from "./lattice";
 import { renderDiagram } from "./render";
 import { renderRepresentationRow } from "./representation-row";
@@ -30,10 +36,31 @@ const DEFAULT_LABEL = "12.1";
 const catalogue = await fetchCatalogue();
 const groups = byLabel(catalogue);
 
+const stage = qs("#diagram");
+const latticeHost = qs("#lattice");
+const panel = qs("#element-sections");
+const listHost = qs("#group-list");
+const countHost = qs("#group-count");
+const representationHost = qs("#representation-row");
+const search = qs<HTMLInputElement>("#group-search");
+
+/**
+ * Lay the rings out to the share of the panel this many of them have earned.
+ * The panel is measured rather than assumed, so the diagram spreads to the
+ * window it is actually in.
+ */
+const layoutDiagram = (orbits: readonly (readonly number[])[]): Diagram =>
+  layoutOrbits(
+    orbits,
+    (stage.clientWidth || DEFAULT_TARGET_WIDTH) * diagramWidthShare(orbits.length),
+  );
+
 /** Everything derived from one group in one representation. */
 interface Scene {
   group: CatalogueGroup;
   representation: CatalogueRepresentation;
+  /** Kept so the diagram can be laid out again when the window changes size. */
+  orbits: number[][];
   diagram: Diagram;
   lattice: SubgroupLattice;
   latticeDiagram: LatticeDiagram;
@@ -72,10 +99,13 @@ const buildScene = (group: CatalogueGroup, representation: CatalogueRepresentati
     (index) => choices.get(index)?.elements.map((choice) => choice.permutation) ?? [],
   );
 
+  const orbits = permutationOrbits(generators, degree);
+
   return {
     group,
     representation,
-    diagram: layoutOrbits(permutationOrbits(generators, degree)),
+    orbits,
+    diagram: layoutDiagram(orbits),
     lattice,
     latticeDiagram: layoutLattice(lattice, group.order, group.displayName),
     selectableClasses,
@@ -169,14 +199,6 @@ const sections = (): ElementSection[] =>
       conjugateCount: scene.lattice.classes[classIndex].count,
       choices: choicesFor(classIndex),
     }));
-
-const stage = qs("#diagram");
-const latticeHost = qs("#lattice");
-const panel = qs("#element-sections");
-const listHost = qs("#group-list");
-const countHost = qs("#group-count");
-const representationHost = qs("#representation-row");
-const search = qs<HTMLInputElement>("#group-search");
 
 /**
  * Redrawing replaces every node, which would drop focus after each toggle and
@@ -299,6 +321,13 @@ function selectRepresentation(id: string): void {
 search.addEventListener("input", () => {
   query = search.value;
   drawGroups();
+});
+
+// The diagram is laid out to a measured width, so a resized window wants a new
+// layout rather than a scaled one — the nodes should keep their size.
+window.addEventListener("resize", () => {
+  scene = { ...scene, diagram: layoutDiagram(scene.orbits) };
+  draw();
 });
 
 showScene(scene);
