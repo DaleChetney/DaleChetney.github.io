@@ -95,3 +95,33 @@ export const actionArrows = (
   });
   return arrows;
 };
+
+/** Stroke width of an arrow that shares its path with no other. */
+export const ARROW_WIDTH = 2.2;
+
+/** How much wider each further arrow on a shared path is drawn. */
+const ARROW_WIDTH_STEP = 1.3;
+
+/**
+ * Stroke widths, aligned with `arrows`. Different generators can send the same
+ * point to the same image, and those arrows trace the same curve exactly. Rather
+ * than hide all but the last, the ones sharing a path are widened in steps so
+ * that drawing widest-first leaves each visible as a band inside the one behind
+ * it. The shared path is the honest picture: it really is one map, induced by
+ * several generators.
+ */
+export const arrowStrokeWidths = (arrows: readonly ActionArrow[]): number[] => {
+  const bundles = new Map<string, number>();
+  const pathKey = (arrow: ActionArrow): string => `${arrow.from.point}->${arrow.to.point}`;
+  for (const arrow of arrows) {
+    bundles.set(pathKey(arrow), (bundles.get(pathKey(arrow)) ?? 0) + 1);
+  }
+  const drawn = new Map<string, number>();
+  return arrows.map((arrow) => {
+    const key = pathKey(arrow);
+    const position = drawn.get(key) ?? 0;
+    drawn.set(key, position + 1);
+    const remaining = (bundles.get(key) ?? 1) - 1 - position;
+    return ARROW_WIDTH + remaining * ARROW_WIDTH_STEP;
+  });
+};

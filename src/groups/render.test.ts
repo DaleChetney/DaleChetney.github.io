@@ -52,3 +52,37 @@ describe("renderDiagram", () => {
     expect(render([]).getAttribute("viewBox")).toBe(`0 0 ${diagram.width} ${diagram.height}`);
   });
 });
+
+describe("renderDiagram with overlapping arrows", () => {
+  const overlapping = [
+    [1, 3, 2, 5, 6, 7, 4], // (2 3)(4 5 6 7)
+    [2, 1, 3, 5, 6, 7, 4], // (1 2)(4 5 6 7)
+  ];
+  const overlapDiagram = layoutOrbits([
+    [1, 2, 3],
+    [4, 5, 6, 7],
+  ]);
+  const root = renderDiagram(
+    overlapDiagram,
+    actionArrows(overlapDiagram, overlapping, new Set([0, 1])),
+  );
+  const widthsOf = (selector: string): number[] =>
+    Array.from(root.querySelectorAll(selector)).map((path) =>
+      Number(path.getAttribute("stroke-width")),
+    );
+
+  it("draws both arrows on a shared path at different widths", () => {
+    const shared = widthsOf('.edges path[data-from="4"][data-to="5"]');
+    expect(shared).toHaveLength(2);
+    expect(new Set(shared).size).toBe(2);
+  });
+
+  it("draws the widest first, so the narrower sits on top", () => {
+    const widths = widthsOf(".edges path");
+    expect([...widths].sort((a, b) => b - a)).toEqual(widths);
+  });
+
+  it("still draws every arrow", () => {
+    expect(root.querySelectorAll(".edges path")).toHaveLength(12);
+  });
+});
