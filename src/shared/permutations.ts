@@ -54,6 +54,15 @@ export const decodePermutation = (index: number, degree: number): Permutation =>
 export const composePermutations = (a: Permutation, b: Permutation): Permutation =>
   b.map((point) => a[point - 1]);
 
+/** The inverse of `perm`. */
+export const invertPermutation = (perm: Permutation): Permutation => {
+  const inverse = new Array<number>(perm.length);
+  perm.forEach((image, i) => {
+    inverse[image - 1] = i + 1;
+  });
+  return inverse;
+};
+
 /** The nontrivial cycles of `perm`, each listed from its smallest point. */
 export const permutationCycles = (perm: Permutation): number[][] => {
   const seen = new Set<number>();
