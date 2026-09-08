@@ -32,6 +32,6 @@ export default defineConfig({
     // test files.
     root: resolve(root, ".."),
     environment: "node",
-    include: ["src/**/*.test.ts"],
+    include: ["src/**/*.test.ts", "scripts/**/*.test.ts"],
   },
 });
