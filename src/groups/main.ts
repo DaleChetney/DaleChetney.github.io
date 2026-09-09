@@ -1,4 +1,5 @@
 import { equidistantColours } from "@shared/colours";
+import { findIsomorphism, type GroupIsomorphism } from "@shared/isomorphism";
 import { mount, qs } from "@shared/dom";
 import { permutationOrbits, type Permutation } from "@shared/permutations";
 import {
@@ -6,6 +7,7 @@ import {
   generatesWholeGroup,
   generatorElements,
   type GeneratorChoices,
+  type SubgroupClass,
   type SubgroupLattice,
 } from "@shared/subgroups";
 import {
@@ -294,13 +296,82 @@ const toggleElement = (key: string): void => {
 };
 
 /** Open a scene with one generator already drawn, so the diagram is never bare. */
-const showScene = (next: Scene): void => {
+/**
+ * The class in `to` that holds the image of this class's generator.
+ *
+ * A cyclic subgroup is pinned down by any one of its generators, so following
+ * that one element is enough to find the class again on the other side.
+ */
+const mappedClass = (
+  subgroupClass: SubgroupClass,
+  isomorphism: GroupIsomorphism,
+  to: Scene,
+): number | undefined => {
+  if (subgroupClass.generator === null) return undefined;
+  const mapped = isomorphism.get(elementKey(subgroupClass.generator));
+  if (mapped === undefined) return undefined;
+  const key = elementKey(mapped);
+  return to.selectableClasses.find(
+    (index) =>
+      to.lattice.classes[index].order === subgroupClass.order &&
+      to.lattice.classes[index].conjugates.some((conjugate) =>
+        conjugate.elements.some((element) => elementKey(element) === key),
+      ),
+  );
+};
+
+/**
+ * The current selection, written in another representation of the same group.
+ *
+ * The two representations share no correspondence between their generators, so
+ * the elements have to be carried across an isomorphism computed for the
+ * purpose. Which isomorphism is not canonical — any two differ by an
+ * automorphism — but every one of them preserves what the selection is for:
+ * subgroups keep their order, and a set that generated the group still does.
+ *
+ * An element outside the target class's offered generators is dropped, leaving
+ * its section open and empty, the same as clearing it by hand.
+ */
+const carrySelection = (from: Scene, to: Scene): Map<number, Set<string>> | null => {
+  const isomorphism = findIsomorphism(
+    from.representation.generators,
+    from.representation.degree,
+    to.representation.generators,
+    to.representation.degree,
+  );
+  if (isomorphism === null) return null;
+
+  const carried = new Map<number, Set<string>>();
+  for (const [classIndex, keys] of selection) {
+    const target = mappedClass(from.lattice.classes[classIndex], isomorphism, to);
+    if (target === undefined) continue;
+    const elements = [...keys]
+      .map((key) => isomorphism.get(key))
+      .filter((permutation) => permutation !== undefined)
+      .map(elementKey)
+      .filter((key) => to.classOfElement.get(key) === target);
+    carried.set(target, new Set(elements));
+  }
+  return carried;
+};
+
+/**
+ * Show a scene. Without a selection to carry over it opens with one generator
+ * already drawn, so the diagram is never bare.
+ */
+const showScene = (next: Scene, carried: Map<number, Set<string>> | null): void => {
   scene = next;
-  selection = new Map();
   qs("#group-name").textContent = scene.group.displayName;
   const label = qs<HTMLAnchorElement>("#group-label");
   label.textContent = scene.group.label;
   label.href = `https://www.lmfdb.org/Groups/Abstract/${scene.group.label}`;
+
+  if (carried !== null) {
+    selection = carried;
+    draw();
+    return;
+  }
+  selection = new Map();
   const last = scene.selectableClasses[scene.selectableClasses.length - 1];
   if (last !== undefined) toggleClass(last);
   else draw();
@@ -308,14 +379,16 @@ const showScene = (next: Scene): void => {
 
 function selectGroup(label: string): void {
   const group = groupFor(label);
-  showScene(buildScene(group, group.representations[0]));
+  showScene(buildScene(group, group.representations[0]), null);
   drawGroups();
 }
 
 function selectRepresentation(id: string): void {
   const representation =
     scene.group.representations.find((rep) => rep.id === id) ?? scene.group.representations[0];
-  showScene(buildScene(scene.group, representation));
+  if (representation.id === scene.representation.id) return;
+  const next = buildScene(scene.group, representation);
+  showScene(next, carrySelection(scene, next));
 }
 
 search.addEventListener("input", () => {
@@ -330,5 +403,5 @@ window.addEventListener("resize", () => {
   draw();
 });
 
-showScene(scene);
+showScene(scene, null);
 drawGroups();

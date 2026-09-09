@@ -214,6 +214,43 @@ describe("groups page", () => {
     expect(document.querySelectorAll("#diagram .node")).toHaveLength(7);
   });
 
+  it("keeps the selection when the representation changes", () => {
+    groupRow(C3_C4.label).click();
+    latticeNode("₃C₄").dispatchEvent(new MouseEvent("click"));
+    latticeNode("C₆").dispatchEvent(new MouseEvent("click"));
+    const conjugates = sectionFor("₃C₄").querySelectorAll(".conjugate");
+    conjugates[1].querySelector<HTMLInputElement>(".element input")?.click();
+    expect(sectionLabels()).toEqual(["₃C₄"]);
+    expect(checkedCount()).toBe(2);
+    // Two order-4 elements from different conjugates generate the group.
+    expect(completing()).toEqual([]);
+
+    document.querySelector<HTMLElement>('[data-representation="12T5"]')?.click();
+    expect(document.querySelectorAll("#diagram .node")).toHaveLength(12);
+    expect(sectionLabels()).toEqual(["₃C₄"]);
+    expect(checkedCount()).toBe(2);
+    // Still a generating pair, so the carry kept them in different conjugates
+    // rather than just picking two elements of the right order.
+    expect(completing()).toEqual([]);
+
+    document.querySelector<HTMLElement>('[data-representation="perm-7"]')?.click();
+    expect(document.querySelectorAll("#diagram .node")).toHaveLength(7);
+    expect(checkedCount()).toBe(2);
+    expect(completing()).toEqual([]);
+  });
+
+  it("keeps an empty selection empty across a representation change", () => {
+    groupRow(C3_C4.label).click();
+    latticeNode("C₆").dispatchEvent(new MouseEvent("click"));
+    expect(sectionLabels()).toEqual([]);
+    document.querySelector<HTMLElement>('[data-representation="12T5"]')?.click();
+    // Switching representation is not a fresh start, so nothing gets chosen for
+    // you the way it does on a new group.
+    expect(sectionLabels()).toEqual([]);
+    expect(arrows()).toHaveLength(0);
+    document.querySelector<HTMLElement>('[data-representation="perm-7"]')?.click();
+  });
+
   it("switches group, resetting the diagram and the selection", () => {
     groupRow("8.3").click();
     expect(document.querySelector("#group-name")?.textContent).toBe("D₄");
