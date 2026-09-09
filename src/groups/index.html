@@ -217,9 +217,11 @@
       }
 
       /*
-        The lattice is scaled whole rather than re-laid-out: stretching it is
-        just a bigger picture of the same diagram, so the SVG fills the panel
-        and the viewBox carries the height along with it.
+        The lattice is scaled whole rather than re-laid-out, since stretching a
+        Hasse diagram is just a bigger picture of the same thing. 60% is the
+        ceiling: renderLattice sizes the SVG to a share of it so that nodes come
+        out the same size in every lattice, and only one past ten columns wide
+        has to shrink to fit.
       */
       #lattice-panel {
         max-width: 60%;
@@ -232,7 +234,7 @@
       }
 
       .lattice {
-        width: 100%;
+        max-width: 100%;
         height: auto;
         overflow: visible;
       }
