@@ -2,7 +2,13 @@
 import { describe, it, expect, vi } from "vitest";
 import { decodePermutation } from "@shared/permutations";
 import { computeSubgroupLattice, type SubgroupClass } from "@shared/subgroups";
-import { classLabel, layoutLattice, renderLattice } from "./lattice";
+import {
+  classLabel,
+  LATTICE_REFERENCE_WIDTH,
+  latticeWidthShare,
+  layoutLattice,
+  renderLattice,
+} from "./lattice";
 
 const generators = [129, 16, 840].map((code) => decodePermutation(code, 7));
 const lattice = computeSubgroupLattice(generators, 7);
@@ -76,6 +82,24 @@ describe("layoutLattice", () => {
   });
 });
 
+describe("latticeWidthShare", () => {
+  it("gives the whole allowance to a lattice at the reference width", () => {
+    expect(latticeWidthShare(LATTICE_REFERENCE_WIDTH)).toBe(1);
+  });
+
+  it("never asks for more than the allowance", () => {
+    expect(latticeWidthShare(LATTICE_REFERENCE_WIDTH * 3)).toBe(1);
+  });
+
+  it("asks for a share in proportion to the width, so the scale is constant", () => {
+    // Two lattices at half and a fifth of the reference: the drawn width falls
+    // in the same proportion as the layout width, which is what leaves a node
+    // the same size in both.
+    expect(latticeWidthShare(LATTICE_REFERENCE_WIDTH / 2)).toBeCloseTo(0.5);
+    expect(latticeWidthShare(LATTICE_REFERENCE_WIDTH / 5)).toBeCloseTo(0.2);
+  });
+});
+
 describe("renderLattice", () => {
   const view = (over: Partial<Parameters<typeof renderLattice>[1]> = {}) =>
     renderLattice(
@@ -88,6 +112,23 @@ describe("renderLattice", () => {
     const root = view();
     expect(root.querySelectorAll(".lattice-node")).toHaveLength(6);
     expect(root.querySelectorAll(".lattice-edges line")).toHaveLength(7);
+  });
+
+  it("takes only the share of its allowance its width has earned", () => {
+    // C_3:C_4's lattice is two columns wide, so it uses a fifth of the room a
+    // ten-column one would, rather than stretching to fill it.
+    const share = latticeWidthShare(diagram.width);
+    expect(diagram.columns).toBe(2);
+    expect(share).toBeLessThan(0.3);
+    expect(view().style.width).toBe(`${(share * 100).toFixed(2)}%`);
+  });
+
+  it("scales every lattice alike, whatever its shape", () => {
+    // Drawn width over layout width is the scale, and so the size of a node.
+    const wide = layoutLattice(lattice, 12, "C₃ ⋊ C₄");
+    wide.width = LATTICE_REFERENCE_WIDTH / 2;
+    const scale = (d: typeof diagram) => latticeWidthShare(d.width) / d.width;
+    expect(scale(wide)).toBeCloseTo(scale(diagram), 10);
   });
 
   it("exposes selectable nodes as buttons and the rest as plain", () => {

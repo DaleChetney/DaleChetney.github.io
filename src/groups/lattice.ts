@@ -15,6 +15,8 @@ export interface LatticeDiagram {
   nodes: LatticeNode[];
   /** Cover relations, as `[upperNodeIndex, lowerNodeIndex]` into `nodes`. */
   edges: [number, number][];
+  /** Nodes in the widest level, which is what sets the diagram's width. */
+  columns: number;
   width: number;
   height: number;
 }
@@ -101,8 +103,23 @@ export const layoutLattice = (
     }
   });
 
-  return { nodes, edges, width, height };
+  return { nodes, edges, columns: widest, width, height };
 };
+
+/**
+ * The layout width that earns the lattice its whole allowance on the page.
+ *
+ * A diagram this wide is drawn at the full 60% the panel gives it, and every
+ * narrower one is drawn at the same scale rather than stretched to fill — so a
+ * lattice of two nodes has the same size nodes as a lattice of ten, and only a
+ * wider one is shrunk to fit. Ten columns is the calibration point because that
+ * is the size the nodes already read well at.
+ */
+export const LATTICE_REFERENCE_WIDTH = 10 * COLUMN_WIDTH + MARGIN_X * 2;
+
+/** How much of its allowance a lattice of this layout width should take. */
+export const latticeWidthShare = (width: number): number =>
+  Math.min(1, width / LATTICE_REFERENCE_WIDTH);
 
 /** Shorten a cover line at both ends so it does not run into the labels. */
 const trimmedLine = (
@@ -141,6 +158,9 @@ export const renderLattice = (
     class: "lattice",
     role: "group",
   });
+  // Width as a share of the allowance rather than all of it: the scale, and so
+  // the size of a node, is then the same whatever the lattice looks like.
+  root.style.width = `${(latticeWidthShare(diagram.width) * 100).toFixed(2)}%`;
 
   const lines = svg("g", { class: "lattice-edges" });
   for (const [upper, lower] of diagram.edges) {
