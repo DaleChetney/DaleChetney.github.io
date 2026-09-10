@@ -10,6 +10,8 @@ export interface LatticeNode {
   y: number;
   /** Only cyclic subgroups above the trivial one pick out a generator. */
   selectable: boolean;
+  /** The group itself, at the top: what the selection is trying to generate. */
+  whole: boolean;
 }
 
 export interface LatticeDiagram {
@@ -62,6 +64,7 @@ export const layoutLattice = (
         // Level 0 sits at the bottom, so higher levels get smaller y.
         y: height - MARGIN_Y - level * LEVEL_HEIGHT,
         selectable: entry.subgroupClass.cyclic && entry.subgroupClass.order > 1,
+        whole: entry.subgroupClass.order === wholeOrder,
       });
     });
   }
@@ -109,14 +112,19 @@ const trimmedLine = (
 export interface LatticeView {
   /** Node indices currently chosen as generators. */
   selected: ReadonlySet<number>;
-  /** Node indices that would complete the selection into a generating set. */
+  /** Node indices offering an element that would complete the selection into a generating set. */
   completing: ReadonlySet<number>;
+  /** Node indices whose chosen elements generate the whole group; empty until they do. */
+  generating: ReadonlySet<number>;
   onToggle: (nodeIndex: number) => void;
 }
 
 /**
  * Render the lattice. A node carries the colour of the first generator chosen
- * from it, so the lattice and the main diagram read as one selection.
+ * from it, so the lattice and the main diagram read as one selection. The
+ * completing nodes are outlined, and once the group is generated so are the
+ * classes that did it and the group itself: the outline is the one thing on the
+ * page that reads as a state of the selection.
  */
 export const renderLattice = (
   diagram: LatticeDiagram,
@@ -149,6 +157,9 @@ export const renderLattice = (
         node.selectable ? "selectable" : "fixed",
         selected ? "selected" : "",
         completing ? "completing" : "",
+        view.generating.has(node.index) || (node.whole && view.generating.size > 0)
+          ? "generating"
+          : "",
       ]
         .filter(Boolean)
         .join(" "),

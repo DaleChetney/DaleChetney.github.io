@@ -10,6 +10,13 @@
         color-scheme: light dark;
         --panel: color-mix(in srgb, canvas 92%, canvastext 8%);
         --edge: color-mix(in srgb, canvas 76%, canvastext 24%);
+        /*
+          The colour of being one element short of generating the group, and of
+          having got there. Generator colours are spread over the whole wheel, so
+          no hue can be kept clear of them; what sets this apart is that a
+          generator colour fills a label and this one only ever strokes an outline.
+        */
+        --completing: light-dark(#0e7a4e, #4fcf9a);
         font-family: system-ui, sans-serif;
       }
 
@@ -271,19 +278,34 @@
         fill: color-mix(in srgb, canvas 84%, canvastext 16%);
       }
 
-      .lattice-node.completing rect {
-        stroke: currentColor;
-        stroke-dasharray: 3 3;
-        opacity: 0.75;
+      /*
+        Dashed while an element that would complete the generating set is still
+        to be picked; solid, on the classes that did it and on the whole group,
+        once it is complete.
+      */
+      .lattice-node.completing rect,
+      .lattice-node.generating rect {
+        stroke: var(--completing);
+        stroke-width: 1.5;
       }
 
-      .lattice-node:focus-visible {
+      .lattice-node.completing rect {
+        stroke-dasharray: 3 3;
+      }
+
+      /*
+        A click leaves the node focused so the keyboard can carry on from it, but
+        the browser's own ring belongs to the keyboard, and on an SVG element it
+        is drawn for a click too. :focus-visible is what tells the two apart.
+      */
+      .lattice-node:focus {
         outline: none;
       }
 
       .lattice-node:focus-visible rect {
         stroke: currentColor;
         stroke-width: 2;
+        stroke-dasharray: none;
       }
     </style>
   </head>
@@ -311,8 +333,9 @@
       <div id="lattice-panel">
         <h2>Subgroups up to conjugacy</h2>
         <p class="hint">
-          Click a cyclic subgroup to draw one of its generators. Dashed nodes would complete the
-          selection into a generating set.
+          Click a cyclic subgroup to draw one of its generators. An outlined subgroup has an element
+          that would complete the selection into a generating set; the outline turns solid once it
+          is one.
         </p>
         <div id="lattice"></div>
       </div>

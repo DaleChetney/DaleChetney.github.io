@@ -176,17 +176,30 @@ export class Scene {
   }
 
   /**
+   * The classes whose chosen elements together generate the whole group, or
+   * nothing while they do not yet. An open class with nothing chosen from it
+   * has contributed nothing, so it is not among them.
+   */
+  generatingClasses(): Set<number> {
+    if (!this.#generatesGroup()) return new Set();
+    return new Set(
+      [...this.#selection].filter(([, keys]) => keys.size > 0).map(([classIndex]) => classIndex),
+    );
+  }
+
+  /**
    * Classes offering an element that would complete the selection into a
-   * generating set. Existential over the class's elements rather than just its
-   * first: which conjugate an element generates decides what it adds.
+   * generating set; empty once it is one. Existential over the class's
+   * elements rather than just its first: which conjugate an element generates
+   * decides what it adds, so an open class is still completing while another
+   * of its conjugates would finish the job.
    */
   completingClasses(): Set<number> {
     const completing = new Set<number>();
+    if (this.#generatesGroup()) return completing;
     const chosen = this.#chosenPermutations();
     const { degree } = this.representation;
-    if (generatesWholeGroup(chosen, degree, this.group.order)) return completing;
     for (const classIndex of this.selectableClasses) {
-      if (this.#selection.has(classIndex)) continue;
       const completes = this.choicesFor(classIndex).elements.some((choice) =>
         generatesWholeGroup([...chosen, choice.permutation], degree, this.group.order),
       );
@@ -250,6 +263,14 @@ export class Scene {
     const keys = this.#chosenKeys().sort((a, b) => this.#rankOf(a) - this.#rankOf(b));
     const scale = equidistantColours(keys.length);
     this.#colours = new Map(keys.map((key, index) => [key, scale[index]]));
+  }
+
+  #generatesGroup(): boolean {
+    return generatesWholeGroup(
+      this.#chosenPermutations(),
+      this.representation.degree,
+      this.group.order,
+    );
   }
 
   #chosenKeys(): string[] {

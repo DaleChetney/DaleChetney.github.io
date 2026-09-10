@@ -46,6 +46,11 @@ const completing = (): string[] =>
   Array.from(document.querySelectorAll(".lattice-node.completing text")).map(
     (text) => text.textContent ?? "",
   );
+/** Labels of the lattice nodes outlined as generating the group: the classes and the group. */
+const generating = (): string[] =>
+  Array.from(document.querySelectorAll(".lattice-node.generating text")).map(
+    (text) => text.textContent ?? "",
+  );
 const checkedCount = (): number => document.querySelectorAll(".element input:checked").length;
 const groupRow = (label: string): HTMLElement => {
   const found = document.querySelector<HTMLElement>(`.group-row[data-label="${label}"]`);
@@ -100,6 +105,7 @@ describe("groups page", () => {
     expect(sectionFor("C₆").querySelectorAll(".element")).toHaveLength(2);
     expect(checkedCount()).toBe(1);
     expect(completing()).toEqual(["₃C₄"]);
+    expect(generating()).toEqual([]);
   });
 
   it("colours only the swatches of the elements being drawn", () => {
@@ -124,13 +130,17 @@ describe("groups page", () => {
     expect(c4.querySelector(".muted")?.textContent).toContain("6 generators");
     // <C_6, C_4> is the whole group, so nothing is outstanding.
     expect(completing()).toEqual([]);
+    expect(generating().sort()).toEqual(["C₆", "₃C₄", DEFAULT.displayName].sort());
   });
 
   it("asks for more again once C_6 is dropped", () => {
     latticeNode("C₆").dispatchEvent(new MouseEvent("click"));
     expect(sectionLabels()).toEqual(["₃C₄"]);
     expect(checkedCount()).toBe(1);
-    expect(completing().sort()).toEqual(["C₃", "C₆"]);
+    // C_4 is open and still completing: a second conjugate of it would do.
+    expect(completing().sort()).toEqual(["C₃", "C₆", "₃C₄"]);
+    expect(latticeNode("₃C₄").classList).toContain("selected");
+    expect(generating()).toEqual([]);
   });
 
   it("completes the group from two C_4 generators in different conjugates", () => {
@@ -140,6 +150,7 @@ describe("groups page", () => {
     expect(checkedCount()).toBe(2);
     // Two order-4 elements generate C_3:C_4 exactly when their conjugates differ.
     expect(completing()).toEqual([]);
+    expect(generating().sort()).toEqual(["₃C₄", DEFAULT.displayName].sort());
   });
 
   it("thins the arrows that now share a path", () => {
