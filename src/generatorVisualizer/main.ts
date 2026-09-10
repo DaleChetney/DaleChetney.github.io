@@ -1,7 +1,8 @@
 import { byLabel, fetchCatalogue, type CatalogueGroup } from "./catalogue";
+import { CenterPanel, stageWidth } from "./centerPanel";
 import { LeftPanel } from "./leftPanel";
 import { RightPanel } from "./rightPanel";
-import { Scene, stageWidth } from "./scene";
+import { Scene } from "./scene";
 
 /** The group the page opens on. */
 const DEFAULT_LABEL = "12.1";
@@ -10,31 +11,39 @@ const catalogue = await fetchCatalogue();
 const groups = byLabel(catalogue);
 const groupFor = (label: string): CatalogueGroup => groups.get(label) ?? catalogue.groups[0];
 
-let scene = openScene(groupFor(DEFAULT_LABEL));
-
 const leftPanel = new LeftPanel(catalogue.groups, selectGroup);
+const centerPanel = new CenterPanel({
+  onToggleClass: (classIndex) => {
+    scene.toggleClass(classIndex);
+    render();
+  },
+  onSelectRepresentation: selectRepresentation,
+});
 const rightPanel = new RightPanel((key) => {
   scene.toggleElement(key);
+  render();
 });
 
+let scene = sceneFor(groupFor(DEFAULT_LABEL));
+
 /**
- * The centre and right panels, which both show the current selection. The left
- * panel is not here: its 526 rows change only when the group does.
+ * The two panels that show the selection. The left one is not among them: its
+ * 526 rows change only when the group does.
  */
 function render(): void {
-  scene.show(render, selectRepresentation);
+  centerPanel.show(scene);
   rightPanel.show(scene);
 }
 
-/** Build a scene for a group's first representation and open it. */
-function openScene(group: CatalogueGroup): Scene {
+/** A scene on a group's first representation, opened so the diagram is never bare. */
+function sceneFor(group: CatalogueGroup): Scene {
   const next = new Scene(group, group.representations[0], stageWidth());
   next.open(null);
   return next;
 }
 
 function selectGroup(label: string): void {
-  scene = openScene(groupFor(label));
+  scene = sceneFor(groupFor(label));
   render();
   leftPanel.show(label);
 }
