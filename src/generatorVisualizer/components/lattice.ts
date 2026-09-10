@@ -172,9 +172,9 @@ export const renderLattice = (diagram: LatticeDiagram, view: LatticeView): SVGSV
     // somewhere for the selected and completing styles to land.
     group.append(
       svg("rect", {
-        x: node.x - 34,
+        x: node.x - 28,
         y: node.y - 15,
-        width: 68,
+        width: 56,
         height: 30,
         rx: 15,
       }),
