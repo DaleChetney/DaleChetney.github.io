@@ -1,4 +1,5 @@
-import type { SubgroupClass, SubgroupLattice } from "@shared/mathUtils/groups/subgroupLattice";
+import type { SubgroupLattice } from "@shared/mathUtils/groups/subgroupLattice";
+import { classLabel } from "./classLabel";
 import { svg } from "../svg";
 
 export interface LatticeNode {
@@ -27,34 +28,6 @@ const MARGIN_X = 20;
 const MARGIN_Y = 26;
 /** Gap left between a cover line and the label at each end. */
 const LABEL_GAP = 13;
-
-const SUBSCRIPT_DIGITS = "₀₁₂₃₄₅₆₇₈₉";
-
-const subscript = (n: number): string =>
-  String(n)
-    .split("")
-    .map((digit) => SUBSCRIPT_DIGITS[Number(digit)])
-    .join("");
-
-/**
- * A class's label. Cyclic subgroups are named `C_n`; the whole group takes the
- * group's own name. Anything else shows only its order, since naming it needs
- * LMFDB's `subgroup_tex` and this lattice is computed rather than baked.
- * A class with conjugates carries their count as a left subscript, as LMFDB does.
- */
-export const classLabel = (
-  subgroupClass: SubgroupClass,
-  wholeOrder: number,
-  wholeName: string,
-): string => {
-  const base =
-    subgroupClass.order === wholeOrder
-      ? wholeName
-      : subgroupClass.cyclic
-        ? `C${subscript(subgroupClass.order)}`
-        : String(subgroupClass.order);
-  return subgroupClass.count > 1 ? `${subscript(subgroupClass.count)}${base}` : base;
-};
 
 /**
  * Lay the classes out as a Hasse diagram, one row per level, the trivial

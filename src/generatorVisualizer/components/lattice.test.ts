@@ -1,11 +1,8 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
 import { decodePermutation } from "@shared/mathUtils/groups/permutations";
-import {
-  computeSubgroupLattice,
-  type SubgroupClass,
-} from "@shared/mathUtils/groups/subgroupLattice";
-import { classLabel, layoutLattice, renderLattice } from "./lattice";
+import { computeSubgroupLattice } from "@shared/mathUtils/groups/subgroupLattice";
+import { layoutLattice, renderLattice } from "./lattice";
 
 const generators = [129, 16, 840].map((code) => decodePermutation(code, 7));
 const lattice = computeSubgroupLattice(generators, 7);
@@ -15,27 +12,6 @@ const nodeOfOrder = (order: number) => {
   if (node === undefined) throw new Error(`no node of order ${order}`);
   return node;
 };
-
-describe("classLabel", () => {
-  const make = (over: Partial<SubgroupClass>): SubgroupClass =>
-    ({ order: 4, count: 1, cyclic: true, ...over }) as SubgroupClass;
-
-  it("names a cyclic subgroup C_n", () => {
-    expect(classLabel(make({ order: 6 }), 12, "G")).toBe("C₆");
-  });
-
-  it("uses the group's own name for the whole group", () => {
-    expect(classLabel(make({ order: 12, cyclic: false }), 12, "C₃ ⋊ C₄")).toBe("C₃ ⋊ C₄");
-  });
-
-  it("prefixes the conjugate count, as LMFDB does", () => {
-    expect(classLabel(make({ order: 4, count: 3 }), 12, "G")).toBe("₃C₄");
-  });
-
-  it("falls back to the order for an unnamed non-cyclic subgroup", () => {
-    expect(classLabel(make({ order: 8, cyclic: false }), 16, "G")).toBe("8");
-  });
-});
 
 describe("layoutLattice", () => {
   it("places one node per class and one line per cover", () => {
