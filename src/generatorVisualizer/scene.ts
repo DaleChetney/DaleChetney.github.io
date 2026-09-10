@@ -165,16 +165,6 @@ export class Scene {
     return this.colorOf(permutationKey(this.palette[generator])) ?? "currentColor";
   }
 
-  /** Color of the first element chosen from a class, in the class's own order. */
-  nodeColor(classIndex: number): string | null {
-    const keys = this.#selection.get(classIndex);
-    if (keys === undefined || keys.size === 0) return null;
-    const first = this.choicesFor(classIndex)
-      .elements.map((choice) => permutationKey(choice.permutation))
-      .find((key) => keys.has(key));
-    return first === undefined ? null : this.colorOf(first);
-  }
-
   /**
    * The classes whose chosen elements together generate the whole group, or
    * nothing while they do not yet. An open class with nothing chosen from it

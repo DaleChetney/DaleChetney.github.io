@@ -61,17 +61,13 @@ describe("layoutLattice", () => {
 
 describe("renderLattice", () => {
   const view = (over: Partial<Parameters<typeof renderLattice>[1]> = {}) =>
-    renderLattice(
-      diagram,
-      {
-        selected: new Set(),
-        completing: new Set(),
-        generating: new Set(),
-        onToggle: () => {},
-        ...over,
-      },
-      () => null,
-    );
+    renderLattice(diagram, {
+      selected: new Set(),
+      completing: new Set(),
+      generating: new Set(),
+      onToggle: () => {},
+      ...over,
+    });
 
   /** Percentage of its allowance a lattice of this layout width is drawn at. */
   const drawnPercent = (width: number): number =>
@@ -79,7 +75,6 @@ describe("renderLattice", () => {
       renderLattice(
         { ...diagram, width },
         { selected: new Set(), completing: new Set(), generating: new Set(), onToggle: () => {} },
-        () => null,
       ).style.width.replace("%", ""),
     );
 

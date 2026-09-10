@@ -84,16 +84,12 @@ export class CenterPanel {
     preservingFocus(latticeFocus, () => {
       mount(
         qs("#lattice"),
-        renderLattice(
-          scene.latticeDiagram,
-          {
-            selected: new Set(scene.openClasses()),
-            completing: scene.completingClasses(),
-            generating: scene.generatingClasses(),
-            onToggle: this.#handlers.onToggleClass,
-          },
-          (classIndex) => scene.nodeColor(classIndex),
-        ),
+        renderLattice(scene.latticeDiagram, {
+          selected: new Set(scene.openClasses()),
+          completing: scene.completingClasses(),
+          generating: scene.generatingClasses(),
+          onToggle: this.#handlers.onToggleClass,
+        }),
       );
     });
   }
