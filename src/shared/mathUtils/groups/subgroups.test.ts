@@ -10,9 +10,9 @@ import {
   joinSubgroups,
   meetSubgroups,
   minimalGeneratingSet,
+  subgroupClasses,
   subgroupOf,
 } from "@shared/mathUtils/groups/subgroups";
-import { generatePermutationGroup } from "@shared/mathUtils/groups/permutations";
 
 const C3_C4_GENERATORS = [129, 16, 840].map((code) => decodePermutation(code, 7));
 const lattice = computeSubgroupLattice(C3_C4_GENERATORS, 7);
@@ -25,15 +25,21 @@ const byOrder = (order: number) => {
 describe("allSubgroups", () => {
   it("finds every subgroup of C_3:C_4, not just one per class", () => {
     // Six classes, with C_4 having three conjugates: eight subgroups in all.
-    const elements = generatePermutationGroup(C3_C4_GENERATORS, 7);
-    expect(allSubgroups(elements, 7)).toHaveLength(8);
+    expect(allSubgroups(C3_C4_GENERATORS, 7)).toHaveLength(8);
   });
 
   it("includes the trivial subgroup and the whole group", () => {
-    const elements = generatePermutationGroup(C3_C4_GENERATORS, 7);
-    const orders = allSubgroups(elements, 7).map((s) => s.elements.length);
+    const orders = allSubgroups(C3_C4_GENERATORS, 7).map((s) => s.elements.length);
     expect(Math.min(...orders)).toBe(1);
     expect(Math.max(...orders)).toBe(12);
+  });
+});
+
+describe("subgroupClasses", () => {
+  it("groups the eight subgroups of C_3:C_4 into six classes, C_4 having three", () => {
+    const classes = subgroupClasses(C3_C4_GENERATORS, 7);
+    expect(classes).toHaveLength(6);
+    expect(classes.map((c) => c.length).sort()).toEqual([1, 1, 1, 1, 1, 3]);
   });
 });
 

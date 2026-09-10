@@ -1,6 +1,6 @@
-import { primeDivisorCount } from "../math";
-import { generatePermutationGroup, permutationOrder, type Permutation } from "./permutations";
-import { allSubgroups, conjugate, identityKey, isSubsetOf, type Subgroup } from "./subgroups";
+import { primeDivisorCount } from "../math.ts";
+import { permutationOrder, type Permutation } from "./permutations.ts";
+import { isSubsetOf, subgroupClasses, type Subgroup } from "./subgroups.ts";
 
 /**
  * A conjugacy class of subgroups. LMFDB stores subgroups at this granularity,
@@ -29,31 +29,6 @@ export interface SubgroupLattice {
   /** `covers[i]` holds the indices of the classes immediately below class `i`. */
   covers: number[][];
 }
-
-/** Partition the subgroups into conjugacy classes, smallest order first. */
-const conjugacyClasses = (
-  subgroups: readonly Subgroup[],
-  elements: readonly Permutation[],
-): Subgroup[][] => {
-  const seen = new Set<string>();
-  const grouped: Subgroup[][] = [];
-  for (const subgroup of subgroups) {
-    if (seen.has(identityKey(subgroup))) continue;
-    const conjugates: Subgroup[] = [];
-    const local = new Set<string>();
-    for (const element of elements) {
-      const image = conjugate(subgroup, element);
-      const key = identityKey(image);
-      if (local.has(key)) continue;
-      local.add(key);
-      seen.add(key);
-      conjugates.push(image);
-    }
-    grouped.push(conjugates);
-  }
-  grouped.sort((a, b) => a[0].elements.length - b[0].elements.length);
-  return grouped;
-};
 
 /**
  * Cover relations between classes: `covers[i]` holds the classes immediately
@@ -90,8 +65,9 @@ export const computeSubgroupLattice = (
   generators: readonly Permutation[],
   degree: number,
 ): SubgroupLattice => {
-  const elements = generatePermutationGroup(generators, degree);
-  const grouped = conjugacyClasses(allSubgroups(elements, degree), elements);
+  const grouped = subgroupClasses(generators, degree).sort(
+    (a, b) => a[0].elements.length - b[0].elements.length,
+  );
 
   const perOrder = new Map<number, number>();
   const classes: SubgroupClass[] = grouped.map((conjugates) => {
