@@ -11,7 +11,7 @@ export interface RepresentationView {
  * is worth showing as it is; the minimal faithful one has only `perm-<degree>`,
  * which is an id rather than a name.
  */
-export const representationLabel = (representation: CatalogueRepresentation): string =>
+const representationLabel = (representation: CatalogueRepresentation): string =>
   representation.id.startsWith("perm-")
     ? `degree ${String(representation.degree)}`
     : representation.id;

@@ -1,14 +1,11 @@
 import { equidistantColours } from "@shared/colours";
 import { mount, qs } from "@shared/dom";
+import { permutationKey } from "@shared/mathUtils/groups/permutations";
 import { byLabel, fetchCatalogue, type CatalogueGroup } from "./catalogue";
 import { actionArrows } from "./components/diagram/arrow";
 import { renderPermutationDiagram } from "./components/diagram/permutationDiagram";
 import { DEFAULT_TARGET_WIDTH } from "./components/diagram/ringLayout";
-import {
-  elementKey,
-  renderElementSections,
-  type ElementSection,
-} from "./components/elements-panel";
+import { renderElementSections, type ElementSection } from "./components/elements-panel";
 import { filterGroups, groupListCaption, renderGroupList } from "./components/group-list";
 import { classLabel, renderLattice } from "./components/lattice";
 import { renderRepresentationRow } from "./components/representation-row";
@@ -60,7 +57,7 @@ const nodeColour = (classIndex: number): string | null => {
   if (keys === undefined || keys.size === 0) return null;
   const first = scene
     .choicesFor(classIndex)
-    .elements.map((choice) => elementKey(choice.permutation))
+    .elements.map((choice) => permutationKey(choice.permutation))
     .find((key) => keys.has(key));
   return first === undefined ? null : colourOf(first);
 };
@@ -115,7 +112,7 @@ const draw = (): void => {
     renderPermutationDiagram(
       scene.diagram,
       actionArrows(scene.diagram.points, scene.palette, drawn),
-      (generator) => colourOf(elementKey(scene.palette[generator])) ?? "currentColor",
+      (generator) => colourOf(permutationKey(scene.palette[generator])) ?? "currentColor",
     ),
   );
   mount(
@@ -153,7 +150,10 @@ const toggleClass = (classIndex: number): void => {
     selection.delete(classIndex);
   } else {
     const first = scene.choicesFor(classIndex).elements[0];
-    selection.set(classIndex, new Set(first === undefined ? [] : [elementKey(first.permutation)]));
+    selection.set(
+      classIndex,
+      new Set(first === undefined ? [] : [permutationKey(first.permutation)]),
+    );
   }
   draw();
 };

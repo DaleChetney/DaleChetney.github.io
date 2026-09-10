@@ -5,11 +5,10 @@ import {
   decodePermutation,
   generatePermutationGroup,
   identityPermutation,
+  permutationKey,
   permutationOrder,
   type Permutation,
 } from "./permutations";
-
-const keyOf = (permutation: Permutation): string => permutation.join(",");
 
 /** C_3:C_4 as LMFDB records it: degree 7 minimal faithful, and 12T5 regular. */
 const C3_C4_PERM = [129, 16, 840].map((code) => decodePermutation(code, 7));
@@ -31,8 +30,8 @@ const S3 = [
 const C6 = [[2, 3, 4, 5, 6, 1]];
 
 const image = (iso: GroupIsomorphism, permutation: Permutation): Permutation => {
-  const found = iso.get(keyOf(permutation));
-  if (found === undefined) throw new Error(`${keyOf(permutation)} has no image`);
+  const found = iso.get(permutationKey(permutation));
+  if (found === undefined) throw new Error(`${permutationKey(permutation)} has no image`);
   return found;
 };
 
@@ -68,7 +67,7 @@ describe("findIsomorphism", () => {
 
   it("maps the source onto the target one to one", () => {
     expect(iso?.size).toBe(12);
-    expect(new Set([...(iso?.values() ?? [])].map(keyOf)).size).toBe(12);
+    expect(new Set([...(iso?.values() ?? [])].map(permutationKey)).size).toBe(12);
   });
 
   it("is a homomorphism", () => {
@@ -83,7 +82,7 @@ describe("findIsomorphism", () => {
 
   it("keeps every element's order", () => {
     for (const x of source) {
-      expect(permutationOrder(image(iso!, x)), keyOf(x)).toBe(permutationOrder(x));
+      expect(permutationOrder(image(iso!, x)), permutationKey(x)).toBe(permutationOrder(x));
     }
   });
 

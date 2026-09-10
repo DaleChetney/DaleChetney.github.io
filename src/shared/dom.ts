@@ -8,12 +8,6 @@ export const qs = <T extends Element = HTMLElement>(
   return found;
 };
 
-/** querySelectorAll as a real array. */
-export const qsa = <T extends Element = HTMLElement>(
-  selector: string,
-  parent: ParentNode = document,
-): T[] => Array.from(parent.querySelectorAll<T>(selector));
-
 type Child = Node | string;
 
 /** Create an element, assigning properties and appending children in one call. */

@@ -115,11 +115,10 @@ export const layoutLattice = (
  * wider one is shrunk to fit. Ten columns is the calibration point because that
  * is the size the nodes already read well at.
  */
-export const LATTICE_REFERENCE_WIDTH = 10 * COLUMN_WIDTH + MARGIN_X * 2;
+const LATTICE_REFERENCE_WIDTH = 10 * COLUMN_WIDTH + MARGIN_X * 2;
 
 /** How much of its allowance a lattice of this layout width should take. */
-export const latticeWidthShare = (width: number): number =>
-  Math.min(1, width / LATTICE_REFERENCE_WIDTH);
+const latticeWidthShare = (width: number): number => Math.min(1, width / LATTICE_REFERENCE_WIDTH);
 
 /** Shorten a cover line at both ends so it does not run into the labels. */
 const trimmedLine = (

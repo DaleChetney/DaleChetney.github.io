@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
 import type { CatalogueRepresentation } from "../catalogue";
-import { renderRepresentationRow, representationLabel } from "./representation-row";
+import { renderRepresentationRow } from "./representation-row";
 
 const minimal: CatalogueRepresentation = {
   id: "perm-7",
@@ -19,13 +19,18 @@ const transitive: CatalogueRepresentation = {
   generators: [],
 };
 
-describe("representationLabel", () => {
+describe("how a representation is named on its button", () => {
+  const labelOf = (representation: CatalogueRepresentation): string | null =>
+    renderRepresentationRow([representation], { selected: "", onSelect: () => {} }).querySelector(
+      "button",
+    )?.textContent ?? null;
+
   it("names a transitive representation by LMFDB's label", () => {
-    expect(representationLabel(transitive)).toBe("12T5");
+    expect(labelOf(transitive)).toBe("12T5");
   });
 
   it("names the minimal faithful one by its degree, since perm-7 is an id", () => {
-    expect(representationLabel(minimal)).toBe("degree 7");
+    expect(labelOf(minimal)).toBe("degree 7");
   });
 });
 

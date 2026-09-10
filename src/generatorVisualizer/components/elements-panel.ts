@@ -1,5 +1,9 @@
 import { el } from "@shared/dom";
-import { formatPermutation, type Permutation } from "@shared/mathUtils/groups/permutations";
+import {
+  formatPermutation,
+  permutationKey,
+  type Permutation,
+} from "@shared/mathUtils/groups/permutations";
 import type { GeneratorChoices } from "@shared/mathUtils/groups/generatorChoices";
 
 /** One selected subgroup class, and the generators it offers. */
@@ -19,11 +23,8 @@ export interface ElementSelectionView {
   onToggle: (key: string) => void;
 }
 
-/** Identifies an element by its one-line form, which is unique within a group. */
-export const elementKey = (permutation: Permutation): string => permutation.join(",");
-
 const elementRow = (permutation: Permutation, view: ElementSelectionView): HTMLElement => {
-  const key = elementKey(permutation);
+  const key = permutationKey(permutation);
   const input = el("input", { type: "checkbox", checked: view.isSelected(key) });
   input.addEventListener("change", () => {
     view.onToggle(key);

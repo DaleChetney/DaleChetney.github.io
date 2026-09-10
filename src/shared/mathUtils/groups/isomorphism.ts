@@ -3,6 +3,7 @@ import {
   generatePermutationGroup,
   identityPermutation,
   invertPermutation,
+  permutationKey,
   permutationOrder,
   type Permutation,
 } from "./permutations";
@@ -13,8 +14,6 @@ import {
  * target.
  */
 export type GroupIsomorphism = ReadonlyMap<string, Permutation>;
-
-const keyOf = (permutation: Permutation): string => permutation.join(",");
 
 const conjugate = (element: Permutation, by: Permutation): Permutation =>
   composePermutations(composePermutations(by, element), invertPermutation(by));
@@ -57,9 +56,9 @@ const classRepresentatives = (elements: readonly Permutation[], order: number): 
   const seen = new Set<string>();
   const representatives: Permutation[] = [];
   for (const element of elements) {
-    if (permutationOrder(element) !== order || seen.has(keyOf(element))) continue;
+    if (permutationOrder(element) !== order || seen.has(permutationKey(element))) continue;
     representatives.push(element);
-    for (const by of elements) seen.add(keyOf(conjugate(element, by)));
+    for (const by of elements) seen.add(permutationKey(conjugate(element, by)));
   }
   return representatives;
 };
@@ -80,24 +79,26 @@ const extend = (
   order: number,
 ): Map<string, Permutation> | null => {
   const start = identityPermutation(sourceDegree);
-  const mapped = new Map<string, Permutation>([[keyOf(start), identityPermutation(targetDegree)]]);
-  const used = new Set<string>([keyOf(identityPermutation(targetDegree))]);
+  const mapped = new Map<string, Permutation>([
+    [permutationKey(start), identityPermutation(targetDegree)],
+  ]);
+  const used = new Set<string>([permutationKey(identityPermutation(targetDegree))]);
   const queue: Permutation[] = [start];
 
   for (let i = 0; i < queue.length; i++) {
     const element = queue[i];
-    const image = mapped.get(keyOf(element));
+    const image = mapped.get(permutationKey(element));
     if (image === undefined) return null;
     for (let g = 0; g < generators.length; g++) {
       const next = composePermutations(generators[g], element);
       const nextImage = composePermutations(images[g], image);
-      const seen = mapped.get(keyOf(next));
+      const seen = mapped.get(permutationKey(next));
       if (seen === undefined) {
-        if (used.has(keyOf(nextImage))) return null;
-        mapped.set(keyOf(next), nextImage);
-        used.add(keyOf(nextImage));
+        if (used.has(permutationKey(nextImage))) return null;
+        mapped.set(permutationKey(next), nextImage);
+        used.add(permutationKey(nextImage));
         queue.push(next);
-      } else if (keyOf(seen) !== keyOf(nextImage)) {
+      } else if (permutationKey(seen) !== permutationKey(nextImage)) {
         return null;
       }
     }

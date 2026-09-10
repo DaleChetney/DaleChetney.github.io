@@ -19,6 +19,14 @@ const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
 
 const lcm = (a: number, b: number): number => (a / gcd(a, b)) * b;
 
+/**
+ * Identifies a permutation by its one-line form, which is unique within a
+ * group. Used wherever permutations are keys of a Set or Map -- element
+ * lookup, subgroup membership, isomorphism domains -- so that every such key
+ * is written the same way.
+ */
+export const permutationKey = (perm: Permutation): string => perm.join(",");
+
 /** The identity permutation on `degree` points. */
 export const identityPermutation = (degree: number): Permutation =>
   Array.from({ length: degree }, (_, i) => i + 1);
@@ -185,12 +193,12 @@ export const generatePermutationGroup = (
   degree: number,
 ): Permutation[] => {
   const start = identityPermutation(degree);
-  const found = new Set<string>([start.join(",")]);
+  const found = new Set<string>([permutationKey(start)]);
   const elements: Permutation[] = [start];
   for (let i = 0; i < elements.length; i++) {
     for (const generator of generators) {
       const product = composePermutations(generator, elements[i]);
-      const key = product.join(",");
+      const key = permutationKey(product);
       if (!found.has(key)) {
         found.add(key);
         elements.push(product);

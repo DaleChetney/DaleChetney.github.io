@@ -1,4 +1,4 @@
-import { permutationOrder, type Permutation } from "./permutations";
+import { permutationKey, permutationOrder, type Permutation } from "./permutations";
 import type { SubgroupClass } from "./subgroupLattice";
 
 /** One element that generates a subgroup in a class, and which conjugate it generates. */
@@ -32,7 +32,7 @@ export const generatorElements = (
   subgroupClass.conjugates.forEach((conjugate, index) => {
     const generators = conjugate.elements
       .filter((element) => permutationOrder(element) === subgroupClass.order)
-      .sort((a, b) => a.join(",").localeCompare(b.join(",")));
+      .sort((a, b) => permutationKey(a).localeCompare(permutationKey(b)));
     for (const permutation of generators) {
       elements.push({ permutation, conjugate: index });
     }

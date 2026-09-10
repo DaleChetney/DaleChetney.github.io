@@ -1,5 +1,9 @@
 import { findIsomorphism } from "@shared/mathUtils/groups/isomorphism";
-import { permutationOrbits, type Permutation } from "@shared/mathUtils/groups/permutations";
+import {
+  permutationKey,
+  permutationOrbits,
+  type Permutation,
+} from "@shared/mathUtils/groups/permutations";
 import {
   generatorElements,
   type GeneratorChoices,
@@ -13,7 +17,6 @@ import { generatesWholeGroup } from "@shared/mathUtils/groups/subgroups";
 import type { CatalogueGroup, CatalogueRepresentation } from "./catalogue";
 import type { Diagram } from "./components/diagram/permutationDiagram";
 import { diagramWidthShare, layoutOrbits } from "./components/diagram/ringLayout";
-import { elementKey } from "./components/elements-panel";
 import { layoutLattice, type LatticeDiagram } from "./components/lattice";
 
 /** How many generators a subgroup section will offer. */
@@ -96,12 +99,12 @@ export class Scene {
     this.#orbits = orbits;
     this.#lattice = lattice;
     this.#choices = choices;
-    this.#paletteRank = new Map(palette.map((permutation, i) => [elementKey(permutation), i]));
-    this.#permutations = new Map(palette.map((p) => [elementKey(p), p]));
+    this.#paletteRank = new Map(palette.map((permutation, i) => [permutationKey(permutation), i]));
+    this.#permutations = new Map(palette.map((p) => [permutationKey(p), p]));
     this.#classOfElement = new Map(
       selectableClasses.flatMap((index) =>
         (choices.get(index)?.elements ?? []).map((choice): [string, number] => [
-          elementKey(choice.permutation),
+          permutationKey(choice.permutation),
           index,
         ]),
       ),
@@ -191,15 +194,15 @@ export class Scene {
      */
     const mappedClass = (subgroupClass: SubgroupClass): number | undefined => {
       if (subgroupClass.generator === null) return undefined;
-      const mapped = isomorphism.get(elementKey(subgroupClass.generator));
+      const mapped = isomorphism.get(permutationKey(subgroupClass.generator));
       if (mapped === undefined) return undefined;
-      const key = elementKey(mapped);
+      const key = permutationKey(mapped);
       return to.selectableClasses.find((index) => {
         const candidate = to.classAt(index);
         return (
           candidate.order === subgroupClass.order &&
           candidate.conjugates.some((conjugate) =>
-            conjugate.elements.some((element) => elementKey(element) === key),
+            conjugate.elements.some((element) => permutationKey(element) === key),
           )
         );
       });
@@ -212,7 +215,7 @@ export class Scene {
       const elements = [...keys]
         .map((key) => isomorphism.get(key))
         .filter((permutation) => permutation !== undefined)
-        .map(elementKey)
+        .map(permutationKey)
         .filter((key) => to.classOf(key) === target);
       carried.set(target, new Set(elements));
     }

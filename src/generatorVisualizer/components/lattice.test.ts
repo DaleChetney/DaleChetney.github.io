@@ -5,13 +5,7 @@ import {
   computeSubgroupLattice,
   type SubgroupClass,
 } from "@shared/mathUtils/groups/subgroupLattice";
-import {
-  classLabel,
-  LATTICE_REFERENCE_WIDTH,
-  latticeWidthShare,
-  layoutLattice,
-  renderLattice,
-} from "./lattice";
+import { classLabel, layoutLattice, renderLattice } from "./lattice";
 
 const generators = [129, 16, 840].map((code) => decodePermutation(code, 7));
 const lattice = computeSubgroupLattice(generators, 7);
@@ -85,30 +79,22 @@ describe("layoutLattice", () => {
   });
 });
 
-describe("latticeWidthShare", () => {
-  it("gives the whole allowance to a lattice at the reference width", () => {
-    expect(latticeWidthShare(LATTICE_REFERENCE_WIDTH)).toBe(1);
-  });
-
-  it("never asks for more than the allowance", () => {
-    expect(latticeWidthShare(LATTICE_REFERENCE_WIDTH * 3)).toBe(1);
-  });
-
-  it("asks for a share in proportion to the width, so the scale is constant", () => {
-    // Two lattices at half and a fifth of the reference: the drawn width falls
-    // in the same proportion as the layout width, which is what leaves a node
-    // the same size in both.
-    expect(latticeWidthShare(LATTICE_REFERENCE_WIDTH / 2)).toBeCloseTo(0.5);
-    expect(latticeWidthShare(LATTICE_REFERENCE_WIDTH / 5)).toBeCloseTo(0.2);
-  });
-});
-
 describe("renderLattice", () => {
   const view = (over: Partial<Parameters<typeof renderLattice>[1]> = {}) =>
     renderLattice(
       diagram,
       { selected: new Set(), completing: new Set(), onToggle: () => {}, ...over },
       () => null,
+    );
+
+  /** Percentage of its allowance a lattice of this layout width is drawn at. */
+  const drawnPercent = (width: number): number =>
+    Number(
+      renderLattice(
+        { ...diagram, width },
+        { selected: new Set(), completing: new Set(), onToggle: () => {} },
+        () => null,
+      ).style.width.replace("%", ""),
     );
 
   it("draws every node and cover", () => {
@@ -120,18 +106,24 @@ describe("renderLattice", () => {
   it("takes only the share of its allowance its width has earned", () => {
     // C_3:C_4's lattice is two columns wide, so it uses a fifth of the room a
     // ten-column one would, rather than stretching to fill it.
-    const share = latticeWidthShare(diagram.width);
     expect(diagram.columns).toBe(2);
-    expect(share).toBeLessThan(0.3);
-    expect(view().style.width).toBe(`${(share * 100).toFixed(2)}%`);
+    expect(drawnPercent(diagram.width)).toBeLessThan(30);
+  });
+
+  it("never asks for more than the whole allowance", () => {
+    expect(drawnPercent(5_000)).toBe(100);
+    expect(drawnPercent(50_000)).toBe(100);
   });
 
   it("scales every lattice alike, whatever its shape", () => {
-    // Drawn width over layout width is the scale, and so the size of a node.
-    const wide = layoutLattice(lattice, 12, "C₃ ⋊ C₄");
-    wide.width = LATTICE_REFERENCE_WIDTH / 2;
-    const scale = (d: typeof diagram) => latticeWidthShare(d.width) / d.width;
-    expect(scale(wide)).toBeCloseTo(scale(diagram), 10);
+    // Drawn share over layout width is the scale, and so the size of a node.
+    // Holding it constant is what leaves a two-column lattice drawing its nodes
+    // at the size a ten-column one does, instead of stretching to fill.
+    // Four places, not more: the width is written as a percentage rounded to
+    // two, so that is all the precision the drawn element carries.
+    const scale = (width: number) => drawnPercent(width) / width;
+    expect(scale(300)).toBeCloseTo(scale(600), 4);
+    expect(scale(300)).toBeCloseTo(scale(900), 4);
   });
 
   it("exposes selectable nodes as buttons and the rest as plain", () => {

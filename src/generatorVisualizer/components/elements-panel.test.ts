@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
 import type { GeneratorChoices } from "@shared/mathUtils/groups/generatorChoices";
+import { permutationKey } from "@shared/mathUtils/groups/permutations";
 import {
-  elementKey,
   renderElementSections,
   type ElementSection,
   type ElementSelectionView,
@@ -83,7 +83,7 @@ describe("renderElementSections", () => {
   });
 
   it("shows cycle notation and reflects the selection", () => {
-    const chosen = elementKey([1, 3, 2, 5, 6, 7, 4]);
+    const chosen = permutationKey([1, 3, 2, 5, 6, 7, 4]);
     const root = renderElementSections([section()], view({ isSelected: (key) => key === chosen }));
     const row = root.querySelector<HTMLElement>(`[data-element="${chosen}"]`);
     expect(row?.querySelector("code")?.textContent).toBe("(2 3)(4 5 6 7)");
@@ -96,7 +96,7 @@ describe("renderElementSections", () => {
     const root = renderElementSections([section()], view({ onToggle }));
     // jsdom only runs a checkbox's activation behaviour once it is connected.
     document.body.replaceChildren(root);
-    const key = elementKey([2, 1, 3, 5, 6, 7, 4]);
+    const key = permutationKey([2, 1, 3, 5, 6, 7, 4]);
     root.querySelector<HTMLInputElement>(`[data-element="${key}"] input`)?.click();
     expect(onToggle).toHaveBeenCalledWith(key);
   });

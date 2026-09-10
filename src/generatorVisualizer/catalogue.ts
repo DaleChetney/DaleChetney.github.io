@@ -10,7 +10,13 @@ export interface CatalogueRepresentation {
   generators: readonly Permutation[];
 }
 
-/** Which subgroups the lattice can show without passing the diagram's budget. */
+/**
+ * How far down the subgroup listing the bake judged a lattice could be drawn.
+ *
+ * Baked but unread: the page computes its own lattice from the generators
+ * (`computeSubgroupLattice`) rather than consulting this, so nothing downstream
+ * branches on it. It stays because it is cheap to carry and re-baking is not.
+ */
 export type SubgroupRung = "all" | "classes" | "autclasses";
 
 export interface CatalogueGroup {
@@ -20,21 +26,36 @@ export interface CatalogueGroup {
   texName: string;
   displayName: string;
   order: number;
+
+  /*
+   * Everything below this line is baked but unread. LMFDB records these and the
+   * bake copies them through, but no code on the page branches on any of them —
+   * so treat them as data available to a future filter or badge, not as a
+   * description of anything the page currently does.
+   */
   abelian: boolean;
   cyclic: boolean;
   nilpotent: boolean;
   solvable: boolean;
   simple: boolean;
+  /** Subgroup counts as LMFDB records them; the drawn lattice is computed, not these. */
   subgroups: {
     all: number;
     classes: number;
     autclasses: number;
     rung: SubgroupRung;
   };
+
   representations: readonly CatalogueRepresentation[];
 }
 
-/** The bounds the catalogue was baked to, so the page can say what it excludes. */
+/**
+ * The bounds the catalogue was baked to.
+ *
+ * Baked but unread: written by `scripts/bake-groups.ts` so the file records what
+ * it excluded, and checked for presence by `parseCatalogue`, but the page does
+ * not show them anywhere.
+ */
 export interface CatalogueBounds {
   maxOrder: number;
   abelianMaxOrder: number;
@@ -49,7 +70,7 @@ export interface Catalogue {
   groups: readonly CatalogueGroup[];
 }
 
-export const CATALOGUE_URL = "/groups.json";
+const CATALOGUE_URL = "/groups.json";
 
 const fail = (what: string): never => {
   throw new TypeError(`Catalogue is malformed: ${what}`);

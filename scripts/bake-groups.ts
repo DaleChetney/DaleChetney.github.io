@@ -52,7 +52,7 @@ export interface TransitiveRow {
   gens: string;
 }
 
-export const BOUNDS: CatalogueBounds = {
+const BOUNDS: CatalogueBounds = {
   maxOrder: 120,
   abelianMaxOrder: 60,
   maxDegree: 32,
