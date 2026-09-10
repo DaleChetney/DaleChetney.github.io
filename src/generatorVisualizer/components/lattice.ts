@@ -24,7 +24,7 @@ export interface LatticeDiagram {
   height: number;
 }
 
-const COLUMN_WIDTH = 104;
+const COLUMN_WIDTH = 94;
 const LEVEL_HEIGHT = 62;
 const MARGIN_X = 20;
 const MARGIN_Y = 26;
