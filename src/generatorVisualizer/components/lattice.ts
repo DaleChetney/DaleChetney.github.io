@@ -1,4 +1,4 @@
-import type { SubgroupClass, SubgroupLattice } from "@shared/mathUtils/groups/subgroups";
+import type { SubgroupClass, SubgroupLattice } from "@shared/mathUtils/groups/subgroupLattice";
 import { svg } from "../svg";
 
 export interface LatticeNode {

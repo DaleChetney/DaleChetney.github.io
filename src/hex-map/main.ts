@@ -1,4 +1,4 @@
-import { hexDistance, hexToPixel, type Hex } from "@shared/mathUtils/math";
+import { hexDistance, hexToPixel, type Hex } from "@shared/mathUtils/hex";
 import { qs } from "@shared/dom";
 
 const canvas = qs<HTMLCanvasElement>("#board");

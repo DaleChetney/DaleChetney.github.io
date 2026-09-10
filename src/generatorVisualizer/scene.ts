@@ -1,13 +1,15 @@
 import { findIsomorphism } from "@shared/mathUtils/groups/isomorphism";
 import { permutationOrbits, type Permutation } from "@shared/mathUtils/groups/permutations";
 import {
-  computeSubgroupLattice,
-  generatesWholeGroup,
   generatorElements,
   type GeneratorChoices,
+} from "@shared/mathUtils/groups/generatorChoices";
+import {
+  computeSubgroupLattice,
   type SubgroupClass,
   type SubgroupLattice,
-} from "@shared/mathUtils/groups/subgroups";
+} from "@shared/mathUtils/groups/subgroupLattice";
+import { generatesWholeGroup } from "@shared/mathUtils/groups/subgroups";
 import type { CatalogueGroup, CatalogueRepresentation } from "./catalogue";
 import type { Diagram } from "./components/diagram/permutationDiagram";
 import { diagramWidthShare, layoutOrbits } from "./components/diagram/ringLayout";

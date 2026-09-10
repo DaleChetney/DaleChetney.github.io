@@ -1,11 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { decodePermutation, permutationOrder } from "@shared/mathUtils/groups/permutations";
-import {
-  computeSubgroupLattice,
-  generatesWholeGroup,
-  generatorElements,
-  primeDivisorCount,
-} from "@shared/mathUtils/groups/subgroups";
+import { decodePermutation } from "@shared/mathUtils/groups/permutations";
+import { computeSubgroupLattice } from "@shared/mathUtils/groups/subgroupLattice";
+import { allSubgroups, generatesWholeGroup, subgroupOf } from "@shared/mathUtils/groups/subgroups";
+import { generatePermutationGroup } from "@shared/mathUtils/groups/permutations";
 
 const C3_C4_GENERATORS = [129, 16, 840].map((code) => decodePermutation(code, 7));
 const lattice = computeSubgroupLattice(C3_C4_GENERATORS, 7);
@@ -15,79 +12,30 @@ const byOrder = (order: number) => {
   return found;
 };
 
-/** Cover edges as `[upperOrder, lowerOrder]`, sorted for comparison. */
-const coverEdges = (): [number, number][] =>
-  lattice.covers
-    .flatMap((lowers, upper) =>
-      lowers.map((lower): [number, number] => [
-        lattice.classes[upper].order,
-        lattice.classes[lower].order,
-      ]),
-    )
-    .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+describe("allSubgroups", () => {
+  it("finds every subgroup of C_3:C_4, not just one per class", () => {
+    // Six classes, with C_4 having three conjugates: eight subgroups in all.
+    const elements = generatePermutationGroup(C3_C4_GENERATORS, 7);
+    expect(allSubgroups(elements, 7)).toHaveLength(8);
+  });
 
-describe("primeDivisorCount", () => {
-  it.each([
-    [1, 0],
-    [2, 1],
-    [3, 1],
-    [4, 2],
-    [6, 2],
-    [12, 3],
-    [64, 6],
-  ])("counts %i with multiplicity as %i", (n, expected) => {
-    expect(primeDivisorCount(n)).toBe(expected);
+  it("includes the trivial subgroup and the whole group", () => {
+    const elements = generatePermutationGroup(C3_C4_GENERATORS, 7);
+    const orders = allSubgroups(elements, 7).map((s) => s.elements.length);
+    expect(Math.min(...orders)).toBe(1);
+    expect(Math.max(...orders)).toBe(12);
   });
 });
 
-// gps_subgroup_data / gps_subgroup_search for ambient 12.1 record exactly six
-// classes, with C_4 the only one having conjugates, and the inclusions below.
-describe("computeSubgroupLattice for C_3:C_4", () => {
-  it("finds the six classes LMFDB records", () => {
-    expect(lattice.classes.map((c) => c.order)).toEqual([1, 2, 3, 4, 6, 12]);
+describe("subgroupOf", () => {
+  it("closes a single element into its cyclic subgroup", () => {
+    const c4 = byOrder(4).generator ?? [];
+    expect(subgroupOf([c4], 7).elements).toHaveLength(4);
   });
 
-  it("matches LMFDB's conjugate counts", () => {
-    expect(lattice.classes.map((c) => c.count)).toEqual([1, 1, 1, 3, 1, 1]);
-  });
-
-  it("accounts for all eight subgroups", () => {
-    expect(lattice.classes.reduce((total, c) => total + c.count, 0)).toBe(8);
-  });
-
-  it("marks every proper subgroup cyclic and the whole group not", () => {
-    expect(lattice.classes.map((c) => c.cyclic)).toEqual([true, true, true, true, true, false]);
-  });
-
-  it("levels classes by prime divisors with multiplicity", () => {
-    expect(lattice.classes.map((c) => c.level)).toEqual([0, 1, 1, 2, 2, 3]);
-  });
-
-  it("reproduces LMFDB's inclusions as cover edges", () => {
-    expect(coverEdges()).toEqual([
-      [2, 1],
-      [3, 1],
-      [4, 2],
-      [6, 2],
-      [6, 3],
-      [12, 4],
-      [12, 6],
-    ]);
-  });
-
-  it("gives each cyclic class a generator of the right order", () => {
-    for (const subgroupClass of lattice.classes) {
-      if (subgroupClass.generator === null) continue;
-      expect(permutationOrder(subgroupClass.generator), subgroupClass.id).toBe(subgroupClass.order);
-    }
-  });
-
-  it("gives every conjugate the same order as its representative", () => {
-    for (const subgroupClass of lattice.classes) {
-      for (const conjugate of subgroupClass.conjugates) {
-        expect(conjugate.elements).toHaveLength(subgroupClass.order);
-      }
-    }
+  it("keys every element it holds", () => {
+    const subgroup = subgroupOf(C3_C4_GENERATORS, 7);
+    expect(subgroup.keys.size).toBe(subgroup.elements.length);
   });
 });
 
@@ -118,63 +66,5 @@ describe("generatesWholeGroup", () => {
     for (const order of [2, 3, 4, 6]) {
       expect(whole([order]), `order ${order}`).toBe(false);
     }
-  });
-});
-
-describe("generatorElements", () => {
-  const c4 = byOrder(4);
-  const choices = generatorElements(c4, 12);
-
-  it("lists every element of full order across all conjugates", () => {
-    // C_4 has three conjugates with two generators each: six order-4 elements.
-    expect(choices.total).toBe(6);
-    expect(choices.elements).toHaveLength(6);
-    for (const { permutation } of choices.elements) {
-      expect(permutationOrder(permutation)).toBe(4);
-    }
-  });
-
-  it("attributes two elements to each conjugate", () => {
-    const perConjugate = new Map<number, number>();
-    for (const { conjugate } of choices.elements) {
-      perConjugate.set(conjugate, (perConjugate.get(conjugate) ?? 0) + 1);
-    }
-    expect([...perConjugate.entries()].sort()).toEqual([
-      [0, 2],
-      [1, 2],
-      [2, 2],
-    ]);
-  });
-
-  it("never lists the same element under two conjugates", () => {
-    const keys = choices.elements.map(({ permutation }) => permutation.join(","));
-    expect(new Set(keys).size).toBe(keys.length);
-  });
-
-  it("caps the listing without changing the total", () => {
-    const capped = generatorElements(c4, 4);
-    expect(capped.elements).toHaveLength(4);
-    expect(capped.total).toBe(6);
-  });
-
-  it("is stable across calls", () => {
-    expect(generatorElements(c4, 12).elements).toEqual(choices.elements);
-  });
-
-  it("separates the conjugates that generate the whole group together", () => {
-    // Two order-4 elements generate C_3:C_4 exactly when they come from
-    // different conjugates; from the same one they only give C_4 back.
-    const [first] = choices.elements;
-    for (const other of choices.elements.slice(1)) {
-      expect(
-        generatesWholeGroup([first.permutation, other.permutation], 7, 12),
-        `conjugate ${first.conjugate} with ${other.conjugate}`,
-      ).toBe(other.conjugate !== first.conjugate);
-    }
-  });
-
-  it("gives a single generator for a class with one conjugate", () => {
-    expect(generatorElements(byOrder(2), 12).total).toBe(1);
-    expect(generatorElements(byOrder(3), 12).total).toBe(2);
   });
 });

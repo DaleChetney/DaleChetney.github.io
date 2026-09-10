@@ -1,6 +1,6 @@
 import { el } from "@shared/dom";
 import { formatPermutation, type Permutation } from "@shared/mathUtils/groups/permutations";
-import type { GeneratorChoices } from "@shared/mathUtils/groups/subgroups";
+import type { GeneratorChoices } from "@shared/mathUtils/groups/generatorChoices";
 
 /** One selected subgroup class, and the generators it offers. */
 export interface ElementSection {

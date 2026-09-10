@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
-import type { GeneratorChoices } from "@shared/mathUtils/groups/subgroups";
+import type { GeneratorChoices } from "@shared/mathUtils/groups/generatorChoices";
 import {
   elementKey,
   renderElementSections,
