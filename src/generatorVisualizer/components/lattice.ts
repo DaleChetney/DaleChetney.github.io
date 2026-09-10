@@ -24,7 +24,7 @@ export interface LatticeDiagram {
   height: number;
 }
 
-const COLUMN_WIDTH = 104;
+const COLUMN_WIDTH = 94;
 const LEVEL_HEIGHT = 62;
 const MARGIN_X = 20;
 const MARGIN_Y = 26;
@@ -120,17 +120,11 @@ export interface LatticeView {
 }
 
 /**
- * Render the lattice. A node carries the colour of the first generator chosen
- * from it, so the lattice and the main diagram read as one selection. The
- * completing nodes are outlined, and once the group is generated so are the
- * classes that did it and the group itself: the outline is the one thing on the
- * page that reads as a state of the selection.
+ * Render the lattice. The completing nodes are outlined, and once the group is
+ * generated so are the classes that did it and the group itself: the outline is
+ * the one thing on the page that reads as a state of the selection.
  */
-export const renderLattice = (
-  diagram: LatticeDiagram,
-  view: LatticeView,
-  nodeColour: (nodeIndex: number) => string | null,
-): SVGSVGElement => {
+export const renderLattice = (diagram: LatticeDiagram, view: LatticeView): SVGSVGElement => {
   const root = svg("svg", {
     viewBox: `0 0 ${diagram.width} ${diagram.height}`,
     width: diagram.width,
@@ -173,16 +167,14 @@ export const renderLattice = (
       "dominant-baseline": "central",
     });
     label.textContent = node.label;
-    const colour = nodeColour(node.index);
-    if (colour !== null) label.setAttribute("fill", colour);
 
     // A transparent pill behind the label gives the node a usable hit area and
     // somewhere for the selected and completing styles to land.
     group.append(
       svg("rect", {
-        x: node.x - 34,
+        x: node.x - 28,
         y: node.y - 15,
-        width: 68,
+        width: 56,
         height: 30,
         rx: 15,
       }),

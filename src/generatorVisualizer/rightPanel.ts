@@ -30,7 +30,7 @@ export class RightPanel {
         qs("#element-sections"),
         renderElementSections(sectionsOf(scene), {
           isSelected: (key) => scene.isDrawn(key),
-          colourOf: (key) => scene.colourOf(key),
+          colorOf: (key) => scene.colorOf(key),
           onToggle: this.#onToggle,
         }),
       );

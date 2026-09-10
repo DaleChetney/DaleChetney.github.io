@@ -30,7 +30,7 @@ const section = (over: Partial<ElementSection> = {}): ElementSection => ({
 
 const view = (over: Partial<ElementSelectionView> = {}): ElementSelectionView => ({
   isSelected: () => false,
-  colourOf: () => "#c1436d",
+  colorOf: () => "#c1436d",
   onToggle: () => {},
   ...over,
 });

@@ -100,12 +100,12 @@ const arrowPath = (arrow: ActionArrow): string => {
 
 /**
  * One arrowhead marker per generator drawn. Markers cannot be styled by the
- * path that uses them, so each generator needs its own in the colour of its
+ * path that uses them, so each generator needs its own in the color of its
  * edges.
  */
 export const arrowheadDefs = (
   arrows: readonly ActionArrow[],
-  colourOf: (generator: number) => string,
+  colorOf: (generator: number) => string,
 ): SVGDefsElement => {
   const defs = svg("defs");
   for (const generator of new Set(arrows.map((arrow) => arrow.generator))) {
@@ -118,7 +118,7 @@ export const arrowheadDefs = (
       markerHeight: 5,
       orient: "auto-start-reverse",
     });
-    marker.append(svg("path", { d: "M 0 0 L 10 5 L 0 10 z", fill: colourOf(generator) }));
+    marker.append(svg("path", { d: "M 0 0 L 10 5 L 0 10 z", fill: colorOf(generator) }));
     defs.append(marker);
   }
   return defs;
@@ -127,7 +127,7 @@ export const arrowheadDefs = (
 /** The edge layer: every arrow as a curve, tagged with the action it stands for. */
 export const renderArrows = (
   arrows: readonly ActionArrow[],
-  colourOf: (generator: number) => string,
+  colorOf: (generator: number) => string,
 ): SVGGElement => {
   const edges = svg("g", { class: "edges", fill: "none" });
   const widths = strokeWidths(arrows);
@@ -139,7 +139,7 @@ export const renderArrows = (
     edges.append(
       svg("path", {
         d: arrowPath(arrow),
-        stroke: colourOf(arrow.generator),
+        stroke: colorOf(arrow.generator),
         "stroke-width": widths[index],
         "marker-end": `url(#${arrowheadId(arrow.generator)})`,
         "data-generator": arrow.generator,

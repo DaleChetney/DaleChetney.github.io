@@ -70,7 +70,7 @@ export class CenterPanel {
       renderPermutationDiagram(
         diagram,
         actionArrows(diagram.points, scene.palette, scene.drawnGenerators()),
-        (generator) => scene.generatorColour(generator),
+        (generator) => scene.generatorColor(generator),
       ),
     );
   }
@@ -84,16 +84,12 @@ export class CenterPanel {
     preservingFocus(latticeFocus, () => {
       mount(
         qs("#lattice"),
-        renderLattice(
-          scene.latticeDiagram,
-          {
-            selected: new Set(scene.openClasses()),
-            completing: scene.completingClasses(),
-            generating: scene.generatingClasses(),
-            onToggle: this.#handlers.onToggleClass,
-          },
-          (classIndex) => scene.nodeColour(classIndex),
-        ),
+        renderLattice(scene.latticeDiagram, {
+          selected: new Set(scene.openClasses()),
+          completing: scene.completingClasses(),
+          generating: scene.generatingClasses(),
+          onToggle: this.#handlers.onToggleClass,
+        }),
       );
     });
   }
