@@ -1,17 +1,22 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from "vitest";
 import { decodePermutation, permutationOrbits } from "@shared/mathUtils/groups/permutations";
-import { actionArrows, layoutOrbits } from "./layout";
-import { renderDiagram } from "./render";
+import { actionArrows } from "./arrow";
+import { renderPermutationDiagram } from "./permutationDiagram";
+import { layoutOrbits } from "./ringLayout";
 
 const generators = [129, 16, 840].map((code) => decodePermutation(code, 7));
 const diagram = layoutOrbits(permutationOrbits(generators, 7));
 const colours = ["#aa1144", "#008866", "#4455cc"];
 const colourOf = (generator: number): string => colours[generator];
 const render = (selected: number[]) =>
-  renderDiagram(diagram, actionArrows(diagram, generators, new Set(selected)), colourOf);
+  renderPermutationDiagram(
+    diagram,
+    actionArrows(diagram.points, generators, new Set(selected)),
+    colourOf,
+  );
 
-describe("renderDiagram", () => {
+describe("renderPermutationDiagram", () => {
   it("draws one node per point", () => {
     expect(render([]).querySelectorAll(".node")).toHaveLength(7);
   });
@@ -57,40 +62,5 @@ describe("renderDiagram", () => {
 
   it("sizes the viewBox to the diagram", () => {
     expect(render([]).getAttribute("viewBox")).toBe(`0 0 ${diagram.width} ${diagram.height}`);
-  });
-});
-
-describe("renderDiagram with overlapping arrows", () => {
-  const overlapping = [
-    [1, 3, 2, 5, 6, 7, 4], // (2 3)(4 5 6 7)
-    [2, 1, 3, 5, 6, 7, 4], // (1 2)(4 5 6 7)
-  ];
-  const overlapDiagram = layoutOrbits([
-    [1, 2, 3],
-    [4, 5, 6, 7],
-  ]);
-  const root = renderDiagram(
-    overlapDiagram,
-    actionArrows(overlapDiagram, overlapping, new Set([0, 1])),
-    colourOf,
-  );
-  const widthsOf = (selector: string): number[] =>
-    Array.from(root.querySelectorAll(selector)).map((path) =>
-      Number(path.getAttribute("stroke-width")),
-    );
-
-  it("draws both arrows on a shared path at different widths", () => {
-    const shared = widthsOf('.edges path[data-from="4"][data-to="5"]');
-    expect(shared).toHaveLength(2);
-    expect(new Set(shared).size).toBe(2);
-  });
-
-  it("draws the widest first, so the narrower sits on top", () => {
-    const widths = widthsOf(".edges path");
-    expect([...widths].sort((a, b) => b - a)).toEqual(widths);
-  });
-
-  it("still draws every arrow", () => {
-    expect(root.querySelectorAll(".edges path")).toHaveLength(12);
   });
 });

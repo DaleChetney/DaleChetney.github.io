@@ -22,20 +22,19 @@ import {
   type ElementSection,
 } from "./components/elements-panel";
 import { filterGroups, groupListCaption, renderGroupList } from "./components/group-list";
+import { actionArrows } from "./components/diagram/arrow";
+import { renderPermutationDiagram, type Diagram } from "./components/diagram/permutationDiagram";
 import {
-  actionArrows,
   diagramWidthShare,
   DEFAULT_TARGET_WIDTH,
   layoutOrbits,
-  type Diagram,
-} from "./layout";
+} from "./components/diagram/ringLayout";
 import {
   classLabel,
   layoutLattice,
   renderLattice,
   type LatticeDiagram,
 } from "./components/lattice";
-import { renderDiagram } from "./render";
 import { renderRepresentationRow } from "./components/representation-row";
 
 /** How many generators a subgroup section will offer. */
@@ -248,9 +247,9 @@ const draw = (): void => {
   const drawn = new Set([...colours.keys()].map((key) => scene.paletteIndex.get(key) ?? 0));
   mount(
     stage,
-    renderDiagram(
+    renderPermutationDiagram(
       scene.diagram,
-      actionArrows(scene.diagram, scene.palette, drawn),
+      actionArrows(scene.diagram.points, scene.palette, drawn),
       (generator) => colourOf(elementKey(scene.palette[generator])) ?? "currentColor",
     ),
   );
