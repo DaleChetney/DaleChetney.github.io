@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
-import type { CatalogueGroup } from "./catalogue";
+import type { CatalogueGroup } from "../catalogue";
 import { filterGroups, groupListCaption, renderGroupList } from "./group-list";
 
 const group = (over: Partial<CatalogueGroup> = {}): CatalogueGroup => ({

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { clamp, lerp, mod, hexDistance, hexToPixel } from "@shared/math";
+import { clamp, lerp, mod, hexDistance, hexToPixel } from "@shared/mathUtils/math";
 
 describe("clamp", () => {
   it("returns the value when within range", () => {

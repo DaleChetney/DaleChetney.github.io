@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { Rng } from "@shared/rng";
+import { Rng } from "@shared/mathUtils/rng";
 
 describe("Rng", () => {
   it("is deterministic for a given seed", () => {

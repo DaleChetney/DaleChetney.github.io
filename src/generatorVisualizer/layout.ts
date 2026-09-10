@@ -1,4 +1,4 @@
-import type { Permutation } from "@shared/permutations";
+import type { Permutation } from "@shared/mathUtils/groups/permutations";
 
 /** A point of the permutation domain, placed in diagram coordinates. */
 export interface PlacedPoint {

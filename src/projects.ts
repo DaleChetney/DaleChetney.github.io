@@ -17,8 +17,8 @@ export const projects: Project[] = [
     description: "Roll a handful of dice; your last roll is remembered.",
   },
   {
-    slug: "groups",
-    title: "Abstract Groups",
+    slug: "generatorVisualizer",
+    title: "Generator Visualizer",
     description: "Permutation diagrams for abstract groups, with data baked from the LMFDB.",
   },
 ];

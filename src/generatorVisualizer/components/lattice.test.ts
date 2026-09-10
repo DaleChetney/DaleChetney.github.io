@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
-import { decodePermutation } from "@shared/permutations";
-import { computeSubgroupLattice, type SubgroupClass } from "@shared/subgroups";
+import { decodePermutation } from "@shared/mathUtils/groups/permutations";
+import { computeSubgroupLattice, type SubgroupClass } from "@shared/mathUtils/groups/subgroups";
 import {
   classLabel,
   LATTICE_REFERENCE_WIDTH,

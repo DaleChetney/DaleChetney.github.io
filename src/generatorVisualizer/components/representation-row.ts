@@ -1,5 +1,5 @@
 import { el } from "@shared/dom";
-import type { CatalogueRepresentation } from "./catalogue";
+import type { CatalogueRepresentation } from "../catalogue";
 
 export interface RepresentationView {
   selected: string;

@@ -1,7 +1,7 @@
 import { equidistantColours } from "@shared/colours";
-import { findIsomorphism, type GroupIsomorphism } from "@shared/isomorphism";
+import { findIsomorphism, type GroupIsomorphism } from "@shared/mathUtils/groups/isomorphism";
 import { mount, qs } from "@shared/dom";
-import { permutationOrbits, type Permutation } from "@shared/permutations";
+import { permutationOrbits, type Permutation } from "@shared/mathUtils/groups/permutations";
 import {
   computeSubgroupLattice,
   generatesWholeGroup,
@@ -9,15 +9,19 @@ import {
   type GeneratorChoices,
   type SubgroupClass,
   type SubgroupLattice,
-} from "@shared/subgroups";
+} from "@shared/mathUtils/groups/subgroups";
 import {
   byLabel,
   fetchCatalogue,
   type CatalogueGroup,
   type CatalogueRepresentation,
 } from "./catalogue";
-import { elementKey, renderElementSections, type ElementSection } from "./elements-panel";
-import { filterGroups, groupListCaption, renderGroupList } from "./group-list";
+import {
+  elementKey,
+  renderElementSections,
+  type ElementSection,
+} from "./components/elements-panel";
+import { filterGroups, groupListCaption, renderGroupList } from "./components/group-list";
 import {
   actionArrows,
   diagramWidthShare,
@@ -25,9 +29,14 @@ import {
   layoutOrbits,
   type Diagram,
 } from "./layout";
-import { classLabel, layoutLattice, renderLattice, type LatticeDiagram } from "./lattice";
+import {
+  classLabel,
+  layoutLattice,
+  renderLattice,
+  type LatticeDiagram,
+} from "./components/lattice";
 import { renderDiagram } from "./render";
-import { renderRepresentationRow } from "./representation-row";
+import { renderRepresentationRow } from "./components/representation-row";
 
 /** How many generators a subgroup section will offer. */
 const ELEMENT_LIMIT = 12;

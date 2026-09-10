@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { generatePermutationGroup, permutationOrbits } from "@shared/permutations";
+import { generatePermutationGroup, permutationOrbits } from "@shared/mathUtils/groups/permutations";
 import { byLabel, parseCatalogue } from "./catalogue";
 import { C3_C4 } from "./data";
 

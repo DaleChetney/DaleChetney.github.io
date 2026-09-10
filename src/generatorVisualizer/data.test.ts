@@ -4,7 +4,7 @@ import {
   generatePermutationGroup,
   permutationOrbits,
   permutationOrder,
-} from "@shared/permutations";
+} from "@shared/mathUtils/groups/permutations";
 import { C3_C4 } from "./data";
 
 describe("C3_C4", () => {

@@ -1,11 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { decodePermutation, permutationOrder } from "@shared/permutations";
+import { decodePermutation, permutationOrder } from "@shared/mathUtils/groups/permutations";
 import {
   computeSubgroupLattice,
   generatesWholeGroup,
   generatorElements,
   primeDivisorCount,
-} from "@shared/subgroups";
+} from "@shared/mathUtils/groups/subgroups";
 
 const C3_C4_GENERATORS = [129, 16, 840].map((code) => decodePermutation(code, 7));
 const lattice = computeSubgroupLattice(C3_C4_GENERATORS, 7);

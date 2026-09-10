@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { decodePermutation, permutationOrbits } from "@shared/permutations";
+import { decodePermutation, permutationOrbits } from "@shared/mathUtils/groups/permutations";
 import {
   actionArrows,
   ARROW_WIDTH,

@@ -1,4 +1,4 @@
-import type { Permutation } from "@shared/permutations";
+import type { Permutation } from "@shared/mathUtils/groups/permutations";
 
 /** A faithful permutation representation offered for a group. */
 export interface CatalogueRepresentation {

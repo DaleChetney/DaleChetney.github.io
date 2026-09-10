@@ -1,5 +1,5 @@
 import { el } from "@shared/dom";
-import type { CatalogueGroup } from "./catalogue";
+import type { CatalogueGroup } from "../catalogue";
 
 export interface GroupListView {
   selected: string | null;

@@ -10,7 +10,7 @@ import {
   permutationOrbits,
   permutationOrder,
   type Permutation,
-} from "@shared/permutations";
+} from "@shared/mathUtils/groups/permutations";
 
 /** Count elements by their order, the shape LMFDB stores as `order_stats`. */
 const orderStats = (elements: readonly Permutation[]): Record<number, number> => {

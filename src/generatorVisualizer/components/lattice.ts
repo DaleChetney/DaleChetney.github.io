@@ -1,5 +1,5 @@
-import type { SubgroupClass, SubgroupLattice } from "@shared/subgroups";
-import { svg } from "./svg";
+import type { SubgroupClass, SubgroupLattice } from "@shared/mathUtils/groups/subgroups";
+import { svg } from "../svg";
 
 export interface LatticeNode {
   /** Index into `SubgroupLattice.classes`. */
