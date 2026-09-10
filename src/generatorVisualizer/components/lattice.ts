@@ -114,16 +114,17 @@ export interface LatticeView {
   selected: ReadonlySet<number>;
   /** Node indices offering an element that would complete the selection into a generating set. */
   completing: ReadonlySet<number>;
-  /** Whether the selection generates the whole group. */
-  complete: boolean;
+  /** Node indices whose chosen elements generate the whole group; empty until they do. */
+  generating: ReadonlySet<number>;
   onToggle: (nodeIndex: number) => void;
 }
 
 /**
  * Render the lattice. A node carries the colour of the first generator chosen
  * from it, so the lattice and the main diagram read as one selection. The
- * completing nodes are outlined, and so is the whole group once it is generated:
- * the outline is the one thing on the page that reads as a state of the selection.
+ * completing nodes are outlined, and once the group is generated so are the
+ * classes that did it and the group itself: the outline is the one thing on the
+ * page that reads as a state of the selection.
  */
 export const renderLattice = (
   diagram: LatticeDiagram,
@@ -156,7 +157,9 @@ export const renderLattice = (
         node.selectable ? "selectable" : "fixed",
         selected ? "selected" : "",
         completing ? "completing" : "",
-        node.whole && view.complete ? "complete" : "",
+        view.generating.has(node.index) || (node.whole && view.generating.size > 0)
+          ? "generating"
+          : "",
       ]
         .filter(Boolean)
         .join(" "),

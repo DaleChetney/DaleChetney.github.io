@@ -279,20 +279,18 @@
       }
 
       /*
-        Dashed while the element that would complete the generating set is still
-        to be picked; solid on a class one has already been picked from, and on
-        the whole group once the set is complete.
+        Dashed while an element that would complete the generating set is still
+        to be picked; solid, on the classes that did it and on the whole group,
+        once it is complete.
       */
       .lattice-node.completing rect,
-      .lattice-node.complete rect {
+      .lattice-node.generating rect {
         stroke: var(--completing);
         stroke-width: 1.5;
-        stroke-dasharray: 3 3;
       }
 
-      .lattice-node.completing.selected rect,
-      .lattice-node.complete rect {
-        stroke-dasharray: none;
+      .lattice-node.completing rect {
+        stroke-dasharray: 3 3;
       }
 
       /*
@@ -336,8 +334,8 @@
         <h2>Subgroups up to conjugacy</h2>
         <p class="hint">
           Click a cyclic subgroup to draw one of its generators. An outlined subgroup has an element
-          that would complete the selection into a generating set; the group itself is outlined once
-          one is.
+          that would complete the selection into a generating set; the outline turns solid once it
+          is one.
         </p>
         <div id="lattice"></div>
       </div>

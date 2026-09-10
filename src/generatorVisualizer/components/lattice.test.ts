@@ -66,7 +66,7 @@ describe("renderLattice", () => {
       {
         selected: new Set(),
         completing: new Set(),
-        complete: false,
+        generating: new Set(),
         onToggle: () => {},
         ...over,
       },
@@ -78,7 +78,7 @@ describe("renderLattice", () => {
     Number(
       renderLattice(
         { ...diagram, width },
-        { selected: new Set(), completing: new Set(), complete: false, onToggle: () => {} },
+        { selected: new Set(), completing: new Set(), generating: new Set(), onToggle: () => {} },
         () => null,
       ).style.width.replace("%", ""),
     );
@@ -131,12 +131,15 @@ describe("renderLattice", () => {
     );
   });
 
-  it("marks the whole group complete once the selection generates it", () => {
-    const whole = `[data-class="${nodeOfOrder(12).index}"]`;
-    expect(view().querySelector(whole)?.classList).not.toContain("complete");
-    const root = view({ complete: true });
-    expect(root.querySelector(whole)?.classList).toContain("complete");
-    expect(root.querySelectorAll(".lattice-node.complete")).toHaveLength(1);
+  it("marks the generating classes, and with them the whole group", () => {
+    expect(view().querySelectorAll(".lattice-node.generating")).toHaveLength(0);
+    const root = view({ generating: new Set([nodeOfOrder(4).index, nodeOfOrder(6).index]) });
+    const marked = Array.from(root.querySelectorAll(".lattice-node.generating")).map((node) =>
+      Number(node.getAttribute("data-class")),
+    );
+    expect(marked.sort()).toEqual(
+      [nodeOfOrder(4).index, nodeOfOrder(6).index, nodeOfOrder(12).index].sort(),
+    );
   });
 
   it("toggles on click", () => {
