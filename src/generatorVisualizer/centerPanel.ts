@@ -70,7 +70,7 @@ export class CenterPanel {
       renderPermutationDiagram(
         diagram,
         actionArrows(diagram.points, scene.palette, scene.drawnGenerators()),
-        (generator) => scene.generatorColour(generator),
+        (generator) => scene.generatorColor(generator),
       ),
     );
   }
@@ -92,7 +92,7 @@ export class CenterPanel {
             generating: scene.generatingClasses(),
             onToggle: this.#handlers.onToggleClass,
           },
-          (classIndex) => scene.nodeColour(classIndex),
+          (classIndex) => scene.nodeColor(classIndex),
         ),
       );
     });

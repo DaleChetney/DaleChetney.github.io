@@ -68,7 +68,7 @@ const typeQuery = (value: string): void => {
 };
 const arrows = (): SVGPathElement[] =>
   Array.from(document.querySelectorAll("#diagram .edges path"));
-const arrowColours = (): string[] => [
+const arrowColors = (): string[] => [
   ...new Set(arrows().map((path) => path.getAttribute("stroke") ?? "")),
 ];
 
@@ -108,14 +108,14 @@ describe("groups page", () => {
     expect(generating()).toEqual([]);
   });
 
-  it("colours only the swatches of the elements being drawn", () => {
+  it("colors only the swatches of the elements being drawn", () => {
     const swatches = Array.from(sectionFor("C₆").querySelectorAll<HTMLElement>(".element")).map(
       (row) => ({
         checked: row.querySelector<HTMLInputElement>("input")?.checked,
         background: row.querySelector<HTMLElement>(".swatch")?.style.background?.toLowerCase(),
       }),
     );
-    // An unselected element has no colour: colours belong to the drawn series.
+    // An unselected element has no color: colors belong to the drawn series.
     expect(swatches.map((s) => s.checked)).toEqual([true, false]);
     expect(swatches[0].background).not.toBe("currentcolor");
     expect(swatches[1].background).toBe("currentcolor");
@@ -304,24 +304,24 @@ describe("groups page", () => {
     );
   });
 
-  it("respreads the colours as the number of generators drawn changes", () => {
+  it("respreads the colors as the number of generators drawn changes", () => {
     groupRow(DEFAULT.label).click();
     latticeNode("C₆").dispatchEvent(new MouseEvent("click"));
     const inputs = () =>
       Array.from(sectionFor("₃C₄").querySelectorAll<HTMLInputElement>(".element input"));
     latticeNode("₃C₄").dispatchEvent(new MouseEvent("click"));
-    expect(arrowColours()).toHaveLength(1);
+    expect(arrowColors()).toHaveLength(1);
 
     // Elements 2 and 4 open the other two conjugates.
     inputs()[2].click();
-    const two = arrowColours();
+    const two = arrowColors();
     expect(two).toHaveLength(2);
 
     inputs()[4].click();
-    const three = arrowColours();
+    const three = arrowColors();
     expect(three).toHaveLength(3);
-    // The wheel is re-divided rather than extended, so only the colour at the
+    // The wheel is re-divided rather than extended, so only the color at the
     // start of it survives adding a third generator.
-    expect(three.filter((colour) => two.includes(colour))).toHaveLength(1);
+    expect(three.filter((color) => two.includes(color))).toHaveLength(1);
   });
 });

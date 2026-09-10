@@ -44,20 +44,20 @@ describe("renderArrows on a shared path", () => {
     [1, 2, 3],
     [4, 5, 6, 7],
   ]);
-  const colourOf = (generator: number): string => ["#aa1144", "#008866"][generator];
+  const colorOf = (generator: number): string => ["#aa1144", "#008866"][generator];
   const widthsOf = (layer: SVGGElement, selector = "path"): number[] =>
     Array.from(layer.querySelectorAll(selector)).map((path) =>
       Number(path.getAttribute("stroke-width")),
     );
 
-  const shared = renderArrows(actionArrows(points, overlapping, new Set([0, 1])), colourOf);
+  const shared = renderArrows(actionArrows(points, overlapping, new Set([0, 1])), colorOf);
 
   it("draws every arrow it is given", () => {
     expect(shared.querySelectorAll("path")).toHaveLength(12);
   });
 
   it("leaves arrows that share no path all at the same width", () => {
-    const alone = renderArrows(actionArrows(points, overlapping, new Set([0])), colourOf);
+    const alone = renderArrows(actionArrows(points, overlapping, new Set([0])), colorOf);
     expect(distinct(widthsOf(alone))).toBe(1);
   });
 
@@ -81,6 +81,6 @@ describe("renderArrows on a shared path", () => {
   });
 
   it("handles no arrows", () => {
-    expect(renderArrows([], colourOf).querySelectorAll("path")).toHaveLength(0);
+    expect(renderArrows([], colorOf).querySelectorAll("path")).toHaveLength(0);
   });
 });

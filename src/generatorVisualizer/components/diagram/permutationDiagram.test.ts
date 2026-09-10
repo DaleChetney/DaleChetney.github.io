@@ -7,13 +7,13 @@ import { layoutOrbits } from "./ringLayout";
 
 const generators = [129, 16, 840].map((code) => decodePermutation(code, 7));
 const diagram = layoutOrbits(permutationOrbits(generators, 7));
-const colours = ["#aa1144", "#008866", "#4455cc"];
-const colourOf = (generator: number): string => colours[generator];
+const colors = ["#aa1144", "#008866", "#4455cc"];
+const colorOf = (generator: number): string => colors[generator];
 const render = (selected: number[]) =>
   renderPermutationDiagram(
     diagram,
     actionArrows(diagram.points, generators, new Set(selected)),
-    colourOf,
+    colorOf,
   );
 
 describe("renderPermutationDiagram", () => {
@@ -36,10 +36,10 @@ describe("renderPermutationDiagram", () => {
     expect(render([0]).querySelectorAll(".edges path")).toHaveLength(6);
   });
 
-  it("colours edges by generator and points them at a matching marker", () => {
+  it("colors edges by generator and points them at a matching marker", () => {
     const root = render([0, 2]);
     const path = root.querySelector<SVGPathElement>('.edges path[data-generator="2"]');
-    expect(path?.getAttribute("stroke")).toBe(colours[2]);
+    expect(path?.getAttribute("stroke")).toBe(colors[2]);
     expect(path?.getAttribute("marker-end")).toBe("url(#arrowhead-2)");
     expect(root.querySelector("#arrowhead-2")).not.toBeNull();
   });
@@ -48,9 +48,9 @@ describe("renderPermutationDiagram", () => {
     expect(render([1]).querySelectorAll("defs marker")).toHaveLength(1);
   });
 
-  it("gives the arrowhead the same colour as its edge", () => {
+  it("gives the arrowhead the same color as its edge", () => {
     const head = render([1]).querySelector("#arrowhead-1 path");
-    expect(head?.getAttribute("fill")).toBe(colours[1]);
+    expect(head?.getAttribute("fill")).toBe(colors[1]);
   });
 
   it("records the action on each edge", () => {

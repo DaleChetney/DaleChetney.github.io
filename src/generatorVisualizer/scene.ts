@@ -1,4 +1,4 @@
-import { equidistantColours } from "@shared/colours";
+import { equidistantColors } from "@shared/colors";
 import {
   generatorElements,
   type GeneratorChoices,
@@ -55,7 +55,7 @@ export class Scene {
   /**
    * Every choosable element, in a fixed order. A permutation generates exactly
    * one cyclic subgroup, so each appears once, and its position here orders the
-   * selection for colouring — keeping that independent of click order. The
+   * selection for coloring — keeping that independent of click order. The
    * diagram draws one arrow set per entry, which is what an index into it means.
    */
   readonly palette: readonly Permutation[];
@@ -74,7 +74,7 @@ export class Scene {
 
   /** Chosen element keys, per open class. A class with an empty set stays open. */
   #selection = new Map<number, Set<string>>();
-  #colours = new Map<string, string>();
+  #colors = new Map<string, string>();
 
   constructor(group: CatalogueGroup, representation: CatalogueRepresentation, targetWidth: number) {
     const { generators, degree } = representation;
@@ -147,32 +147,32 @@ export class Scene {
 
   /** Palette entries currently being drawn, as indices into `palette`. */
   drawnGenerators(): Set<number> {
-    return new Set([...this.#colours.keys()].map((key) => this.#rankOf(key)));
+    return new Set([...this.#colors.keys()].map((key) => this.#rankOf(key)));
   }
 
   /** Whether this element is currently being drawn. */
   isDrawn(key: string): boolean {
-    return this.#colours.has(key);
+    return this.#colors.has(key);
   }
 
-  /** The colour this element is drawn in, or null when it is not being drawn. */
-  colourOf(key: string): string | null {
-    return this.#colours.get(key) ?? null;
+  /** The color this element is drawn in, or null when it is not being drawn. */
+  colorOf(key: string): string | null {
+    return this.#colors.get(key) ?? null;
   }
 
-  /** The colour a palette entry's arrows take; an undrawn one inherits the text colour. */
-  generatorColour(generator: number): string {
-    return this.colourOf(permutationKey(this.palette[generator])) ?? "currentColor";
+  /** The color a palette entry's arrows take; an undrawn one inherits the text color. */
+  generatorColor(generator: number): string {
+    return this.colorOf(permutationKey(this.palette[generator])) ?? "currentColor";
   }
 
-  /** Colour of the first element chosen from a class, in the class's own order. */
-  nodeColour(classIndex: number): string | null {
+  /** Color of the first element chosen from a class, in the class's own order. */
+  nodeColor(classIndex: number): string | null {
     const keys = this.#selection.get(classIndex);
     if (keys === undefined || keys.size === 0) return null;
     const first = this.choicesFor(classIndex)
       .elements.map((choice) => permutationKey(choice.permutation))
       .find((key) => keys.has(key));
-    return first === undefined ? null : this.colourOf(first);
+    return first === undefined ? null : this.colorOf(first);
   }
 
   /**
@@ -222,14 +222,14 @@ export class Scene {
       const last = this.selectableClasses[this.selectableClasses.length - 1];
       if (last !== undefined) this.#openClass(last);
     }
-    this.#recolour();
+    this.#recolor();
   }
 
   /** Open or close a class. Opening one draws its first generator. */
   toggleClass(classIndex: number): void {
     if (this.#selection.has(classIndex)) this.#selection.delete(classIndex);
     else this.#openClass(classIndex);
-    this.#recolour();
+    this.#recolor();
   }
 
   /** Draw or stop drawing one element of an already-open class. */
@@ -240,7 +240,7 @@ export class Scene {
     if (keys === undefined) return;
     if (keys.has(key)) keys.delete(key);
     else keys.add(key);
-    this.#recolour();
+    this.#recolor();
   }
 
   #openClass(classIndex: number): void {
@@ -252,17 +252,17 @@ export class Scene {
   }
 
   /**
-   * A colour per drawn element, spread evenly over however many are drawn rather
+   * A color per drawn element, spread evenly over however many are drawn rather
    * than taken from a fixed list, so they stay as far apart as the count allows.
    *
    * Re-spread whenever the selection changes rather than when anything is drawn,
-   * so that a panel asking what colour an element is never depends on which
+   * so that a panel asking what color an element is never depends on which
    * panel was drawn first.
    */
-  #recolour(): void {
+  #recolor(): void {
     const keys = this.#chosenKeys().sort((a, b) => this.#rankOf(a) - this.#rankOf(b));
-    const scale = equidistantColours(keys.length);
-    this.#colours = new Map(keys.map((key, index) => [key, scale[index]]));
+    const scale = equidistantColors(keys.length);
+    this.#colors = new Map(keys.map((key, index) => [key, scale[index]]));
   }
 
   #generatesGroup(): boolean {
@@ -281,7 +281,7 @@ export class Scene {
     return this.#chosenKeys().map((key) => this.#permutations.get(key) ?? []);
   }
 
-  /** Where an element sits in the palette, which is the order colours follow. */
+  /** Where an element sits in the palette, which is the order colors follow. */
   #rankOf(key: string): number {
     return this.#paletteRank.get(key) ?? 0;
   }
