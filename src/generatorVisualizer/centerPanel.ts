@@ -76,8 +76,9 @@ export class CenterPanel {
   }
 
   /**
-   * The Hasse diagram, with the open classes marked and the ones that would
-   * complete the selection into a generating set marked differently.
+   * The Hasse diagram, with the open classes marked, the ones that would
+   * complete the selection into a generating set outlined, and the whole group
+   * outlined once they have.
    */
   #showLattice(scene: Scene): void {
     preservingFocus(latticeFocus, () => {
@@ -88,6 +89,7 @@ export class CenterPanel {
           {
             selected: new Set(scene.openClasses()),
             completing: scene.completingClasses(),
+            complete: scene.generatesGroup(),
             onToggle: this.#handlers.onToggleClass,
           },
           (classIndex) => scene.nodeColour(classIndex),

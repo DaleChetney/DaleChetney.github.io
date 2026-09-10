@@ -45,6 +45,10 @@ describe("layoutLattice", () => {
     expect(nodeOfOrder(12).selectable).toBe(false);
   });
 
+  it("marks the whole group and nothing else", () => {
+    expect(diagram.nodes.filter((node) => node.whole)).toEqual([nodeOfOrder(12)]);
+  });
+
   it("keeps every node inside the reported bounds", () => {
     for (const node of diagram.nodes) {
       expect(node.x).toBeGreaterThan(0);
@@ -59,7 +63,13 @@ describe("renderLattice", () => {
   const view = (over: Partial<Parameters<typeof renderLattice>[1]> = {}) =>
     renderLattice(
       diagram,
-      { selected: new Set(), completing: new Set(), onToggle: () => {}, ...over },
+      {
+        selected: new Set(),
+        completing: new Set(),
+        complete: false,
+        onToggle: () => {},
+        ...over,
+      },
       () => null,
     );
 
@@ -68,7 +78,7 @@ describe("renderLattice", () => {
     Number(
       renderLattice(
         { ...diagram, width },
-        { selected: new Set(), completing: new Set(), onToggle: () => {} },
+        { selected: new Set(), completing: new Set(), complete: false, onToggle: () => {} },
         () => null,
       ).style.width.replace("%", ""),
     );
@@ -119,6 +129,14 @@ describe("renderLattice", () => {
     expect(root.querySelector(`[data-class="${nodeOfOrder(3).index}"]`)?.classList).toContain(
       "completing",
     );
+  });
+
+  it("marks the whole group complete once the selection generates it", () => {
+    const whole = `[data-class="${nodeOfOrder(12).index}"]`;
+    expect(view().querySelector(whole)?.classList).not.toContain("complete");
+    const root = view({ complete: true });
+    expect(root.querySelector(whole)?.classList).toContain("complete");
+    expect(root.querySelectorAll(".lattice-node.complete")).toHaveLength(1);
   });
 
   it("toggles on click", () => {

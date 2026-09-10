@@ -175,18 +175,28 @@ export class Scene {
     return first === undefined ? null : this.colourOf(first);
   }
 
+  /** Whether what is chosen generates the whole group. */
+  generatesGroup(): boolean {
+    return generatesWholeGroup(
+      this.#chosenPermutations(),
+      this.representation.degree,
+      this.group.order,
+    );
+  }
+
   /**
    * Classes offering an element that would complete the selection into a
-   * generating set. Existential over the class's elements rather than just its
-   * first: which conjugate an element generates decides what it adds.
+   * generating set; empty once it is one. Existential over the class's
+   * elements rather than just its first: which conjugate an element generates
+   * decides what it adds, so an open class is still completing while another
+   * of its conjugates would finish the job.
    */
   completingClasses(): Set<number> {
     const completing = new Set<number>();
+    if (this.generatesGroup()) return completing;
     const chosen = this.#chosenPermutations();
     const { degree } = this.representation;
-    if (generatesWholeGroup(chosen, degree, this.group.order)) return completing;
     for (const classIndex of this.selectableClasses) {
-      if (this.#selection.has(classIndex)) continue;
       const completes = this.choicesFor(classIndex).elements.some((choice) =>
         generatesWholeGroup([...chosen, choice.permutation], degree, this.group.order),
       );
