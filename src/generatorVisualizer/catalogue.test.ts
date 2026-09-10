@@ -3,7 +3,6 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { generatePermutationGroup, permutationOrbits } from "@shared/mathUtils/groups/permutations";
 import { byLabel, parseCatalogue } from "./catalogue";
-import { C3_C4 } from "./data";
 
 const catalogue = parseCatalogue(
   JSON.parse(readFileSync(resolve(import.meta.dirname, "../../public/groups.json"), "utf8")),
@@ -109,14 +108,20 @@ describe("the baked catalogue", () => {
     expect(withTransitive.length).toBeLessThan(catalogue.groups.length);
   });
 
-  // The C_3:C_4 in data.ts was baked by hand and checked against LMFDB's own
-  // pages, so it is an independent witness for the whole pipeline.
-  it("reproduces the hand-baked C_3:C_4", () => {
-    const baked = groups.get(C3_C4.label);
-    expect(baked?.displayName).toBe(C3_C4.displayName);
-    expect(baked?.texName).toBe(C3_C4.texName);
-    expect(baked?.order).toBe(C3_C4.order);
+  // Transcribed by hand from https://www.lmfdb.org/Groups/Abstract/12.1, so it
+  // is an independent witness for the whole pipeline: a bake that drifts in
+  // naming, ordering or decoding stops matching a page nobody generated.
+  it("reproduces LMFDB's own page for C_3:C_4", () => {
+    const baked = groups.get("12.1");
+    expect(baked?.displayName).toBe("C₃ ⋊ C₄");
+    expect(baked?.texName).toBe("C_3:C_4");
+    expect(baked?.order).toBe(12);
+    // The minimal faithful action has degree 7, splitting as 3 + 4.
     const minimal = baked?.representations.find((rep) => rep.id === "perm-7");
-    expect(minimal?.generators).toEqual(C3_C4.representations[0].generators);
+    expect(minimal?.generators).toEqual([
+      [1, 3, 2, 5, 6, 7, 4], // (2 3)(4 5 6 7)
+      [1, 2, 3, 6, 7, 4, 5], // (4 6)(5 7)
+      [2, 3, 1, 4, 5, 6, 7], // (1 2 3)
+    ]);
   });
 });

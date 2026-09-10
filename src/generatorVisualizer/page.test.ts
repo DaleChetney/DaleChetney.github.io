@@ -2,7 +2,6 @@
 import { describe, it, expect, beforeAll, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { C3_C4 } from "./data";
 
 // main.ts reaches into index.html by id and throws if one is missing, which no
 // type check can see. Running it against the real markup pins the two together,
@@ -19,6 +18,9 @@ beforeAll(async () => {
   );
   await import("./main");
 });
+
+/** The group main.ts opens on, as LMFDB records it at Groups/Abstract/12.1. */
+const DEFAULT = { label: "12.1", displayName: "C₃ ⋊ C₄", minimalDegree: 7 };
 
 const latticeNode = (label: string): SVGGElement => {
   const found = Array.from(document.querySelectorAll<SVGGElement>(".lattice-node")).find(
@@ -83,14 +85,12 @@ describe("groups page", () => {
   });
 
   it("draws a node for every point of the default representation", () => {
-    expect(document.querySelectorAll("#diagram .node")).toHaveLength(
-      C3_C4.representations[0].degree,
-    );
+    expect(document.querySelectorAll("#diagram .node")).toHaveLength(DEFAULT.minimalDegree);
   });
 
   it("names the group", () => {
-    expect(document.querySelector("#group-name")?.textContent).toBe(C3_C4.displayName);
-    expect(document.querySelector("#group-label")?.textContent).toContain(C3_C4.label);
+    expect(document.querySelector("#group-name")?.textContent).toBe(DEFAULT.displayName);
+    expect(document.querySelector("#group-label")?.textContent).toContain(DEFAULT.label);
   });
 
   it("opens a section for the subgroup selected by default", () => {
@@ -185,7 +185,7 @@ describe("groups page", () => {
   it("lists the whole catalogue in the left panel", () => {
     expect(document.querySelectorAll(".group-row")).toHaveLength(526);
     expect(document.querySelector("#group-count")?.textContent).toBe("526 groups");
-    expect(groupRow(C3_C4.label).classList.contains("selected")).toBe(true);
+    expect(groupRow(DEFAULT.label).classList.contains("selected")).toBe(true);
   });
 
   it("narrows the list as you type, and puts it back", () => {
@@ -215,7 +215,7 @@ describe("groups page", () => {
   });
 
   it("keeps the selection when the representation changes", () => {
-    groupRow(C3_C4.label).click();
+    groupRow(DEFAULT.label).click();
     latticeNode("₃C₄").dispatchEvent(new MouseEvent("click"));
     latticeNode("C₆").dispatchEvent(new MouseEvent("click"));
     const conjugates = sectionFor("₃C₄").querySelectorAll(".conjugate");
@@ -240,7 +240,7 @@ describe("groups page", () => {
   });
 
   it("keeps an empty selection empty across a representation change", () => {
-    groupRow(C3_C4.label).click();
+    groupRow(DEFAULT.label).click();
     latticeNode("C₆").dispatchEvent(new MouseEvent("click"));
     expect(sectionLabels()).toEqual([]);
     document.querySelector<HTMLElement>('[data-representation="12T5"]')?.click();
@@ -257,7 +257,7 @@ describe("groups page", () => {
     expect(document.querySelector("#group-label")?.textContent).toBe("8.3");
     expect(document.querySelectorAll("#diagram .node")).toHaveLength(4);
     expect(groupRow("8.3").classList.contains("selected")).toBe(true);
-    expect(groupRow(C3_C4.label).classList.contains("selected")).toBe(false);
+    expect(groupRow(DEFAULT.label).classList.contains("selected")).toBe(false);
     // A new group opens with one generator already drawn.
     expect(checkedCount()).toBe(1);
     expect(arrows().length).toBeGreaterThan(0);
@@ -294,7 +294,7 @@ describe("groups page", () => {
   });
 
   it("respreads the colours as the number of generators drawn changes", () => {
-    groupRow(C3_C4.label).click();
+    groupRow(DEFAULT.label).click();
     latticeNode("C₆").dispatchEvent(new MouseEvent("click"));
     const inputs = () =>
       Array.from(sectionFor("₃C₄").querySelectorAll<HTMLInputElement>(".element input"));
