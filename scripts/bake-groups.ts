@@ -4,15 +4,15 @@ import {
   decodePermutation,
   permutationFromCycles,
   permutationOrbits,
-} from "../src/shared/permutations.ts";
-import { texToUnicode } from "../src/shared/tex.ts";
+} from "../src/shared/mathUtils/groups/permutations.ts";
+import { texToUnicode } from "../src/shared/mathUtils/groups/tex.ts";
 import type {
   Catalogue,
   CatalogueBounds,
   CatalogueGroup,
   CatalogueRepresentation,
   SubgroupRung,
-} from "../src/groups/catalogue.ts";
+} from "../src/generatorVisualizer/catalogue.ts";
 
 /**
  * Turn the two LMFDB extracts named in `lmfdb-extract.sql` into the catalogue
@@ -52,7 +52,7 @@ export interface TransitiveRow {
   gens: string;
 }
 
-export const BOUNDS: CatalogueBounds = {
+const BOUNDS: CatalogueBounds = {
   maxOrder: 120,
   abelianMaxOrder: 60,
   maxDegree: 32,

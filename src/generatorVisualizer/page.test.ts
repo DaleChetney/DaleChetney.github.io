@@ -1,0 +1,316 @@
+// @vitest-environment jsdom
+import { describe, it, expect, beforeAll, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
+// main.ts reaches into index.html by id and throws if one is missing, which no
+// type check can see. Running it against the real markup pins the two together,
+// over the catalogue the site actually ships.
+beforeAll(async () => {
+  const html = readFileSync(resolve(import.meta.dirname, "index.html"), "utf8");
+  document.body.innerHTML = /<body>([\s\S]*)<\/body>/.exec(html)?.[1] ?? "";
+  const catalogue: unknown = JSON.parse(
+    readFileSync(resolve(import.meta.dirname, "../../public/groups.json"), "utf8"),
+  );
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve(catalogue) })),
+  );
+  await import("./main");
+});
+
+/** The group main.ts opens on, as LMFDB records it at Groups/Abstract/12.1. */
+const DEFAULT = { label: "12.1", displayName: "C₃ ⋊ C₄", minimalDegree: 7 };
+
+const latticeNode = (label: string): SVGGElement => {
+  const found = Array.from(document.querySelectorAll<SVGGElement>(".lattice-node")).find(
+    (node) => node.querySelector("text")?.textContent === label,
+  );
+  if (found === undefined) throw new Error(`no lattice node labelled ${label}`);
+  return found;
+};
+
+const sectionFor = (label: string): HTMLElement => {
+  const found = Array.from(document.querySelectorAll<HTMLElement>(".element-section")).find(
+    (node) => node.querySelector("h3")?.firstChild?.textContent === label,
+  );
+  if (found === undefined) throw new Error(`no section for ${label}`);
+  return found;
+};
+
+const sectionLabels = (): string[] =>
+  Array.from(document.querySelectorAll(".element-section h3")).map(
+    (h3) => h3.firstChild?.textContent ?? "",
+  );
+const completing = (): string[] =>
+  Array.from(document.querySelectorAll(".lattice-node.completing text")).map(
+    (text) => text.textContent ?? "",
+  );
+const checkedCount = (): number => document.querySelectorAll(".element input:checked").length;
+const groupRow = (label: string): HTMLElement => {
+  const found = document.querySelector<HTMLElement>(`.group-row[data-label="${label}"]`);
+  if (found === null) throw new Error(`no row for group ${label}`);
+  return found;
+};
+const search = (): HTMLInputElement => {
+  const input = document.querySelector<HTMLInputElement>("#group-search");
+  if (input === null) throw new Error("no search box");
+  return input;
+};
+const typeQuery = (value: string): void => {
+  search().value = value;
+  search().dispatchEvent(new Event("input"));
+};
+const arrows = (): SVGPathElement[] =>
+  Array.from(document.querySelectorAll("#diagram .edges path"));
+const arrowColours = (): string[] => [
+  ...new Set(arrows().map((path) => path.getAttribute("stroke") ?? "")),
+];
+
+/** Paths that share a from/to pair, grouped by that pair. */
+const sharedPaths = (): SVGPathElement[][] => {
+  const bundles = new Map<string, SVGPathElement[]>();
+  for (const path of arrows()) {
+    const key = `${path.getAttribute("data-from")}->${path.getAttribute("data-to")}`;
+    bundles.set(key, [...(bundles.get(key) ?? []), path]);
+  }
+  return [...bundles.values()].filter((bundle) => bundle.length > 1);
+};
+
+describe("groups page", () => {
+  it("mounts all three views", () => {
+    expect(document.querySelector("#diagram svg")).not.toBeNull();
+    expect(document.querySelector("#lattice svg")).not.toBeNull();
+    expect(document.querySelector("#element-sections .element-sections")).not.toBeNull();
+  });
+
+  it("draws a node for every point of the default representation", () => {
+    expect(document.querySelectorAll("#diagram .node")).toHaveLength(DEFAULT.minimalDegree);
+  });
+
+  it("names the group", () => {
+    expect(document.querySelector("#group-name")?.textContent).toBe(DEFAULT.displayName);
+    expect(document.querySelector("#group-label")?.textContent).toContain(DEFAULT.label);
+  });
+
+  it("opens a section for the subgroup selected by default", () => {
+    expect(sectionLabels()).toEqual(["C₆"]);
+    // C_6 has one conjugate, so its two generators are listed flat.
+    expect(sectionFor("C₆").querySelectorAll(".conjugate")).toHaveLength(0);
+    expect(sectionFor("C₆").querySelectorAll(".element")).toHaveLength(2);
+    expect(checkedCount()).toBe(1);
+    expect(completing()).toEqual(["₃C₄"]);
+  });
+
+  it("colours only the swatches of the elements being drawn", () => {
+    const swatches = Array.from(sectionFor("C₆").querySelectorAll<HTMLElement>(".element")).map(
+      (row) => ({
+        checked: row.querySelector<HTMLInputElement>("input")?.checked,
+        background: row.querySelector<HTMLElement>(".swatch")?.style.background?.toLowerCase(),
+      }),
+    );
+    // An unselected element has no colour: colours belong to the drawn series.
+    expect(swatches.map((s) => s.checked)).toEqual([true, false]);
+    expect(swatches[0].background).not.toBe("currentcolor");
+    expect(swatches[1].background).toBe("currentcolor");
+  });
+
+  it("opens a second section, grouped by conjugate, when C_4 is selected", () => {
+    latticeNode("₃C₄").dispatchEvent(new MouseEvent("click"));
+    expect(sectionLabels().sort()).toEqual(["C₆", "₃C₄"].sort());
+    const c4 = sectionFor("₃C₄");
+    expect(c4.querySelectorAll(".conjugate")).toHaveLength(3);
+    expect(c4.querySelectorAll(".element")).toHaveLength(6);
+    expect(c4.querySelector(".muted")?.textContent).toContain("6 generators");
+    // <C_6, C_4> is the whole group, so nothing is outstanding.
+    expect(completing()).toEqual([]);
+  });
+
+  it("asks for more again once C_6 is dropped", () => {
+    latticeNode("C₆").dispatchEvent(new MouseEvent("click"));
+    expect(sectionLabels()).toEqual(["₃C₄"]);
+    expect(checkedCount()).toBe(1);
+    expect(completing().sort()).toEqual(["C₃", "C₆"]);
+  });
+
+  it("completes the group from two C_4 generators in different conjugates", () => {
+    const groups = sectionFor("₃C₄").querySelectorAll(".conjugate");
+    const second = groups[1].querySelector<HTMLInputElement>(".element input");
+    second?.click();
+    expect(checkedCount()).toBe(2);
+    // Two order-4 elements generate C_3:C_4 exactly when their conjugates differ.
+    expect(completing()).toEqual([]);
+  });
+
+  it("thins the arrows that now share a path", () => {
+    // Both chosen generators contain the 4-cycle (4 5 6 7), so four arrows coincide.
+    const bundles = sharedPaths();
+    expect(bundles).toHaveLength(4);
+    for (const bundle of bundles) {
+      const widths = bundle.map((path) => Number(path.getAttribute("stroke-width")));
+      expect(new Set(widths).size).toBe(widths.length);
+    }
+  });
+
+  it("keeps the section open when its last element is cleared", () => {
+    // Each click redraws the panel, so re-query rather than walking a snapshot.
+    const nextChecked = () =>
+      sectionFor("₃C₄").querySelector<HTMLInputElement>(".element input:checked");
+    for (let input = nextChecked(); input !== null; input = nextChecked()) {
+      input.click();
+    }
+    expect(sectionLabels()).toEqual(["₃C₄"]);
+    expect(checkedCount()).toBe(0);
+    expect(arrows()).toHaveLength(0);
+  });
+
+  it("keeps focus on a checkbox across the redraw it triggers", () => {
+    latticeNode("C₆").dispatchEvent(new MouseEvent("click"));
+    const input = sectionFor("C₆").querySelector<HTMLInputElement>(".element input");
+    input?.focus();
+    const key = input?.closest("[data-element]")?.getAttribute("data-element");
+    input?.click();
+    expect(document.activeElement?.closest("[data-element]")?.getAttribute("data-element")).toBe(
+      key,
+    );
+    latticeNode("C₆").dispatchEvent(new MouseEvent("click"));
+  });
+
+  it("prompts again when every subgroup is dropped", () => {
+    latticeNode("₃C₄").dispatchEvent(new MouseEvent("click"));
+    expect(document.querySelectorAll(".element-section")).toHaveLength(0);
+    expect(document.querySelector("#element-sections")?.textContent).toContain("Select a subgroup");
+  });
+
+  it("lists the whole catalogue in the left panel", () => {
+    expect(document.querySelectorAll(".group-row")).toHaveLength(526);
+    expect(document.querySelector("#group-count")?.textContent).toBe("526 groups");
+    expect(groupRow(DEFAULT.label).classList.contains("selected")).toBe(true);
+  });
+
+  it("narrows the list as you type, and puts it back", () => {
+    typeQuery("60.5");
+    expect(document.querySelectorAll(".group-row")).toHaveLength(1);
+    expect(groupRow("60.5")).not.toBeNull();
+    expect(document.querySelector("#group-count")?.textContent).toContain("of 526");
+    typeQuery("");
+    expect(document.querySelectorAll(".group-row")).toHaveLength(526);
+  });
+
+  it("offers both of C_3:C_4's representations, the smallest first", () => {
+    const row = Array.from(document.querySelectorAll("#representation-row .representation"));
+    expect(row.map((button) => button.getAttribute("data-representation"))).toEqual([
+      "perm-7",
+      "12T5",
+    ]);
+    expect(row[0].getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("redraws at the new degree when the representation changes", () => {
+    document.querySelector<HTMLElement>('[data-representation="12T5"]')?.click();
+    expect(document.querySelectorAll("#diagram .node")).toHaveLength(12);
+    // The regular representation is transitive, so the points are one orbit.
+    document.querySelector<HTMLElement>('[data-representation="perm-7"]')?.click();
+    expect(document.querySelectorAll("#diagram .node")).toHaveLength(7);
+  });
+
+  it("keeps the selection when the representation changes", () => {
+    groupRow(DEFAULT.label).click();
+    latticeNode("₃C₄").dispatchEvent(new MouseEvent("click"));
+    latticeNode("C₆").dispatchEvent(new MouseEvent("click"));
+    const conjugates = sectionFor("₃C₄").querySelectorAll(".conjugate");
+    conjugates[1].querySelector<HTMLInputElement>(".element input")?.click();
+    expect(sectionLabels()).toEqual(["₃C₄"]);
+    expect(checkedCount()).toBe(2);
+    // Two order-4 elements from different conjugates generate the group.
+    expect(completing()).toEqual([]);
+
+    document.querySelector<HTMLElement>('[data-representation="12T5"]')?.click();
+    expect(document.querySelectorAll("#diagram .node")).toHaveLength(12);
+    expect(sectionLabels()).toEqual(["₃C₄"]);
+    expect(checkedCount()).toBe(2);
+    // Still a generating pair, so the carry kept them in different conjugates
+    // rather than just picking two elements of the right order.
+    expect(completing()).toEqual([]);
+
+    document.querySelector<HTMLElement>('[data-representation="perm-7"]')?.click();
+    expect(document.querySelectorAll("#diagram .node")).toHaveLength(7);
+    expect(checkedCount()).toBe(2);
+    expect(completing()).toEqual([]);
+  });
+
+  it("keeps an empty selection empty across a representation change", () => {
+    groupRow(DEFAULT.label).click();
+    latticeNode("C₆").dispatchEvent(new MouseEvent("click"));
+    expect(sectionLabels()).toEqual([]);
+    document.querySelector<HTMLElement>('[data-representation="12T5"]')?.click();
+    // Switching representation is not a fresh start, so nothing gets chosen for
+    // you the way it does on a new group.
+    expect(sectionLabels()).toEqual([]);
+    expect(arrows()).toHaveLength(0);
+    document.querySelector<HTMLElement>('[data-representation="perm-7"]')?.click();
+  });
+
+  it("switches group, resetting the diagram and the selection", () => {
+    groupRow("8.3").click();
+    expect(document.querySelector("#group-name")?.textContent).toBe("D₄");
+    expect(document.querySelector("#group-label")?.textContent).toBe("8.3");
+    expect(document.querySelectorAll("#diagram .node")).toHaveLength(4);
+    expect(groupRow("8.3").classList.contains("selected")).toBe(true);
+    expect(groupRow(DEFAULT.label).classList.contains("selected")).toBe(false);
+    // A new group opens with one generator already drawn.
+    expect(checkedCount()).toBe(1);
+    expect(arrows().length).toBeGreaterThan(0);
+  });
+
+  it("lays the diagram out again when the window resizes", () => {
+    const diagramWidth = (): number =>
+      Number(document.querySelector("#diagram svg")?.getAttribute("width"));
+    const stage = document.querySelector("#diagram");
+    const before = diagramWidth();
+
+    // jsdom reports every element as zero-width, so the measurement the layout
+    // makes has to be stood up by hand.
+    Object.defineProperty(stage, "clientWidth", { value: 1600, configurable: true });
+    window.dispatchEvent(new Event("resize"));
+    const after = diagramWidth();
+
+    expect(after).toBeGreaterThan(before);
+    // Wider, but not a bigger picture: the nodes are the same size as before.
+    const radii = Array.from(document.querySelectorAll("#diagram .node circle")).map((node) =>
+      node.getAttribute("r"),
+    );
+    expect(new Set(radii)).toEqual(new Set(["17"]));
+
+    Object.defineProperty(stage, "clientWidth", { value: 0, configurable: true });
+    window.dispatchEvent(new Event("resize"));
+    expect(diagramWidth()).toBe(before);
+  });
+
+  it("links the label to LMFDB", () => {
+    expect(document.querySelector<HTMLAnchorElement>("#group-label")?.href).toBe(
+      "https://www.lmfdb.org/Groups/Abstract/8.3",
+    );
+  });
+
+  it("respreads the colours as the number of generators drawn changes", () => {
+    groupRow(DEFAULT.label).click();
+    latticeNode("C₆").dispatchEvent(new MouseEvent("click"));
+    const inputs = () =>
+      Array.from(sectionFor("₃C₄").querySelectorAll<HTMLInputElement>(".element input"));
+    latticeNode("₃C₄").dispatchEvent(new MouseEvent("click"));
+    expect(arrowColours()).toHaveLength(1);
+
+    // Elements 2 and 4 open the other two conjugates.
+    inputs()[2].click();
+    const two = arrowColours();
+    expect(two).toHaveLength(2);
+
+    inputs()[4].click();
+    const three = arrowColours();
+    expect(three).toHaveLength(3);
+    // The wheel is re-divided rather than extended, so only the colour at the
+    // start of it survives adding a third generator.
+    expect(three.filter((colour) => two.includes(colour))).toHaveLength(1);
+  });
+});

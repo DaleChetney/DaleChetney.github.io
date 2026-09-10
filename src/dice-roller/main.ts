@@ -1,7 +1,7 @@
-import { Rng } from "@shared/rng";
+import { Rng } from "@shared/mathUtils/rng";
 import { load, save } from "@shared/storage";
 import { qs, el, mount } from "@shared/dom";
-import { clamp } from "@shared/math";
+import { clamp } from "@shared/mathUtils/math";
 
 interface LastRoll {
   count: number;

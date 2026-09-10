@@ -1,0 +1,209 @@
+/**
+ * A permutation of the points `1..degree` in one-line form: `perm[i]` is the
+ * image of the point `i + 1`.
+ */
+export type Permutation = readonly number[];
+
+/**
+ * Exact factorial. `bigint` because the permutation codes are indices into
+ * `degree!`, which passes `Number.MAX_SAFE_INTEGER` at degree 19 — LMFDB's
+ * codes for a degree-32 representation run to 36 digits.
+ */
+const factorial = (n: number): bigint => {
+  let result = 1n;
+  for (let i = 2n; i <= BigInt(n); i++) result *= i;
+  return result;
+};
+
+const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
+
+const lcm = (a: number, b: number): number => (a / gcd(a, b)) * b;
+
+/**
+ * Identifies a permutation by its one-line form, which is unique within a
+ * group. Used wherever permutations are keys of a Set or Map -- element
+ * lookup, subgroup membership, isomorphism domains -- so that every such key
+ * is written the same way.
+ */
+export const permutationKey = (perm: Permutation): string => perm.join(",");
+
+/** The identity permutation on `degree` points. */
+export const identityPermutation = (degree: number): Permutation =>
+  Array.from({ length: degree }, (_, i) => i + 1);
+
+/**
+ * Decode LMFDB's integer encoding of a permutation.
+ *
+ * LMFDB stores permutation-representation generators (the `gens` of
+ * `gps_groups.representations.Perm`) as integers rather than as cycles. The
+ * integer is the zero-based index of the permutation in the lexicographic
+ * ordering of all `degree!` permutations of `1..degree`, i.e. its Lehmer code
+ * read in the factorial base.
+ *
+ * This is what LMFDB's own `WebAbstractGroup.decode_as_perm` does -- it is
+ * Sage's `Permutations(n).unrank(code)`, under the same `0 <= code < n!`
+ * bound. LMFDB decodes these for display too, so the encoding buys nothing
+ * downstream; it is just how the column is stored.
+ * https://github.com/LMFDB/lmfdb/blob/07c4985/lmfdb/groups/abstract/web_groups.py#L2004
+ */
+export const decodePermutation = (index: number | bigint | string, degree: number): Permutation => {
+  const code = permutationCode(index, degree);
+  const available = Array.from({ length: degree }, (_, i) => i + 1);
+  const image: number[] = [];
+  let remaining = code;
+  let block = factorial(degree - 1);
+  for (let position = degree - 1; position >= 0; position--) {
+    // `block` divides into `degree!`, so the quotient is at most `degree`.
+    const choice = Number(remaining / block);
+    remaining %= block;
+    image.push(...available.splice(choice, 1));
+    if (position > 0) block /= BigInt(position);
+  }
+  return image;
+};
+
+/**
+ * Read a permutation code, which arrives as a number in hand-written data and
+ * as a decimal string from LMFDB once it outgrows a double.
+ */
+const permutationCode = (index: number | bigint | string, degree: number): bigint => {
+  const code = asInteger(index);
+  if (code === null || code < 0n || code >= factorial(degree)) {
+    throw new RangeError(`Permutation index ${index} is out of range for degree ${degree}`);
+  }
+  return code;
+};
+
+/** `null` for anything that is not a whole number, however it was written. */
+const asInteger = (value: number | bigint | string): bigint | null => {
+  if (typeof value === "number" && !Number.isInteger(value)) return null;
+  // BigInt("") is 0n, which would quietly turn a missing code into the identity.
+  if (typeof value === "string" && value.trim() === "") return null;
+  try {
+    return BigInt(value);
+  } catch {
+    return null;
+  }
+};
+
+/** Composition `a ∘ b`: apply `b` first, then `a`. */
+export const composePermutations = (a: Permutation, b: Permutation): Permutation =>
+  b.map((point) => a[point - 1]);
+
+/** The inverse of `perm`. */
+export const invertPermutation = (perm: Permutation): Permutation => {
+  const inverse = new Array<number>(perm.length);
+  perm.forEach((image, i) => {
+    inverse[image - 1] = i + 1;
+  });
+  return inverse;
+};
+
+/** The nontrivial cycles of `perm`, each listed from its smallest point. */
+export const permutationCycles = (perm: Permutation): number[][] => {
+  const seen = new Set<number>();
+  const result: number[][] = [];
+  for (let start = 1; start <= perm.length; start++) {
+    if (seen.has(start)) continue;
+    seen.add(start);
+    const cycle = [start];
+    for (let point = perm[start - 1]; point !== start; point = perm[point - 1]) {
+      seen.add(point);
+      cycle.push(point);
+    }
+    if (cycle.length > 1) result.push(cycle);
+  }
+  return result;
+};
+
+/**
+ * A permutation from its cycles, the inverse of `permutationCycles`.
+ *
+ * `gps_transitive.gens` records generators this way rather than as codes, so a
+ * transitive representation arrives as a list of cycles and has to be turned
+ * back into one-line form. Points left out of every cycle are fixed.
+ */
+export const permutationFromCycles = (
+  cycles: readonly (readonly number[])[],
+  degree: number,
+): Permutation => {
+  const image = Array.from({ length: degree }, (_, i) => i + 1);
+  const moved = new Set<number>();
+  for (const cycle of cycles) {
+    for (const point of cycle) {
+      if (!Number.isInteger(point) || point < 1 || point > degree) {
+        throw new RangeError(`Point ${point} is outside 1..${degree}`);
+      }
+      if (moved.has(point)) throw new RangeError(`Point ${point} appears in two cycles`);
+      moved.add(point);
+    }
+    cycle.forEach((point, i) => {
+      image[point - 1] = cycle[(i + 1) % cycle.length];
+    });
+  }
+  return image;
+};
+
+/** Cycle notation, e.g. `(1 2 3)(4 5)`. The identity renders as `()`. */
+export const formatPermutation = (perm: Permutation): string => {
+  const cycles = permutationCycles(perm);
+  if (cycles.length === 0) return "()";
+  return cycles.map((cycle) => `(${cycle.join(" ")})`).join("");
+};
+
+/** Multiplicative order of `perm`, the lcm of its cycle lengths. */
+export const permutationOrder = (perm: Permutation): number =>
+  permutationCycles(perm).reduce((order, cycle) => lcm(order, cycle.length), 1);
+
+/**
+ * Orbits of the group generated by `generators`, each sorted ascending and the
+ * whole list ordered by smallest point. A representation is transitive exactly
+ * when this returns a single orbit.
+ */
+export const permutationOrbits = (
+  generators: readonly Permutation[],
+  degree: number,
+): number[][] => {
+  const assigned = new Set<number>();
+  const orbits: number[][] = [];
+  for (let start = 1; start <= degree; start++) {
+    if (assigned.has(start)) continue;
+    assigned.add(start);
+    const orbit = [start];
+    for (let i = 0; i < orbit.length; i++) {
+      for (const generator of generators) {
+        const image = generator[orbit[i] - 1];
+        if (!assigned.has(image)) {
+          assigned.add(image);
+          orbit.push(image);
+        }
+      }
+    }
+    orbits.push([...orbit].sort((a, b) => a - b));
+  }
+  return orbits;
+};
+
+/**
+ * Every element of the group generated by `generators`, identity first.
+ * Breadth-first closure under left multiplication.
+ */
+export const generatePermutationGroup = (
+  generators: readonly Permutation[],
+  degree: number,
+): Permutation[] => {
+  const start = identityPermutation(degree);
+  const found = new Set<string>([permutationKey(start)]);
+  const elements: Permutation[] = [start];
+  for (let i = 0; i < elements.length; i++) {
+    for (const generator of generators) {
+      const product = composePermutations(generator, elements[i]);
+      const key = permutationKey(product);
+      if (!found.has(key)) {
+        found.add(key);
+        elements.push(product);
+      }
+    }
+  }
+  return elements;
+};

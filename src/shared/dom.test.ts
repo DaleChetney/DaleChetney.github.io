@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from "vitest";
-import { qs, qsa, el, mount } from "@shared/dom";
+import { qs, el, mount } from "@shared/dom";
 
 beforeEach(() => {
   document.body.innerHTML = "";
@@ -13,15 +13,6 @@ describe("qs", () => {
   });
   it("throws when nothing matches", () => {
     expect(() => qs("#nope")).toThrow();
-  });
-});
-
-describe("qsa", () => {
-  it("returns an array of every match", () => {
-    document.body.innerHTML = `<p></p><p></p>`;
-    const found = qsa("p");
-    expect(Array.isArray(found)).toBe(true);
-    expect(found).toHaveLength(2);
   });
 });
 
