@@ -1,9 +1,10 @@
-import type { SubgroupLattice } from "@shared/mathUtils/groups/subgroupLattice";
+import { primeDivisorCount } from "@shared/mathUtils/math";
+import type { CatalogueSubgroupClass } from "../catalogue";
 import { classLabel } from "./classLabel";
 import { svg } from "../svg";
 
 export interface LatticeNode {
-  /** Index into `SubgroupLattice.classes`. */
+  /** Index into the group's subgroup classes. */
   index: number;
   label: string;
   x: number;
@@ -33,27 +34,28 @@ const LABEL_GAP = 13;
 
 /**
  * Lay the classes out as a Hasse diagram, one row per level, the trivial
- * subgroup at the bottom. Rows are ordered by subgroup order ascending, which
- * reproduces LMFDB's own left-to-right arrangement for these groups.
+ * subgroup at the bottom. A class's level is the number of prime divisors of
+ * its order counted with multiplicity, which is the vertical axis LMFDB's own
+ * diagram uses; rows are ordered by subgroup order ascending, which
+ * reproduces its left-to-right arrangement for these groups.
  */
 export const layoutLattice = (
-  lattice: SubgroupLattice,
+  classes: readonly CatalogueSubgroupClass[],
   wholeOrder: number,
   wholeName: string,
 ): LatticeDiagram => {
-  const levels = [...new Set(lattice.classes.map((c) => c.level))].sort((a, b) => a - b);
-  const widest = Math.max(
-    ...levels.map((level) => lattice.classes.filter((c) => c.level === level).length),
-  );
+  const levelOf = classes.map((c) => primeDivisorCount(c.order));
+  const levels = [...new Set(levelOf)].sort((a, b) => a - b);
+  const widest = Math.max(...levels.map((level) => levelOf.filter((l) => l === level).length));
 
   const width = widest * COLUMN_WIDTH + MARGIN_X * 2;
   const height = (levels.length - 1) * LEVEL_HEIGHT + MARGIN_Y * 2;
 
   const nodes: LatticeNode[] = [];
   for (const level of levels) {
-    const row = lattice.classes
+    const row = classes
       .map((subgroupClass, index) => ({ subgroupClass, index }))
-      .filter((entry) => entry.subgroupClass.level === level)
+      .filter((entry) => levelOf[entry.index] === level)
       .sort((a, b) => a.subgroupClass.order - b.subgroupClass.order);
     const step = width / (row.length + 1);
     row.forEach((entry, column) => {
@@ -71,8 +73,8 @@ export const layoutLattice = (
 
   const nodeByClass = new Map(nodes.map((node, i) => [node.index, i]));
   const edges: [number, number][] = [];
-  lattice.covers.forEach((lowers, upper) => {
-    for (const lower of lowers) {
+  classes.forEach((subgroupClass, upper) => {
+    for (const lower of subgroupClass.covers) {
       const a = nodeByClass.get(upper);
       const b = nodeByClass.get(lower);
       if (a !== undefined && b !== undefined) edges.push([a, b]);
@@ -116,13 +118,16 @@ export interface LatticeView {
   completing: ReadonlySet<number>;
   /** Node indices whose chosen elements generate the whole group; empty until they do. */
   generating: ReadonlySet<number>;
+  /** Node indices at or below what the selection generates so far. */
+  generated: ReadonlySet<number>;
   onToggle: (nodeIndex: number) => void;
 }
 
 /**
- * Render the lattice. The completing nodes are outlined, and once the group is
- * generated so are the classes that did it and the group itself: the outline is
- * the one thing on the page that reads as a state of the selection.
+ * Render the lattice. The generated sublattice is tinted, the completing nodes
+ * are outlined, and once the group is generated so are the classes that did it
+ * and the group itself: tint and outline are what read as the state of the
+ * selection.
  */
 export const renderLattice = (diagram: LatticeDiagram, view: LatticeView): SVGSVGElement => {
   const root = svg("svg", {
@@ -151,6 +156,7 @@ export const renderLattice = (diagram: LatticeDiagram, view: LatticeView): SVGSV
         node.selectable ? "selectable" : "fixed",
         selected ? "selected" : "",
         completing ? "completing" : "",
+        view.generated.has(node.index) ? "generated" : "",
         view.generating.has(node.index) || (node.whole && view.generating.size > 0)
           ? "generating"
           : "",

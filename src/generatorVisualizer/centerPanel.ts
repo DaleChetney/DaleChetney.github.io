@@ -62,23 +62,22 @@ export class CenterPanel {
     );
   }
 
-  /** One node per point, and an arrow `p -> g(p)` for each generator being drawn. */
+  /** One node per point, and an arrow `p -> g(p)` for each element being drawn. */
   #showDiagram(scene: Scene): void {
     const { diagram } = scene;
     mount(
       qs("#diagram"),
-      renderPermutationDiagram(
-        diagram,
-        actionArrows(diagram.points, scene.palette, scene.drawnGenerators()),
-        (generator) => scene.generatorColor(generator),
+      renderPermutationDiagram(diagram, actionArrows(diagram.points, scene.palette), (generator) =>
+        scene.generatorColor(generator),
       ),
     );
   }
 
   /**
-   * The Hasse diagram, with the open classes marked, the ones that would
-   * complete the selection into a generating set outlined, and once it is one,
-   * the classes it was drawn from and the whole group outlined instead.
+   * The Hasse diagram, with the open classes marked, the sublattice generated
+   * so far tinted, the classes that would complete the selection into a
+   * generating set outlined, and once it is one, the classes it was drawn from
+   * and the whole group outlined instead.
    */
   #showLattice(scene: Scene): void {
     preservingFocus(latticeFocus, () => {
@@ -88,6 +87,7 @@ export class CenterPanel {
           selected: new Set(scene.openClasses()),
           completing: scene.completingClasses(),
           generating: scene.generatingClasses(),
+          generated: scene.generatedClasses(),
           onToggle: this.#handlers.onToggleClass,
         }),
       );

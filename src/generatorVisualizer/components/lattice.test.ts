@@ -1,14 +1,20 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
-import { decodePermutation } from "@shared/mathUtils/groups/permutations";
-import { computeSubgroupLattice } from "@shared/mathUtils/groups/subgroupLattice";
+import type { CatalogueSubgroupClass } from "../catalogue";
 import { layoutLattice, renderLattice } from "./lattice";
 
-const generators = [129, 16, 840].map((code) => decodePermutation(code, 7));
-const lattice = computeSubgroupLattice(generators, 7);
-const diagram = layoutLattice(lattice, 12, "C₃ ⋊ C₄");
+/** C_3:C_4's six classes as the catalogue bakes them. */
+const classes: CatalogueSubgroupClass[] = [
+  { id: "12.a1.a1", order: 1, count: 1, cyclic: true, normal: true, covers: [] },
+  { id: "6.a1.a1", order: 2, count: 1, cyclic: true, normal: true, covers: [0] },
+  { id: "4.a1.a1", order: 3, count: 1, cyclic: true, normal: true, covers: [0] },
+  { id: "3.a1.a1", order: 4, count: 3, cyclic: true, normal: false, covers: [1] },
+  { id: "2.a1.a1", order: 6, count: 1, cyclic: true, normal: true, covers: [1, 2] },
+  { id: "1.a1.a1", order: 12, count: 1, cyclic: false, normal: true, covers: [3, 4] },
+].map((c) => ({ ...c, texName: `C_${c.order}`, displayName: `C${c.order}` }));
+const diagram = layoutLattice(classes, 12, "C₃ ⋊ C₄");
 const nodeOfOrder = (order: number) => {
-  const node = diagram.nodes.find((n) => lattice.classes[n.index].order === order);
+  const node = diagram.nodes.find((n) => classes[n.index].order === order);
   if (node === undefined) throw new Error(`no node of order ${order}`);
   return node;
 };
@@ -65,6 +71,7 @@ describe("renderLattice", () => {
       selected: new Set(),
       completing: new Set(),
       generating: new Set(),
+      generated: new Set(),
       onToggle: () => {},
       ...over,
     });
@@ -74,7 +81,13 @@ describe("renderLattice", () => {
     Number(
       renderLattice(
         { ...diagram, width },
-        { selected: new Set(), completing: new Set(), generating: new Set(), onToggle: () => {} },
+        {
+          selected: new Set(),
+          completing: new Set(),
+          generating: new Set(),
+          generated: new Set(),
+          onToggle: () => {},
+        },
       ).style.width.replace("%", ""),
     );
 
@@ -134,6 +147,25 @@ describe("renderLattice", () => {
     );
     expect(marked.sort()).toEqual(
       [nodeOfOrder(4).index, nodeOfOrder(6).index, nodeOfOrder(12).index].sort(),
+    );
+  });
+
+  it("marks the generated nodes", () => {
+    const generated = new Set([nodeOfOrder(1).index, nodeOfOrder(2).index, nodeOfOrder(4).index]);
+    const root = view({ generated });
+    const marked = Array.from(root.querySelectorAll(".lattice-node.generated")).map((node) =>
+      Number(node.getAttribute("data-class")),
+    );
+    expect(new Set(marked)).toEqual(generated);
+  });
+
+  it("labels a node by its class", () => {
+    const root = view();
+    expect(root.querySelector(`[data-class="${nodeOfOrder(4).index}"] text`)?.textContent).toBe(
+      "₃C4",
+    );
+    expect(root.querySelector(`[data-class="${nodeOfOrder(12).index}"] text`)?.textContent).toBe(
+      "C₃ ⋊ C₄",
     );
   });
 

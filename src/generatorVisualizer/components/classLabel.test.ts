@@ -1,24 +1,23 @@
 import { describe, it, expect } from "vitest";
-import type { SubgroupClass } from "@shared/mathUtils/groups/subgroupLattice";
 import { classLabel } from "./classLabel";
 
-const make = (over: Partial<SubgroupClass>): SubgroupClass =>
-  ({ order: 4, count: 1, cyclic: true, ...over }) as SubgroupClass;
+const make = (order: number, count: number, displayName: string) => ({
+  order,
+  count,
+  displayName,
+});
 
 describe("classLabel", () => {
-  it("names a cyclic subgroup C_n", () => {
-    expect(classLabel(make({ order: 6 }), 12, "G")).toBe("C₆");
+  it("names a subgroup as LMFDB does", () => {
+    expect(classLabel(make(6, 1, "C₆"), 12, "G")).toBe("C₆");
+    expect(classLabel(make(8, 1, "D₄"), 16, "G")).toBe("D₄");
   });
 
   it("uses the group's own name for the whole group", () => {
-    expect(classLabel(make({ order: 12, cyclic: false }), 12, "C₃ ⋊ C₄")).toBe("C₃ ⋊ C₄");
+    expect(classLabel(make(12, 1, "C₃ ⋊ C₄"), 12, "C₃ ⋊ C₄")).toBe("C₃ ⋊ C₄");
   });
 
   it("prefixes the conjugate count, as LMFDB does", () => {
-    expect(classLabel(make({ order: 4, count: 3 }), 12, "G")).toBe("₃C₄");
-  });
-
-  it("falls back to the order for an unnamed non-cyclic subgroup", () => {
-    expect(classLabel(make({ order: 8, cyclic: false }), 16, "G")).toBe("8");
+    expect(classLabel(make(4, 3, "C₄"), 12, "G")).toBe("₃C₄");
   });
 });
