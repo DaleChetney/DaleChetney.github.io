@@ -252,6 +252,17 @@
         opacity: 0.4;
       }
 
+      /*
+        The covers inside the sublattice the selection has generated so far:
+        every one with both ends at or below the generated class. Once the
+        group is generated that is all of them.
+      */
+      .lattice-edges line.generated {
+        stroke: var(--completing);
+        stroke-width: 1.5;
+        opacity: 1;
+      }
+
       .lattice-node text {
         font-size: 15px;
         font-style: italic;
@@ -279,23 +290,12 @@
       }
 
       /*
-        Tinted: the sublattice the selection has generated so far, which is
-        every class with a conjugate inside the subgroup the chosen elements
-        generate. Once the group is generated that is everything.
+        Solid on the class the selection generates so far, which is the group
+        itself once it is complete, and on the classes that did it; dashed
+        while an element that would complete the generating set is still to be
+        picked.
       */
-      .lattice-node.generated rect {
-        fill: color-mix(in srgb, canvas 84%, var(--completing) 16%);
-      }
-
-      .lattice-node.generated.selected rect {
-        fill: color-mix(in srgb, canvas 72%, var(--completing) 28%);
-      }
-
-      /*
-        Dashed while an element that would complete the generating set is still
-        to be picked; solid, on the classes that did it and on the whole group,
-        once it is complete.
-      */
+      .lattice-node.generated rect,
       .lattice-node.completing rect,
       .lattice-node.generating rect {
         stroke: var(--completing);

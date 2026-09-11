@@ -51,10 +51,6 @@ describe("layoutLattice", () => {
     expect(nodeOfOrder(12).selectable).toBe(false);
   });
 
-  it("marks the whole group and nothing else", () => {
-    expect(diagram.nodes.filter((node) => node.whole)).toEqual([nodeOfOrder(12)]);
-  });
-
   it("keeps every node inside the reported bounds", () => {
     for (const node of diagram.nodes) {
       expect(node.x).toBeGreaterThan(0);
@@ -71,6 +67,7 @@ describe("renderLattice", () => {
       selected: new Set(),
       completing: new Set(),
       generating: new Set(),
+      generatedClass: null,
       generated: new Set(),
       onToggle: () => {},
       ...over,
@@ -85,6 +82,7 @@ describe("renderLattice", () => {
           selected: new Set(),
           completing: new Set(),
           generating: new Set(),
+          generatedClass: null,
           generated: new Set(),
           onToggle: () => {},
         },
@@ -139,24 +137,34 @@ describe("renderLattice", () => {
     );
   });
 
-  it("marks the generating classes, and with them the whole group", () => {
+  it("marks the generating classes and nothing else", () => {
     expect(view().querySelectorAll(".lattice-node.generating")).toHaveLength(0);
     const root = view({ generating: new Set([nodeOfOrder(4).index, nodeOfOrder(6).index]) });
     const marked = Array.from(root.querySelectorAll(".lattice-node.generating")).map((node) =>
       Number(node.getAttribute("data-class")),
     );
-    expect(marked.sort()).toEqual(
-      [nodeOfOrder(4).index, nodeOfOrder(6).index, nodeOfOrder(12).index].sort(),
-    );
+    expect(marked.sort()).toEqual([nodeOfOrder(4).index, nodeOfOrder(6).index].sort());
   });
 
-  it("marks the generated nodes", () => {
+  it("marks the generated class, and the covers beneath it rather than the nodes", () => {
+    expect(view().querySelectorAll(".generated")).toHaveLength(0);
     const generated = new Set([nodeOfOrder(1).index, nodeOfOrder(2).index, nodeOfOrder(4).index]);
-    const root = view({ generated });
+    const root = view({ generatedClass: nodeOfOrder(4).index, generated });
     const marked = Array.from(root.querySelectorAll(".lattice-node.generated")).map((node) =>
       Number(node.getAttribute("data-class")),
     );
-    expect(new Set(marked)).toEqual(generated);
+    expect(marked).toEqual([nodeOfOrder(4).index]);
+    // C_4 covers C_2 covers C_1: two of the seven covers lie inside the down-set.
+    expect(root.querySelectorAll(".lattice-edges line.generated")).toHaveLength(2);
+  });
+
+  it("marks every cover once the whole group is generated", () => {
+    const root = view({
+      generatedClass: nodeOfOrder(12).index,
+      generated: new Set(diagram.nodes.map((node) => node.index)),
+    });
+    expect(root.querySelectorAll(".lattice-node.generated")).toHaveLength(1);
+    expect(root.querySelectorAll(".lattice-edges line.generated")).toHaveLength(7);
   });
 
   it("labels a node by its class", () => {
