@@ -67,7 +67,7 @@ describe("renderLattice", () => {
       selected: new Set(),
       completing: new Set(),
       generating: new Set(),
-      generatedClass: null,
+      joinOfSelected: null,
       generated: new Set(),
       onToggle: () => {},
       ...over,
@@ -82,7 +82,7 @@ describe("renderLattice", () => {
           selected: new Set(),
           completing: new Set(),
           generating: new Set(),
-          generatedClass: null,
+          joinOfSelected: null,
           generated: new Set(),
           onToggle: () => {},
         },
@@ -149,7 +149,7 @@ describe("renderLattice", () => {
   it("marks the generated class, and the covers beneath it rather than the nodes", () => {
     expect(view().querySelectorAll(".generated")).toHaveLength(0);
     const generated = new Set([nodeOfOrder(1).index, nodeOfOrder(2).index, nodeOfOrder(4).index]);
-    const root = view({ generatedClass: nodeOfOrder(4).index, generated });
+    const root = view({ joinOfSelected: nodeOfOrder(4).index, generated });
     const marked = Array.from(root.querySelectorAll(".lattice-node.generated")).map((node) =>
       Number(node.getAttribute("data-class")),
     );
@@ -160,7 +160,7 @@ describe("renderLattice", () => {
 
   it("marks every cover once the whole group is generated", () => {
     const root = view({
-      generatedClass: nodeOfOrder(12).index,
+      joinOfSelected: nodeOfOrder(12).index,
       generated: new Set(diagram.nodes.map((node) => node.index)),
     });
     expect(root.querySelectorAll(".lattice-node.generated")).toHaveLength(1);

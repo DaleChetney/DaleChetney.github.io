@@ -115,9 +115,9 @@ export interface LatticeView {
   completing: ReadonlySet<number>;
   /** Node indices whose chosen elements generate the whole group; empty until they do. */
   generating: ReadonlySet<number>;
-  /** The node the selection generates so far, or null while nothing is chosen. */
-  generatedClass: number | null;
-  /** Node indices at or below `generatedClass`: the sublattice generated so far. */
+  /** The node of the join of the selected subgroups, or null while nothing is chosen. */
+  joinOfSelected: number | null;
+  /** Node indices at or below `joinOfSelected`: the sublattice generated so far. */
   generated: ReadonlySet<number>;
   onToggle: (nodeIndex: number) => void;
 }
@@ -164,7 +164,7 @@ export const renderLattice = (diagram: LatticeDiagram, view: LatticeView): SVGSV
         node.selectable ? "selectable" : "fixed",
         selected ? "selected" : "",
         completing ? "completing" : "",
-        view.generatedClass === node.index ? "generated" : "",
+        view.joinOfSelected === node.index ? "generated" : "",
         view.generating.has(node.index) ? "generating" : "",
       ]
         .filter(Boolean)

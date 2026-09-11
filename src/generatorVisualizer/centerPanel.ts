@@ -87,7 +87,7 @@ export class CenterPanel {
           selected: new Set(scene.openClasses()),
           completing: scene.completingClasses(),
           generating: scene.generatingClasses(),
-          generatedClass: scene.generatedClass(),
+          joinOfSelected: scene.joinOfSelected(),
           generated: scene.generatedClasses(),
           onToggle: this.#handlers.onToggleClass,
         }),
