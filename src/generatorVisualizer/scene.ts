@@ -199,14 +199,25 @@ export class Scene {
   }
 
   /**
+   * The class of the join of the chosen elements' subgroups, which is what
+   * the selection generates so far; null while nothing is chosen. The trivial
+   * subgroup is what nothing generates, but marking it would suggest a
+   * selection where there is none.
+   */
+  joinOfSelected(): number | null {
+    if (this.#chosenKeys().length === 0) return null;
+    return this.#classOf(this.#generated);
+  }
+
+  /**
    * The sublattice generated so far: every class with a conjugate inside the
-   * subgroup the chosen elements generate, which is the down-set of that
-   * subgroup's class. Empty while nothing is chosen; everything once the
-   * group is generated.
+   * join of the selected subgroups, which is the down-set of the join's class,
+   * the class itself included. Empty while nothing is chosen; everything once
+   * the group is generated.
    */
   generatedClasses(): ReadonlySet<number> {
-    if (this.#chosenKeys().length === 0) return new Set();
-    return this.#poset.downSet(this.#classOf(this.#generated));
+    const join = this.joinOfSelected();
+    return join === null ? new Set() : this.#poset.downSet(join);
   }
 
   /**

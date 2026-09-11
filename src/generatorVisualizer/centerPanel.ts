@@ -74,10 +74,10 @@ export class CenterPanel {
   }
 
   /**
-   * The Hasse diagram, with the open classes marked, the sublattice generated
-   * so far tinted, the classes that would complete the selection into a
-   * generating set outlined, and once it is one, the classes it was drawn from
-   * and the whole group outlined instead.
+   * The Hasse diagram, with the open classes marked, the class the selection
+   * generates so far outlined with the covers beneath it colored to match, the
+   * classes that would complete the selection into a generating set outlined
+   * dashed, and once it is one, the classes it was drawn from outlined instead.
    */
   #showLattice(scene: Scene): void {
     preservingFocus(latticeFocus, () => {
@@ -87,6 +87,7 @@ export class CenterPanel {
           selected: new Set(scene.openClasses()),
           completing: scene.completingClasses(),
           generating: scene.generatingClasses(),
+          joinOfSelected: scene.joinOfSelected(),
           generated: scene.generatedClasses(),
           onToggle: this.#handlers.onToggleClass,
         }),

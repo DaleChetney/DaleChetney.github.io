@@ -11,8 +11,6 @@ export interface LatticeNode {
   y: number;
   /** Only cyclic subgroups above the trivial one pick out a generator. */
   selectable: boolean;
-  /** The group itself, at the top: what the selection is trying to generate. */
-  whole: boolean;
 }
 
 export interface LatticeDiagram {
@@ -66,7 +64,6 @@ export const layoutLattice = (
         // Level 0 sits at the bottom, so higher levels get smaller y.
         y: height - MARGIN_Y - level * LEVEL_HEIGHT,
         selectable: entry.subgroupClass.cyclic && entry.subgroupClass.order > 1,
-        whole: entry.subgroupClass.order === wholeOrder,
       });
     });
   }
@@ -118,16 +115,18 @@ export interface LatticeView {
   completing: ReadonlySet<number>;
   /** Node indices whose chosen elements generate the whole group; empty until they do. */
   generating: ReadonlySet<number>;
-  /** Node indices at or below what the selection generates so far. */
+  /** The node of the join of the selected subgroups, or null while nothing is chosen. */
+  joinOfSelected: number | null;
+  /** Node indices at or below `joinOfSelected`: the sublattice generated so far. */
   generated: ReadonlySet<number>;
   onToggle: (nodeIndex: number) => void;
 }
 
 /**
- * Render the lattice. The generated sublattice is tinted, the completing nodes
- * are outlined, and once the group is generated so are the classes that did it
- * and the group itself: tint and outline are what read as the state of the
- * selection.
+ * Render the lattice. The node the selection generates is outlined and the
+ * covers beneath it are drawn in the same color, so the generated sublattice
+ * reads as a subdiagram hanging from it. The completing nodes are outlined too,
+ * dashed, and once the group is generated so are the classes that did it.
  */
 export const renderLattice = (diagram: LatticeDiagram, view: LatticeView): SVGSVGElement => {
   const root = svg("svg", {
@@ -143,7 +142,16 @@ export const renderLattice = (diagram: LatticeDiagram, view: LatticeView): SVGSV
 
   const lines = svg("g", { class: "lattice-edges" });
   for (const [upper, lower] of diagram.edges) {
-    lines.append(svg("line", trimmedLine(diagram.nodes[upper], diagram.nodes[lower])));
+    const line = svg("line", trimmedLine(diagram.nodes[upper], diagram.nodes[lower]));
+    // A cover with both ends inside the down-set lies inside the generated
+    // sublattice; one leaving it does not.
+    if (
+      view.generated.has(diagram.nodes[upper].index) &&
+      view.generated.has(diagram.nodes[lower].index)
+    ) {
+      line.classList.add("generated");
+    }
+    lines.append(line);
   }
   root.append(lines);
 
@@ -156,10 +164,8 @@ export const renderLattice = (diagram: LatticeDiagram, view: LatticeView): SVGSV
         node.selectable ? "selectable" : "fixed",
         selected ? "selected" : "",
         completing ? "completing" : "",
-        view.generated.has(node.index) ? "generated" : "",
-        view.generating.has(node.index) || (node.whole && view.generating.size > 0)
-          ? "generating"
-          : "",
+        view.joinOfSelected === node.index ? "generated" : "",
+        view.generating.has(node.index) ? "generating" : "",
       ]
         .filter(Boolean)
         .join(" "),
