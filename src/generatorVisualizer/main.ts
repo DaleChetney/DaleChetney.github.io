@@ -1,5 +1,7 @@
 import { byLabel, fetchCatalogue, type CatalogueGroup } from "./catalogue";
+import { qs } from "@shared/dom";
 import { CenterPanel, stageWidth } from "./centerPanel";
+import { collapsiblePanel } from "./collapsiblePanel";
 import { LeftPanel } from "./leftPanel";
 import { RightPanel } from "./rightPanel";
 import { Scene } from "./scene";
@@ -10,6 +12,9 @@ const DEFAULT_LABEL = "12.1";
 const catalogue = await fetchCatalogue();
 const groups = byLabel(catalogue);
 const groupFor = (label: string): CatalogueGroup => groups.get(label) ?? catalogue.groups[0];
+
+collapsiblePanel(qs("#panel-left"), "generatorVisualizer.leftPanelCollapsed");
+collapsiblePanel(qs("#panel-right"), "generatorVisualizer.rightPanelCollapsed");
 
 const leftPanel = new LeftPanel(catalogue.groups, selectGroup);
 const centerPanel = new CenterPanel({

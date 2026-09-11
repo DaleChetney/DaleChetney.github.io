@@ -21,12 +21,78 @@
       }
 
       body {
+        --left: 240px;
+        --right: 300px;
         margin: 0;
         height: 100vh;
         display: grid;
-        grid-template-columns: 240px 1fr 300px;
+        grid-template-columns: var(--left) 1fr var(--right);
         gap: 1px;
         background: var(--edge);
+      }
+
+      /*
+        A folded side panel keeps only the strip its toggle sits in, and the
+        center panel takes the rest: on a narrow screen the diagram is what the
+        page is for.
+      */
+      body:has(#panel-left.collapsed) {
+        --left: 2.25rem;
+      }
+
+      body:has(#panel-right.collapsed) {
+        --right: 2.25rem;
+      }
+
+      .panel-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+      }
+
+      .panel-header h2 {
+        flex: 1;
+        margin: 0;
+      }
+
+      .panel-toggle {
+        font: inherit;
+        color: inherit;
+        background: none;
+        border: 1px solid var(--edge);
+        border-radius: 0.35rem;
+        width: 1.5rem;
+        height: 1.5rem;
+        padding: 0;
+        cursor: pointer;
+        opacity: 0.6;
+        flex: none;
+      }
+
+      .panel-toggle:hover {
+        opacity: 1;
+        background: var(--panel);
+      }
+
+      /* The chevron points the way the panel will move. */
+      #panel-left .panel-toggle::before,
+      #panel-right.collapsed .panel-toggle::before {
+        content: "‹";
+      }
+
+      #panel-right .panel-toggle::before,
+      #panel-left.collapsed .panel-toggle::before {
+        content: "›";
+      }
+
+      section.collapsed {
+        padding: 1rem 0.375rem;
+      }
+
+      section.collapsed > :not(.panel-header),
+      section.collapsed .panel-header > :not(.panel-toggle) {
+        display: none;
       }
 
       section {
@@ -346,7 +412,10 @@
   </head>
   <body>
     <section id="panel-left">
-      <h2>Group</h2>
+      <div class="panel-header">
+        <h2>Group</h2>
+        <button class="panel-toggle" type="button" aria-label="Toggle group list"></button>
+      </div>
       <input
         id="group-search"
         type="search"
@@ -377,7 +446,10 @@
     </section>
 
     <section id="panel-right">
-      <h2>Generators</h2>
+      <div class="panel-header">
+        <button class="panel-toggle" type="button" aria-label="Toggle generator list"></button>
+        <h2>Generators</h2>
+      </div>
       <div id="element-sections"></div>
     </section>
 
