@@ -19,9 +19,17 @@ const latticeFocus = (active: Element): string | null => {
   return node == null ? null : `.lattice-node[data-class="${node}"]`;
 };
 
+/** Diagram nodes likewise, by the point they stand for. */
+const diagramFocus = (active: Element): string | null => {
+  const node = active.closest(".diagram .node[data-point]")?.getAttribute("data-point");
+  return node == null ? null : `.diagram .node[data-point="${node}"]`;
+};
+
 export interface CenterPanelHandlers {
   /** A subgroup class was opened or closed from the lattice. */
   onToggleClass: (classIndex: number) => void;
+  /** A point of the diagram was clicked, to be swapped with another. */
+  onPickPoint: (point: number) => void;
   /** Another representation of the same group was asked for. */
   onSelectRepresentation: (id: string) => void;
 }
@@ -62,15 +70,23 @@ export class CenterPanel {
     );
   }
 
-  /** One node per point, and an arrow `p -> g(p)` for each element being drawn. */
+  /**
+   * One node per point, and an arrow `p -> g(p)` for each element being drawn.
+   * A picked point, waiting to be swapped with the next one clicked, is marked.
+   */
   #showDiagram(scene: Scene): void {
     const { diagram } = scene;
-    mount(
-      qs("#diagram"),
-      renderPermutationDiagram(diagram, actionArrows(diagram.points, scene.palette), (generator) =>
-        scene.generatorColor(generator),
-      ),
-    );
+    preservingFocus(diagramFocus, () => {
+      mount(
+        qs("#diagram"),
+        renderPermutationDiagram(
+          diagram,
+          actionArrows(diagram.points, scene.palette),
+          (generator) => scene.generatorColor(generator),
+          { picked: scene.picked, onPick: this.#handlers.onPickPoint },
+        ),
+      );
+    });
   }
 
   /**

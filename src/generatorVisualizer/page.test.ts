@@ -338,6 +338,77 @@ describe("groups page", () => {
     expect(diagramWidth()).toBe(before);
   });
 
+  describe("rearranging the diagram", () => {
+    const diagramNode = (point: number): SVGGElement => {
+      const found = document.querySelector<SVGGElement>(`#diagram .node[data-point="${point}"]`);
+      if (found === null) throw new Error(`no diagram node for point ${point}`);
+      return found;
+    };
+    const positionOf = (point: number): [string | null, string | null] => {
+      const circle = diagramNode(point).querySelector("circle");
+      return [circle?.getAttribute("cx") ?? null, circle?.getAttribute("cy") ?? null];
+    };
+    const picked = (): string[] =>
+      Array.from(document.querySelectorAll("#diagram .node.picked")).map(
+        (node) => node.getAttribute("data-point") ?? "",
+      );
+
+    it("swaps two points' positions on a click each", () => {
+      groupRow(DEFAULT.label).click();
+      const [one, two] = [positionOf(1), positionOf(2)];
+      diagramNode(1).dispatchEvent(new MouseEvent("click"));
+      expect(picked()).toEqual(["1"]);
+      diagramNode(2).dispatchEvent(new MouseEvent("click"));
+      expect(picked()).toEqual([]);
+      expect(positionOf(1)).toEqual(two);
+      expect(positionOf(2)).toEqual(one);
+    });
+
+    it("clicking the picked point again unpicks it", () => {
+      const before = positionOf(3);
+      diagramNode(3).dispatchEvent(new MouseEvent("click"));
+      diagramNode(3).dispatchEvent(new MouseEvent("click"));
+      expect(picked()).toEqual([]);
+      expect(positionOf(3)).toEqual(before);
+    });
+
+    it("swaps across rings: C_3:C_4's points split 3 + 4", () => {
+      // The default representation has two orbits, so 1 and 7 lie on different rings.
+      const [one, seven] = [positionOf(1), positionOf(7)];
+      expect(one[0]).not.toBe(seven[0]);
+      diagramNode(1).dispatchEvent(new MouseEvent("click"));
+      diagramNode(7).dispatchEvent(new MouseEvent("click"));
+      expect(positionOf(1)).toEqual(seven);
+      expect(positionOf(7)).toEqual(one);
+    });
+
+    it("keeps the arrangement through a resize", () => {
+      // A relayout spreads the rings but keeps every slot, so the points read
+      // in the same left-to-right order before and after.
+      const leftToRight = (): number[] =>
+        [1, 2, 3, 4, 5, 6, 7]
+          .map((point) => ({ point, x: Number(positionOf(point)[0]) }))
+          .sort((a, b) => a.x - b.x)
+          .map(({ point }) => point);
+      const before = leftToRight();
+      const stage = document.querySelector("#diagram");
+      Object.defineProperty(stage, "clientWidth", { value: 1600, configurable: true });
+      window.dispatchEvent(new Event("resize"));
+      expect(leftToRight()).toEqual(before);
+      Object.defineProperty(stage, "clientWidth", { value: 0, configurable: true });
+      window.dispatchEvent(new Event("resize"));
+    });
+
+    it("starts afresh on a new group", () => {
+      groupRow("8.3").click();
+      expect(picked()).toEqual([]);
+      groupRow(DEFAULT.label).click();
+      diagramNode(1).dispatchEvent(new MouseEvent("click"));
+      groupRow("8.3").click();
+      expect(picked()).toEqual([]);
+    });
+  });
+
   it("links the label to LMFDB", () => {
     expect(document.querySelector<HTMLAnchorElement>("#group-label")?.href).toBe(
       "https://www.lmfdb.org/Groups/Abstract/8.3",

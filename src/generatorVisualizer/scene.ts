@@ -70,8 +70,17 @@ export class Scene {
   readonly latticeDiagram: LatticeDiagram;
 
   #diagram: Diagram;
-  /** Kept so the diagram can be laid out again when the window changes size. */
-  readonly #orbits: number[][];
+  /** The stage width the diagram was last laid out against. */
+  #targetWidth: number;
+  /**
+   * The slots the diagram is laid out from: one ring per orbit, a point per
+   * slot. Starts as the orbits themselves and changes only when the reader
+   * swaps two points, so laying out again for a new width keeps the
+   * arrangement.
+   */
+  readonly #arrangement: number[][];
+  /** A point picked to be swapped, waiting on the second; null while none is. */
+  #picked: number | null = null;
   readonly #classes: readonly CatalogueSubgroupClass[];
   readonly #poset: ClassPoset;
   readonly #lattice: BoundedLattice<Subgroup>;
@@ -103,7 +112,8 @@ export class Scene {
     );
     this.latticeDiagram = layoutLattice(classes, group.order, group.displayName);
     this.#diagram = layoutDiagram(orbits, targetWidth);
-    this.#orbits = orbits;
+    this.#targetWidth = targetWidth;
+    this.#arrangement = orbits;
     this.#classes = classes;
     this.#poset = classPoset(classes.map((c) => c.covers));
     this.#lattice = subgroupBoundedLattice(subgroupOf(generators, degree), degree);
@@ -152,7 +162,46 @@ export class Scene {
    * size and the points spread, so this is a new layout rather than a scale.
    */
   relayout(targetWidth: number): void {
-    this.#diagram = layoutDiagram(this.#orbits, targetWidth);
+    this.#targetWidth = targetWidth;
+    this.#diagram = layoutDiagram(this.#arrangement, targetWidth);
+  }
+
+  // --- rearranging it --------------------------------------------------------
+
+  /** The point picked to be swapped, or null while none is. */
+  get picked(): number | null {
+    return this.#picked;
+  }
+
+  /**
+   * A node was clicked. The first click picks a point; a second on the same
+   * point lets it go; a second on another swaps the two points' slots, which
+   * may lie on different rings — a slot is a position, not a membership.
+   */
+  pickPoint(point: number): void {
+    if (this.#picked === null) {
+      this.#picked = point;
+      return;
+    }
+    const other = this.#picked;
+    this.#picked = null;
+    if (other === point) return;
+    this.#swapSlots(other, point);
+    this.relayout(this.#targetWidth);
+  }
+
+  #swapSlots(a: number, b: number): void {
+    const slotOf = (point: number): [number, number] => {
+      for (const [ring, slots] of this.#arrangement.entries()) {
+        const slot = slots.indexOf(point);
+        if (slot !== -1) return [ring, slot];
+      }
+      throw new Error(`point ${point} is not in the diagram`);
+    };
+    const [ringA, slotA] = slotOf(a);
+    const [ringB, slotB] = slotOf(b);
+    this.#arrangement[ringA][slotA] = b;
+    this.#arrangement[ringB][slotB] = a;
   }
 
   // --- what is chosen in it --------------------------------------------------

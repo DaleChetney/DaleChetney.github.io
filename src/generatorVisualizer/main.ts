@@ -17,6 +17,10 @@ const centerPanel = new CenterPanel({
     scene.toggleClass(classIndex);
     render();
   },
+  onPickPoint: (point) => {
+    scene.pickPoint(point);
+    render();
+  },
   onSelectRepresentation: selectRepresentation,
 });
 const rightPanel = new RightPanel((key) => {
