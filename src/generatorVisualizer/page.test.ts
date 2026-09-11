@@ -409,6 +409,18 @@ describe("groups page", () => {
     });
   });
 
+  it("folds each side panel down on its toggle", () => {
+    for (const id of ["panel-left", "panel-right"]) {
+      const section = document.querySelector<HTMLElement>(`#${id}`);
+      const toggle = section?.querySelector<HTMLButtonElement>(".panel-toggle");
+      if (section == null || toggle == null) throw new Error(`no toggle in #${id}`);
+      toggle.click();
+      expect(section.classList.contains("collapsed")).toBe(true);
+      toggle.click();
+      expect(section.classList.contains("collapsed")).toBe(false);
+    }
+  });
+
   it("links the label to LMFDB", () => {
     expect(document.querySelector<HTMLAnchorElement>("#group-label")?.href).toBe(
       "https://www.lmfdb.org/Groups/Abstract/8.3",
