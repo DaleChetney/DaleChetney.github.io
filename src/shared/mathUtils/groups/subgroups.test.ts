@@ -1,8 +1,18 @@
 import { describe, it, expect } from "vitest";
 import { decodePermutation } from "@shared/mathUtils/groups/permutations";
 import { computeSubgroupLattice } from "@shared/mathUtils/groups/subgroupLattice";
-import { allSubgroups, generatesWholeGroup, subgroupOf } from "@shared/mathUtils/groups/subgroups";
-import { generatePermutationGroup } from "@shared/mathUtils/groups/permutations";
+import {
+  allSubgroups,
+  conjugate,
+  conjugatesOf,
+  generatesWholeGroup,
+  identityKey,
+  joinSubgroups,
+  meetSubgroups,
+  minimalGeneratingSet,
+  subgroupClasses,
+  subgroupOf,
+} from "@shared/mathUtils/groups/subgroups";
 
 const C3_C4_GENERATORS = [129, 16, 840].map((code) => decodePermutation(code, 7));
 const lattice = computeSubgroupLattice(C3_C4_GENERATORS, 7);
@@ -15,15 +25,21 @@ const byOrder = (order: number) => {
 describe("allSubgroups", () => {
   it("finds every subgroup of C_3:C_4, not just one per class", () => {
     // Six classes, with C_4 having three conjugates: eight subgroups in all.
-    const elements = generatePermutationGroup(C3_C4_GENERATORS, 7);
-    expect(allSubgroups(elements, 7)).toHaveLength(8);
+    expect(allSubgroups(C3_C4_GENERATORS, 7)).toHaveLength(8);
   });
 
   it("includes the trivial subgroup and the whole group", () => {
-    const elements = generatePermutationGroup(C3_C4_GENERATORS, 7);
-    const orders = allSubgroups(elements, 7).map((s) => s.elements.length);
+    const orders = allSubgroups(C3_C4_GENERATORS, 7).map((s) => s.elements.length);
     expect(Math.min(...orders)).toBe(1);
     expect(Math.max(...orders)).toBe(12);
+  });
+});
+
+describe("subgroupClasses", () => {
+  it("groups the eight subgroups of C_3:C_4 into six classes, C_4 having three", () => {
+    const classes = subgroupClasses(C3_C4_GENERATORS, 7);
+    expect(classes).toHaveLength(6);
+    expect(classes.map((c) => c.length).sort()).toEqual([1, 1, 1, 1, 1, 3]);
   });
 });
 
@@ -66,5 +82,78 @@ describe("generatesWholeGroup", () => {
     for (const order of [2, 3, 4, 6]) {
       expect(whole([order]), `order ${order}`).toBe(false);
     }
+  });
+});
+
+// S_3 on three points: the transpositions and the 3-cycle.
+const S3 = [
+  [2, 1, 3],
+  [2, 3, 1],
+];
+const swap12 = subgroupOf([[2, 1, 3]], 3);
+const swap13 = subgroupOf([[3, 2, 1]], 3);
+const swap23 = subgroupOf([[1, 3, 2]], 3);
+const rotate = subgroupOf([[2, 3, 1]], 3);
+
+describe("generators", () => {
+  it("are kept by subgroupOf and carried through conjugation", () => {
+    expect(swap12.generators).toEqual([[2, 1, 3]]);
+    const image = conjugate(swap12, [2, 3, 1]);
+    expect(image.generators).toEqual([[1, 3, 2]]);
+    expect(image.keys.has("1,3,2")).toBe(true);
+  });
+});
+
+describe("joinSubgroups", () => {
+  it("joins a transposition and the 3-cycle into S_3", () => {
+    expect(joinSubgroups(swap12, rotate, 3).elements).toHaveLength(6);
+  });
+
+  it("closes over the generators of both, not every element", () => {
+    expect(joinSubgroups(swap12, rotate, 3).generators).toEqual([
+      [2, 1, 3],
+      [2, 3, 1],
+    ]);
+  });
+});
+
+describe("meetSubgroups", () => {
+  it("meets two different transpositions in the trivial subgroup", () => {
+    const meet = meetSubgroups(swap12, swap13, 3);
+    expect(meet.elements).toEqual([[1, 2, 3]]);
+    expect(meet.generators).toEqual([]);
+  });
+
+  it("meets a subgroup with the whole group in itself", () => {
+    const meet = meetSubgroups(rotate, subgroupOf(S3, 3), 3);
+    expect(identityKey(meet)).toBe(identityKey(rotate));
+    expect(subgroupOf(meet.generators, 3).elements).toHaveLength(3);
+  });
+});
+
+describe("conjugatesOf", () => {
+  it("finds the three conjugate transposition subgroups of S_3", () => {
+    const orbit = conjugatesOf(swap12, S3);
+    expect(orbit.map(identityKey).sort()).toEqual([swap12, swap13, swap23].map(identityKey).sort());
+  });
+
+  it("leaves a normal subgroup alone", () => {
+    expect(conjugatesOf(rotate, S3)).toHaveLength(1);
+  });
+});
+
+describe("minimalGeneratingSet", () => {
+  it("is empty for the trivial subgroup", () => {
+    expect(minimalGeneratingSet(subgroupOf([], 3), 3)).toEqual([]);
+  });
+
+  it("is one element for a cyclic subgroup", () => {
+    expect(minimalGeneratingSet(rotate, 3)).toEqual([[2, 3, 1]]);
+  });
+
+  it("is two elements for S_3, and they generate it", () => {
+    const generators = minimalGeneratingSet(subgroupOf(S3, 3), 3);
+    expect(generators).toHaveLength(2);
+    expect(subgroupOf(generators, 3).elements).toHaveLength(6);
   });
 });

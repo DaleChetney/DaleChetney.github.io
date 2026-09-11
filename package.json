@@ -32,6 +32,7 @@
     "vitest": "^5.0.0"
   },
   "dependencies": {
-    "chroma-js": "^3.2.0"
+    "chroma-js": "^3.2.0",
+    "fp-ts": "^2.16.11"
   }
 }
