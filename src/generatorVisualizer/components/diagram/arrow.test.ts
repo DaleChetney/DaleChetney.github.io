@@ -10,24 +10,24 @@ describe("actionArrows", () => {
   const generators = [129, 16, 840].map((code) => decodePermutation(code, 7));
   const { points } = layoutOrbits(permutationOrbits(generators, 7));
 
-  it("emits nothing when no generator is selected", () => {
-    expect(actionArrows(points, generators, new Set())).toEqual([]);
+  it("emits nothing when no generator is drawn", () => {
+    expect(actionArrows(points, [])).toEqual([]);
   });
 
   it("emits one arrow per moved point", () => {
     // Generator 0 is (2 3)(4 5 6 7): six moved points, one fixed.
-    const arrows = actionArrows(points, generators, new Set([0]));
+    const arrows = actionArrows(points, [generators[0]]);
     expect(arrows).toHaveLength(6);
     expect(arrows.every((a) => a.from.point !== a.to.point)).toBe(true);
   });
 
   it("skips fixed points", () => {
-    const arrows = actionArrows(points, generators, new Set([2])); // (1 2 3)
+    const arrows = actionArrows(points, [generators[2]]); // (1 2 3)
     expect(arrows.map((a) => a.from.point).sort()).toEqual([1, 2, 3]);
   });
 
   it("tags each arrow with the generator that produced it", () => {
-    const arrows = actionArrows(points, generators, new Set([0, 2]));
+    const arrows = actionArrows(points, [generators[0], generators[2]]);
     expect(distinct(arrows.map((a) => a.generator))).toBe(2);
     expect(arrows).toHaveLength(9); // 6 from (2 3)(4 5 6 7), 3 from (1 2 3)
   });
@@ -50,14 +50,14 @@ describe("renderArrows on a shared path", () => {
       Number(path.getAttribute("stroke-width")),
     );
 
-  const shared = renderArrows(actionArrows(points, overlapping, new Set([0, 1])), colorOf);
+  const shared = renderArrows(actionArrows(points, overlapping), colorOf);
 
   it("draws every arrow it is given", () => {
     expect(shared.querySelectorAll("path")).toHaveLength(12);
   });
 
   it("leaves arrows that share no path all at the same width", () => {
-    const alone = renderArrows(actionArrows(points, overlapping, new Set([0])), colorOf);
+    const alone = renderArrows(actionArrows(points, [overlapping[0]]), colorOf);
     expect(distinct(widthsOf(alone))).toBe(1);
   });
 

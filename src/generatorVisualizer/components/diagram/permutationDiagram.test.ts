@@ -9,10 +9,14 @@ const generators = [129, 16, 840].map((code) => decodePermutation(code, 7));
 const diagram = layoutOrbits(permutationOrbits(generators, 7));
 const colors = ["#aa1144", "#008866", "#4455cc"];
 const colorOf = (generator: number): string => colors[generator];
-const render = (selected: number[]) =>
+/** Draw these generators; the arrows are numbered by position in the list given. */
+const render = (drawn: number[]) =>
   renderPermutationDiagram(
     diagram,
-    actionArrows(diagram.points, generators, new Set(selected)),
+    actionArrows(
+      diagram.points,
+      drawn.map((generator) => generators[generator]),
+    ),
     colorOf,
   );
 
@@ -38,10 +42,10 @@ describe("renderPermutationDiagram", () => {
 
   it("colors edges by generator and points them at a matching marker", () => {
     const root = render([0, 2]);
-    const path = root.querySelector<SVGPathElement>('.edges path[data-generator="2"]');
-    expect(path?.getAttribute("stroke")).toBe(colors[2]);
-    expect(path?.getAttribute("marker-end")).toBe("url(#arrowhead-2)");
-    expect(root.querySelector("#arrowhead-2")).not.toBeNull();
+    const path = root.querySelector<SVGPathElement>('.edges path[data-generator="1"]');
+    expect(path?.getAttribute("stroke")).toBe(colors[1]);
+    expect(path?.getAttribute("marker-end")).toBe("url(#arrowhead-1)");
+    expect(root.querySelector("#arrowhead-1")).not.toBeNull();
   });
 
   it("defines a marker only for the generators actually drawn", () => {
@@ -49,8 +53,8 @@ describe("renderPermutationDiagram", () => {
   });
 
   it("gives the arrowhead the same color as its edge", () => {
-    const head = render([1]).querySelector("#arrowhead-1 path");
-    expect(head?.getAttribute("fill")).toBe(colors[1]);
+    const head = render([1]).querySelector("#arrowhead-0 path");
+    expect(head?.getAttribute("fill")).toBe(colors[0]);
   });
 
   it("records the action on each edge", () => {

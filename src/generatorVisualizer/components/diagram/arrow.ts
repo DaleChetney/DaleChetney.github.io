@@ -11,19 +11,17 @@ export interface ActionArrow {
 }
 
 /**
- * Arrows for the action of the selected generators, one per moved point.
+ * Arrows for the action of the generators being drawn, one per moved point.
  * Fixed points are skipped: an arrow from a node to itself carries no
  * information the node's absence of an arrow does not already give.
  */
 export const actionArrows = (
   points: readonly PlacedPoint[],
   generators: readonly Permutation[],
-  selected: ReadonlySet<number>,
 ): ActionArrow[] => {
   const byPoint = new Map(points.map((placed) => [placed.point, placed]));
   const arrows: ActionArrow[] = [];
   generators.forEach((generator, index) => {
-    if (!selected.has(index)) return;
     for (const placed of points) {
       const image = generator[placed.point - 1];
       if (image === placed.point) continue;
