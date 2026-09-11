@@ -41,10 +41,16 @@ describe("texToUnicode", () => {
     expect(texToUnicode("\\PSU(3,3)")).toBe("PSU(3,3)");
     expect(texToUnicode("\\SOPlus(4,2)")).toBe("SO⁺(4,2)");
     expect(texToUnicode("C_2\\wr C_2")).toBe("C₂ ≀ C₂");
+    expect(texToUnicode("\\PGL(2,7)")).toBe("PGL(2,7)");
+    expect(texToUnicode("\\PSL(2,7)")).toBe("PSL(2,7)");
+    expect(texToUnicode("C_5^2:\\Unitary(2,3)")).toBe("C₅² ⋊ U(2,3)");
+    expect(texToUnicode("\\SU(3,2)")).toBe("SU(3,2)");
+    expect(texToUnicode("\\PU(3,2)")).toBe("PU(3,2)");
+    expect(texToUnicode("C_2^2.\\GL(2,\\mathbb{Z}/4)")).toBe("C₂².GL(2,ℤ/4)");
   });
 
   it("raises on a macro it does not know", () => {
     // A new macro is a change in LMFDB's data, not something to render blindly.
-    expect(() => texToUnicode("\\PGL(2,7)")).toThrow(RangeError);
+    expect(() => texToUnicode("\\Sp(4,2)")).toThrow(RangeError);
   });
 });

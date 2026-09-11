@@ -8,7 +8,9 @@ const minimal: CatalogueRepresentation = {
   title: "Minimal faithful — degree 7",
   degree: 7,
   transitive: false,
+  primitive: false,
   generators: [],
+  classGenerators: [],
 };
 
 const transitive: CatalogueRepresentation = {
@@ -16,7 +18,9 @@ const transitive: CatalogueRepresentation = {
   title: "12T5 — regular, degree 12",
   degree: 12,
   transitive: true,
+  primitive: false,
   generators: [],
+  classGenerators: [],
 };
 
 describe("how a representation is named on its button", () => {
@@ -58,7 +62,6 @@ describe("renderRepresentationRow", () => {
   });
 
   it("renders a single representation without complaint", () => {
-    // 300 of the 526 groups have only the one.
     expect(
       renderRepresentationRow([minimal], view).querySelectorAll(".representation"),
     ).toHaveLength(1);
