@@ -162,15 +162,37 @@
         height: auto;
       }
 
+      .diagram .node {
+        cursor: pointer;
+      }
+
       .diagram .node circle {
         fill: var(--panel);
         stroke: currentColor;
         stroke-width: 1.5;
       }
 
+      .diagram .node:hover circle {
+        fill: color-mix(in srgb, var(--panel) 88%, canvastext 12%);
+      }
+
+      /* Picked to be swapped with the next node clicked. */
+      .diagram .node.picked circle {
+        stroke: var(--completing);
+        stroke-width: 2.5;
+      }
+
       .diagram .node text {
         font-size: 15px;
         fill: currentColor;
+      }
+
+      .diagram .node:focus {
+        outline: none;
+      }
+
+      .diagram .node:focus-visible circle {
+        stroke-width: 2.5;
       }
 
       .element-sections {

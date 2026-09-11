@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { decodePermutation, permutationOrbits } from "@shared/mathUtils/groups/permutations";
 import { actionArrows } from "./arrow";
-import { renderPermutationDiagram } from "./permutationDiagram";
+import { renderPermutationDiagram, type DiagramView } from "./permutationDiagram";
 import { layoutOrbits } from "./ringLayout";
 
 const generators = [129, 16, 840].map((code) => decodePermutation(code, 7));
@@ -10,7 +10,7 @@ const diagram = layoutOrbits(permutationOrbits(generators, 7));
 const colors = ["#aa1144", "#008866", "#4455cc"];
 const colorOf = (generator: number): string => colors[generator];
 /** Draw these generators; the arrows are numbered by position in the list given. */
-const render = (drawn: number[]) =>
+const render = (drawn: number[], view: Partial<DiagramView> = {}) =>
   renderPermutationDiagram(
     diagram,
     actionArrows(
@@ -18,11 +18,50 @@ const render = (drawn: number[]) =>
       drawn.map((generator) => generators[generator]),
     ),
     colorOf,
+    { picked: null, onPick: () => {}, ...view },
   );
+const node = (root: SVGSVGElement, point: number): SVGGElement => {
+  const found = root.querySelector<SVGGElement>(`.node[data-point="${point}"]`);
+  if (found === null) throw new Error(`no node for point ${point}`);
+  return found;
+};
 
 describe("renderPermutationDiagram", () => {
   it("draws one node per point", () => {
     expect(render([]).querySelectorAll(".node")).toHaveLength(7);
+  });
+
+  it("draws the arrows after the nodes, so they are never hidden behind one", () => {
+    const root = render([0]);
+    const nodes = root.querySelector(".nodes");
+    const edges = root.querySelector(".edges");
+    expect(nodes).not.toBeNull();
+    expect(edges).not.toBeNull();
+    expect(nodes?.compareDocumentPosition(edges as Element)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it("marks the picked node and no other", () => {
+    expect(render([]).querySelectorAll(".node.picked")).toHaveLength(0);
+    const root = render([], { picked: 3 });
+    const picked = Array.from(root.querySelectorAll(".node.picked")).map((n) =>
+      n.getAttribute("data-point"),
+    );
+    expect(picked).toEqual(["3"]);
+  });
+
+  it("reports a click on a node as a pick", () => {
+    const onPick = vi.fn();
+    node(render([], { onPick }), 5).dispatchEvent(new MouseEvent("click"));
+    expect(onPick).toHaveBeenCalledWith(5);
+  });
+
+  it("reports Enter and Space on a focused node as a pick", () => {
+    const onPick = vi.fn();
+    const root = render([], { onPick });
+    node(root, 2).dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
+    node(root, 4).dispatchEvent(new KeyboardEvent("keydown", { key: " " }));
+    node(root, 6).dispatchEvent(new KeyboardEvent("keydown", { key: "a" }));
+    expect(onPick.mock.calls).toEqual([[2], [4]]);
   });
 
   it("labels each node with its point", () => {
