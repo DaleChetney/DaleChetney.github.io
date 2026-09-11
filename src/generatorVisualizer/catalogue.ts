@@ -7,17 +7,33 @@ export interface CatalogueRepresentation {
   title: string;
   degree: number;
   transitive: boolean;
+  primitive: boolean;
   generators: readonly Permutation[];
+  /**
+   * A generating set for one representative of each subgroup class, written in
+   * this representation and aligned with `CatalogueGroup.subgroups.classes`.
+   * One element for a cyclic class, none for the trivial one.
+   */
+  classGenerators: readonly (readonly Permutation[])[];
 }
 
 /**
- * How far down the subgroup listing the bake judged a lattice could be drawn.
- *
- * Baked but unread: the page computes its own lattice from the generators
- * (`computeSubgroupLattice`) rather than consulting this, so nothing downstream
- * branches on it. It stays because it is cheap to carry and re-baking is not.
+ * A conjugacy class of subgroups, as LMFDB records it. The page draws one node
+ * per class and computes the class's own subgroups only when it is opened.
  */
-export type SubgroupRung = "all" | "classes" | "autclasses";
+export interface CatalogueSubgroupClass {
+  /** LMFDB's short label within the group, e.g. `6.a1.a1`. */
+  id: string;
+  order: number;
+  /** Number of conjugate subgroups in the class; `1` exactly when normal. */
+  count: number;
+  cyclic: boolean;
+  normal: boolean;
+  texName: string;
+  displayName: string;
+  /** Indices of the classes immediately below this one. */
+  covers: readonly number[];
+}
 
 export interface CatalogueGroup {
   /** LMFDB abstract group label, e.g. `12.1`. Unique; the display name is not. */
@@ -28,22 +44,29 @@ export interface CatalogueGroup {
   order: number;
 
   /*
-   * Everything below this line is baked but unread. LMFDB records these and the
-   * bake copies them through, but no code on the page branches on any of them —
-   * so treat them as data available to a future filter or badge, not as a
-   * description of anything the page currently does.
+   * Everything from here to `subgroups` is baked but unread. LMFDB records
+   * these and the bake copies them through, but no code on the page branches
+   * on any of them — so treat them as data available to a future filter or
+   * badge, not as a description of anything the page currently does.
    */
   abelian: boolean;
   cyclic: boolean;
   nilpotent: boolean;
   solvable: boolean;
   simple: boolean;
-  /** Subgroup counts as LMFDB records them; the drawn lattice is computed, not these. */
+  solvabilityType: number;
+  /** `-1` when the group is not nilpotent, as LMFDB stores it. */
+  nilpotencyClass: number;
+  rank: number;
+  autTexName: string | null;
+  autDisplayName: string | null;
+  autOrder: number | null;
+
   subgroups: {
+    /** Number of subgroups altogether, across every class. */
     all: number;
-    classes: number;
-    autclasses: number;
-    rung: SubgroupRung;
+    /** Ordered by subgroup order: the trivial class first, the whole group last. */
+    classes: readonly CatalogueSubgroupClass[];
   };
 
   representations: readonly CatalogueRepresentation[];
@@ -58,11 +81,9 @@ export interface CatalogueGroup {
  */
 export interface CatalogueBounds {
   maxOrder: number;
-  abelianMaxOrder: number;
+  maxSubgroupClasses: number;
   maxDegree: number;
-  maxSubgroupsShown: number;
-  maxRank: number;
-  maxArrows: number;
+  maxRepresentations: number;
 }
 
 export interface Catalogue {

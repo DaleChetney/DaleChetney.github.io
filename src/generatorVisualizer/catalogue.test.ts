@@ -38,12 +38,6 @@ describe("the baked catalogue", () => {
   it("respects the bounds it records", () => {
     for (const group of catalogue.groups) {
       expect(group.order, group.label).toBeLessThanOrEqual(catalogue.bounds.maxOrder);
-      if (group.order > catalogue.bounds.abelianMaxOrder) {
-        expect(group.abelian, group.label).toBe(false);
-      }
-      expect(group.subgroups.autclasses, group.label).toBeLessThanOrEqual(
-        catalogue.bounds.maxSubgroupsShown,
-      );
       for (const rep of group.representations) {
         expect(rep.degree, `${group.label} ${rep.id}`).toBeLessThanOrEqual(
           catalogue.bounds.maxDegree,
@@ -88,14 +82,6 @@ describe("the baked catalogue", () => {
         group.label,
       ).toEqual(degrees);
     }
-  });
-
-  it("escalates the subgroup rung by the counts", () => {
-    const rungs = catalogue.groups.reduce<Record<string, number>>((counts, group) => {
-      counts[group.subgroups.rung] = (counts[group.subgroups.rung] ?? 0) + 1;
-      return counts;
-    }, {});
-    expect(rungs).toEqual({ all: 178, classes: 197, autclasses: 151 });
   });
 
   it("leaves about half the groups without a transitive representation", () => {
