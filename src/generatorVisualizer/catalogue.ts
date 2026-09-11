@@ -115,12 +115,30 @@ export const parseCatalogue = (value: unknown): Catalogue => {
   for (const group of value.groups) {
     if (!isRecord(group)) return fail("a group is not an object");
     if (typeof group.label !== "string") return fail("a group has no label");
-    if (typeof group.order !== "number") return fail(`${group.label} has no order`);
+    const label = group.label;
+    if (typeof group.order !== "number") return fail(`${label} has no order`);
+    if (!isRecord(group.subgroups) || !Array.isArray(group.subgroups.classes)) {
+      return fail(`${label} has no subgroup classes`);
+    }
+    const classes: unknown[] = group.subgroups.classes;
+    const last: unknown = classes[classes.length - 1];
+    if (!isRecord(last) || last.order !== group.order) {
+      return fail(`${label}'s subgroup classes do not end at the whole group`);
+    }
     if (!Array.isArray(group.representations)) {
-      return fail(`${group.label} has no representations`);
+      return fail(`${label} has no representations`);
     }
     if (group.representations.length === 0) {
-      return fail(`${group.label} has no representation to draw`);
+      return fail(`${label} has no representation to draw`);
+    }
+    for (const representation of group.representations) {
+      if (
+        !isRecord(representation) ||
+        !Array.isArray(representation.classGenerators) ||
+        representation.classGenerators.length !== classes.length
+      ) {
+        return fail(`${label} has a representation without generators for every class`);
+      }
     }
   }
   return value as unknown as Catalogue;

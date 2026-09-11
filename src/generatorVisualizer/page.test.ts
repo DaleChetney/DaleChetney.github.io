@@ -194,8 +194,8 @@ describe("groups page", () => {
   });
 
   it("lists the whole catalogue in the left panel", () => {
-    expect(document.querySelectorAll(".group-row")).toHaveLength(526);
-    expect(document.querySelector("#group-count")?.textContent).toBe("526 groups");
+    expect(document.querySelectorAll(".group-row")).toHaveLength(402);
+    expect(document.querySelector("#group-count")?.textContent).toBe("402 groups");
     expect(groupRow(DEFAULT.label).classList.contains("selected")).toBe(true);
   });
 
@@ -203,9 +203,9 @@ describe("groups page", () => {
     typeQuery("60.5");
     expect(document.querySelectorAll(".group-row")).toHaveLength(1);
     expect(groupRow("60.5")).not.toBeNull();
-    expect(document.querySelector("#group-count")?.textContent).toContain("of 526");
+    expect(document.querySelector("#group-count")?.textContent).toContain("of 402");
     typeQuery("");
-    expect(document.querySelectorAll(".group-row")).toHaveLength(526);
+    expect(document.querySelectorAll(".group-row")).toHaveLength(402);
   });
 
   it("offers both of C_3:C_4's representations, the smallest first", () => {
