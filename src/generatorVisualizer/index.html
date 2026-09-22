@@ -132,14 +132,14 @@
         color: inherit;
       }
 
-      /* The list scrolls; the search box and count above it stay put. */
+      /* The list scrolls; the filter and count above it stay put. */
       #panel-left {
         display: flex;
         flex-direction: column;
         overflow: hidden;
       }
 
-      #group-search {
+      #group-filter {
         font: inherit;
         padding: 0.35rem 0.5rem;
         border: 1px solid var(--edge);
@@ -416,13 +416,7 @@
         <h2>Group</h2>
         <button class="panel-toggle" type="button" aria-label="Toggle group list"></button>
       </div>
-      <input
-        id="group-search"
-        type="search"
-        placeholder="Name or label"
-        autocomplete="off"
-        aria-label="Filter groups"
-      />
+      <select id="group-filter" aria-label="Filter groups by solvability"></select>
       <p id="group-count" class="hint"></p>
       <div id="group-list"></div>
     </section>

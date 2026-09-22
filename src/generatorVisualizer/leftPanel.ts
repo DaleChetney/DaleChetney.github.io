@@ -1,6 +1,12 @@
 import { mount, preservingFocus, qs } from "@shared/dom";
 import type { CatalogueGroup } from "./catalogue";
-import { filterGroups, groupListCaption, renderGroupList } from "./components/group-list";
+import {
+  filterGroups,
+  groupListCaption,
+  renderFilterOptions,
+  renderGroupList,
+  solvabilityOptions,
+} from "./components/group-list";
 
 /** Group rows are identified by their label, which outlives a redraw. */
 const rowFocus = (active: Element): string | null => {
@@ -9,26 +15,30 @@ const rowFocus = (active: Element): string | null => {
 };
 
 /**
- * The left panel: the whole catalogue, filtered by the search box.
+ * The left panel: the whole catalogue, filtered by solvability type.
  *
- * It owns the query, because nothing else on the page has any use for it, and
- * re-renders itself on every keystroke. Choosing a group is the one thing it
- * reports outwards; it does not know what happens next.
+ * It owns the chosen type, because nothing else on the page has any use for
+ * it, and re-renders itself whenever the dropdown changes. Choosing a group is
+ * the one thing it reports outwards; it does not know what happens next.
  *
- * Deliberately off the selection path: 526 rows is a lot to rebuild, and none
+ * Deliberately off the selection path: 402 rows is a lot to rebuild, and none
  * of them change when a generator is toggled.
  */
 export class LeftPanel {
   readonly #groups: readonly CatalogueGroup[];
   readonly #onSelect: (label: string) => void;
-  #query = "";
+  /** LMFDB's solvability type code, or `null` for every group. */
+  #type: number | null = null;
   #selected: string | null = null;
 
   constructor(groups: readonly CatalogueGroup[], onSelect: (label: string) => void) {
     this.#groups = groups;
     this.#onSelect = onSelect;
-    qs<HTMLInputElement>("#group-search").addEventListener("input", (event) => {
-      this.#query = (event.currentTarget as HTMLInputElement).value;
+    const filter = qs<HTMLSelectElement>("#group-filter");
+    filter.replaceChildren(...renderFilterOptions(solvabilityOptions(groups)));
+    filter.addEventListener("change", (event) => {
+      const value = (event.currentTarget as HTMLSelectElement).value;
+      this.#type = value === "" ? null : Number(value);
       this.#draw();
     });
   }
@@ -40,7 +50,7 @@ export class LeftPanel {
   }
 
   #draw(): void {
-    const matches = filterGroups(this.#groups, this.#query);
+    const matches = filterGroups(this.#groups, this.#type);
     qs("#group-count").textContent = groupListCaption(matches.length, this.#groups.length);
     preservingFocus(rowFocus, () => {
       mount(

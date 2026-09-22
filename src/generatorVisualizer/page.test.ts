@@ -65,14 +65,14 @@ const groupRow = (label: string): HTMLElement => {
   if (found === null) throw new Error(`no row for group ${label}`);
   return found;
 };
-const search = (): HTMLInputElement => {
-  const input = document.querySelector<HTMLInputElement>("#group-search");
-  if (input === null) throw new Error("no search box");
-  return input;
+const filter = (): HTMLSelectElement => {
+  const select = document.querySelector<HTMLSelectElement>("#group-filter");
+  if (select === null) throw new Error("no filter dropdown");
+  return select;
 };
-const typeQuery = (value: string): void => {
-  search().value = value;
-  search().dispatchEvent(new Event("input"));
+const pickType = (value: string): void => {
+  filter().value = value;
+  filter().dispatchEvent(new Event("change"));
 };
 const arrows = (): SVGPathElement[] =>
   Array.from(document.querySelectorAll("#diagram .edges path"));
@@ -239,13 +239,30 @@ describe("groups page", () => {
     expect(groupRow(DEFAULT.label).classList.contains("selected")).toBe(true);
   });
 
-  it("narrows the list as you type, and puts it back", () => {
-    typeQuery("60.5");
-    expect(document.querySelectorAll(".group-row")).toHaveLength(1);
+  it("offers a dropdown of the solvability types the catalogue has", () => {
+    const options = Array.from(filter().options).map((option) => option.textContent);
+    expect(options[0]).toBe("All groups");
+    expect(options).toContain("cyclic (31)");
+    expect(options).toContain("not solvable (11)");
+    // Types 5 and 9 have no group of order 32 or less.
+    expect(options).toHaveLength(13);
+    expect(filter().value).toBe("");
+  });
+
+  it("narrows the list to the chosen type, and puts it back", () => {
+    pickType("13");
+    expect(document.querySelectorAll(".group-row")).toHaveLength(11);
     expect(groupRow("60.5")).not.toBeNull();
-    expect(document.querySelector("#group-count")?.textContent).toContain("of 402");
-    typeQuery("");
+    expect(document.querySelector("#group-count")?.textContent).toBe("11 of 402 groups");
+    pickType("");
     expect(document.querySelectorAll(".group-row")).toHaveLength(402);
+  });
+
+  it("shows a group's nilpotency class when it has one", () => {
+    expect(groupRow("12.1").querySelector(".group-meta")?.textContent).toBe("12.1 · order 12");
+    expect(groupRow("16.2").querySelector(".group-meta")?.textContent).toBe(
+      "16.2 · order 16 · class 1",
+    );
   });
 
   it("offers both of C_3:C_4's representations, the smallest first", () => {
