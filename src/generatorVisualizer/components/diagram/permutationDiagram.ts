@@ -14,6 +14,8 @@ export interface DiagramView {
   picked: number | null;
   /** A node was clicked: pick it, or swap it with the one already picked. */
   onPick: (point: number) => void;
+  /** How far the arrows bow, as a multiple of the usual amount; 1 when absent. */
+  curvature?: number;
 }
 
 /**
@@ -59,7 +61,7 @@ export const renderPermutationDiagram = (
   }
   root.append(nodes);
 
-  root.append(arrowheadDefs(arrows, colorOf), renderArrows(arrows, colorOf));
+  root.append(arrowheadDefs(arrows, colorOf), renderArrows(arrows, colorOf, view.curvature));
 
   return root;
 };

@@ -5,9 +5,14 @@ import { resolve } from "node:path";
 
 // main.ts reaches into index.html by id and throws if one is missing, which no
 // type check can see. Running it against the real markup pins the two together,
-// over the catalogue the site actually ships.
+// over the catalogue the site actually ships. The stylesheet comes along so
+// that what the cascade hides can be asked about; jsdom resolves declared
+// styles even though it lays nothing out.
 beforeAll(async () => {
   const html = readFileSync(resolve(import.meta.dirname, "index.html"), "utf8");
+  const style = document.createElement("style");
+  style.textContent = /<style>([\s\S]*)<\/style>/.exec(html)?.[1] ?? "";
+  document.head.append(style);
   document.body.innerHTML = /<body>([\s\S]*)<\/body>/.exec(html)?.[1] ?? "";
   const catalogue: unknown = JSON.parse(
     readFileSync(resolve(import.meta.dirname, "../../public/groups.json"), "utf8"),
@@ -463,5 +468,97 @@ describe("groups page", () => {
     // The wheel is re-divided rather than extended, so only the color at the
     // start of it survives adding a third generator.
     expect(three.filter((color) => two.includes(color))).toHaveLength(1);
+  });
+});
+
+describe("settings tab", () => {
+  const tab = (name: string): HTMLButtonElement => {
+    const found = Array.from(
+      document.querySelectorAll<HTMLButtonElement>("#panel-right [role=tab]"),
+    );
+    const match = found.find((button) => button.textContent?.trim() === name);
+    if (match === undefined) throw new Error(`no tab ${name}`);
+    return match;
+  };
+  const pane = (id: string): HTMLElement => {
+    const found = document.querySelector<HTMLElement>(`#${id}`);
+    if (found === null) throw new Error(`no pane #${id}`);
+    return found;
+  };
+  const slider = (): HTMLInputElement => {
+    const found = document.querySelector<HTMLInputElement>("#arrow-curvature");
+    if (found === null) throw new Error("no curvature slider");
+    return found;
+  };
+  const arrowPaths = (): string[] => arrows().map((path) => path.getAttribute("d") ?? "");
+
+  it("opens on the generators, with the settings out of sight", () => {
+    expect(tab("Generators").getAttribute("aria-selected")).toBe("true");
+    expect(pane("element-sections").hidden).toBe(false);
+    expect(pane("settings").hidden).toBe(true);
+  });
+
+  it("keeps the settings pane out of the layout while the generators tab is open", () => {
+    expect(getComputedStyle(pane("settings")).display).toBe("none");
+    tab("Settings").click();
+    expect(getComputedStyle(pane("settings")).display).not.toBe("none");
+    expect(getComputedStyle(pane("element-sections")).display).toBe("none");
+    tab("Generators").click();
+  });
+
+  it("folds the settings pane away with the panel", () => {
+    tab("Settings").click();
+    const section = document.querySelector<HTMLElement>("#panel-right");
+    section?.querySelector<HTMLButtonElement>(".panel-toggle")?.click();
+    expect(getComputedStyle(pane("settings")).display).toBe("none");
+    section?.querySelector<HTMLButtonElement>(".panel-toggle")?.click();
+    expect(getComputedStyle(pane("settings")).display).not.toBe("none");
+    tab("Generators").click();
+  });
+
+  it("switches to the settings and back", () => {
+    tab("Settings").click();
+    expect(pane("settings").hidden).toBe(false);
+    expect(pane("element-sections").hidden).toBe(true);
+    tab("Generators").click();
+    expect(pane("settings").hidden).toBe(true);
+    expect(pane("element-sections").hidden).toBe(false);
+  });
+
+  it("sets the color scheme from the theme choice", () => {
+    expect(document.documentElement.style.colorScheme).toBe("light dark");
+    document.querySelector<HTMLInputElement>('input[name="theme"][value="dark"]')?.click();
+    expect(document.documentElement.style.colorScheme).toBe("dark");
+    document.querySelector<HTMLInputElement>('input[name="theme"][value="system"]')?.click();
+    expect(document.documentElement.style.colorScheme).toBe("light dark");
+  });
+
+  it("redraws the arrows as the curvature slider moves", () => {
+    groupRow(DEFAULT.label).click();
+    const before = arrowPaths();
+    expect(before.length).toBeGreaterThan(0);
+    slider().value = "-1";
+    slider().dispatchEvent(new Event("input"));
+    expect(arrowPaths()).not.toEqual(before);
+    // The arrows are what changed, not what is drawn.
+    expect(arrowPaths()).toHaveLength(before.length);
+    slider().value = "1";
+    slider().dispatchEvent(new Event("input"));
+    expect(arrowPaths()).toEqual(before);
+  });
+
+  it("keeps the curvature across a change of group", () => {
+    slider().value = "0";
+    slider().dispatchEvent(new Event("input"));
+    groupRow("8.3").click();
+    // Every arrow is a straight chord: a quadratic whose control point lies on it.
+    for (const d of arrowPaths()) {
+      const numbers = d.match(/-?[\d.]+/g)?.map(Number) ?? [];
+      const [sx, sy, cx, cy, ex, ey] = numbers;
+      const cross = (cx - sx) * (ey - sy) - (cy - sy) * (ex - sx);
+      expect(Math.abs(cross)).toBeLessThan(1e-6);
+    }
+    slider().value = "1";
+    slider().dispatchEvent(new Event("input"));
   });
 });

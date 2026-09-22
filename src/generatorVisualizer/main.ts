@@ -5,6 +5,9 @@ import { collapsiblePanel } from "./collapsiblePanel";
 import { LeftPanel } from "./leftPanel";
 import { RightPanel } from "./rightPanel";
 import { Scene } from "./scene";
+import { applyTheme, loadSettings, saveSettings } from "./settings";
+import { settingsPanel } from "./settingsPanel";
+import { tabs } from "./tabs";
 
 /** The group the page opens on. */
 const DEFAULT_LABEL = "12.1";
@@ -15,6 +18,16 @@ const groupFor = (label: string): CatalogueGroup => groups.get(label) ?? catalog
 
 collapsiblePanel(qs("#panel-left"), "generatorVisualizer.leftPanelCollapsed");
 collapsiblePanel(qs("#panel-right"), "generatorVisualizer.rightPanelCollapsed");
+tabs(qs("#panel-right"), "generatorVisualizer.rightPanelTab");
+
+let settings = loadSettings();
+applyTheme(settings.theme);
+settingsPanel(qs("#settings"), settings, (changed) => {
+  settings = changed;
+  saveSettings(settings);
+  applyTheme(settings.theme);
+  render();
+});
 
 const leftPanel = new LeftPanel(catalogue.groups, selectGroup);
 const centerPanel = new CenterPanel({
@@ -40,7 +53,7 @@ let scene = sceneFor(groupFor(DEFAULT_LABEL));
  * 402 rows change only when the group does.
  */
 function render(): void {
-  centerPanel.show(scene);
+  centerPanel.show(scene, settings);
   rightPanel.show(scene);
 }
 
