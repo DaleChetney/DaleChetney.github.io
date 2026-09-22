@@ -5,6 +5,7 @@ import { DEFAULT_TARGET_WIDTH } from "./components/diagram/ringLayout";
 import { renderLattice } from "./components/lattice";
 import { renderRepresentationRow } from "./components/representation-row";
 import type { Scene } from "./scene";
+import type { Settings } from "./settings";
 
 /**
  * The width to lay a diagram out against: the stage is measured rather than
@@ -49,9 +50,10 @@ export class CenterPanel {
     this.#handlers = handlers;
   }
 
-  show(scene: Scene): void {
+  /** Draw the scene, the way the settings say to. */
+  show(scene: Scene, settings: Settings): void {
     this.#showHeading(scene);
-    this.#showDiagram(scene);
+    this.#showDiagram(scene, settings);
     this.#showLattice(scene);
   }
 
@@ -74,7 +76,7 @@ export class CenterPanel {
    * One node per point, and an arrow `p -> g(p)` for each element being drawn.
    * A picked point, waiting to be swapped with the next one clicked, is marked.
    */
-  #showDiagram(scene: Scene): void {
+  #showDiagram(scene: Scene, settings: Settings): void {
     const { diagram } = scene;
     preservingFocus(diagramFocus, () => {
       mount(
@@ -83,7 +85,11 @@ export class CenterPanel {
           diagram,
           actionArrows(diagram.points, scene.palette),
           (generator) => scene.generatorColor(generator),
-          { picked: scene.picked, onPick: this.#handlers.onPickPoint },
+          {
+            picked: scene.picked,
+            onPick: this.#handlers.onPickPoint,
+            curvature: settings.arrowCurvature,
+          },
         ),
       );
     });

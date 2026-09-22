@@ -84,3 +84,41 @@ describe("renderArrows on a shared path", () => {
     expect(renderArrows([], colorOf).querySelectorAll("path")).toHaveLength(0);
   });
 });
+
+describe("renderArrows curvature", () => {
+  const from = { point: 1, x: 0, y: 0 };
+  const to = { point: 2, x: 200, y: 0 };
+  const arrow = { generator: 0, from, to };
+  const colorOf = (): string => "#000";
+
+  /** The control point of the one quadratic path drawn at this curvature. */
+  const controlAt = (curvature: number): { x: number; y: number } => {
+    const d = renderArrows([arrow], colorOf, curvature).querySelector("path")?.getAttribute("d");
+    const match = /Q (-?[\d.]+) (-?[\d.]+)/.exec(d ?? "");
+    if (match === null) throw new Error(`no quadratic in ${String(d)}`);
+    return { x: Number(match[1]), y: Number(match[2]) };
+  };
+
+  it("bows the way it always has at curvature 1", () => {
+    const control = controlAt(1);
+    expect(control.x).toBe(100);
+    expect(control.y).toBeGreaterThan(0);
+  });
+
+  it("draws a straight chord at curvature 0", () => {
+    expect(controlAt(0)).toEqual({ x: 100, y: 0 });
+  });
+
+  it("bows the other way for a negative curvature", () => {
+    expect(controlAt(-1).y).toBe(-controlAt(1).y);
+  });
+
+  it("bows further the larger the curvature", () => {
+    expect(controlAt(2).y).toBe(2 * controlAt(1).y);
+  });
+
+  it("defaults to curvature 1", () => {
+    const d = renderArrows([arrow], colorOf).querySelector("path")?.getAttribute("d");
+    expect(d).toBe(renderArrows([arrow], colorOf, 1).querySelector("path")?.getAttribute("d"));
+  });
+});

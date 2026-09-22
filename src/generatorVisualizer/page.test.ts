@@ -465,3 +465,77 @@ describe("groups page", () => {
     expect(three.filter((color) => two.includes(color))).toHaveLength(1);
   });
 });
+
+describe("settings tab", () => {
+  const tab = (name: string): HTMLButtonElement => {
+    const found = Array.from(
+      document.querySelectorAll<HTMLButtonElement>("#panel-right [role=tab]"),
+    );
+    const match = found.find((button) => button.textContent?.trim() === name);
+    if (match === undefined) throw new Error(`no tab ${name}`);
+    return match;
+  };
+  const pane = (id: string): HTMLElement => {
+    const found = document.querySelector<HTMLElement>(`#${id}`);
+    if (found === null) throw new Error(`no pane #${id}`);
+    return found;
+  };
+  const slider = (): HTMLInputElement => {
+    const found = document.querySelector<HTMLInputElement>("#arrow-curvature");
+    if (found === null) throw new Error("no curvature slider");
+    return found;
+  };
+  const arrowPaths = (): string[] => arrows().map((path) => path.getAttribute("d") ?? "");
+
+  it("opens on the generators, with the settings out of sight", () => {
+    expect(tab("Generators").getAttribute("aria-selected")).toBe("true");
+    expect(pane("element-sections").hidden).toBe(false);
+    expect(pane("settings").hidden).toBe(true);
+  });
+
+  it("switches to the settings and back", () => {
+    tab("Settings").click();
+    expect(pane("settings").hidden).toBe(false);
+    expect(pane("element-sections").hidden).toBe(true);
+    tab("Generators").click();
+    expect(pane("settings").hidden).toBe(true);
+    expect(pane("element-sections").hidden).toBe(false);
+  });
+
+  it("sets the color scheme from the theme choice", () => {
+    expect(document.documentElement.style.colorScheme).toBe("light dark");
+    document.querySelector<HTMLInputElement>('input[name="theme"][value="dark"]')?.click();
+    expect(document.documentElement.style.colorScheme).toBe("dark");
+    document.querySelector<HTMLInputElement>('input[name="theme"][value="system"]')?.click();
+    expect(document.documentElement.style.colorScheme).toBe("light dark");
+  });
+
+  it("redraws the arrows as the curvature slider moves", () => {
+    groupRow(DEFAULT.label).click();
+    const before = arrowPaths();
+    expect(before.length).toBeGreaterThan(0);
+    slider().value = "-1";
+    slider().dispatchEvent(new Event("input"));
+    expect(arrowPaths()).not.toEqual(before);
+    // The arrows are what changed, not what is drawn.
+    expect(arrowPaths()).toHaveLength(before.length);
+    slider().value = "1";
+    slider().dispatchEvent(new Event("input"));
+    expect(arrowPaths()).toEqual(before);
+  });
+
+  it("keeps the curvature across a change of group", () => {
+    slider().value = "0";
+    slider().dispatchEvent(new Event("input"));
+    groupRow("8.3").click();
+    // Every arrow is a straight chord: a quadratic whose control point lies on it.
+    for (const d of arrowPaths()) {
+      const numbers = d.match(/-?[\d.]+/g)?.map(Number) ?? [];
+      const [sx, sy, cx, cy, ex, ey] = numbers;
+      const cross = (cx - sx) * (ey - sy) - (cy - sy) * (ex - sx);
+      expect(Math.abs(cross)).toBeLessThan(1e-6);
+    }
+    slider().value = "1";
+    slider().dispatchEvent(new Event("input"));
+  });
+});

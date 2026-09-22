@@ -107,3 +107,14 @@ describe("renderPermutationDiagram", () => {
     expect(render([]).getAttribute("viewBox")).toBe(`0 0 ${diagram.width} ${diagram.height}`);
   });
 });
+
+describe("renderPermutationDiagram curvature", () => {
+  const paths = (root: SVGSVGElement): string[] =>
+    Array.from(root.querySelectorAll(".edges path")).map((path) => path.getAttribute("d") ?? "");
+
+  it("bows the arrows by the view's curvature", () => {
+    const usual = paths(render([0]));
+    expect(paths(render([0], { curvature: 1 }))).toEqual(usual);
+    expect(paths(render([0], { curvature: -1 }))).not.toEqual(usual);
+  });
+});
