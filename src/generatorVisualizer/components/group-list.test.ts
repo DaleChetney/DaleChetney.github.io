@@ -44,7 +44,7 @@ const groups = [
     solvabilityType: 3,
   }),
   group({ label: "60.5", name: "A5", displayName: "A₅", order: 60, solvabilityType: 13 }),
-  group({ label: "12.2", name: "C12", displayName: "C₁₂", solvabilityType: 0, rank: 1 }),
+  group({ label: "12.2", name: "C12", displayName: "C₁₂", solvabilityType: 0 }),
   group({ label: "12.4", name: "D6", displayName: "D₆", solvabilityType: 6 }),
 ];
 
@@ -120,17 +120,15 @@ describe("renderGroupList", () => {
     expect(root.querySelector('[data-label="32.13"]')).not.toBeNull();
   });
 
-  it("shows the label, order and rank alongside the name, since names collide", () => {
+  it("shows the label and order alongside the name, since names collide", () => {
     const row = renderGroupList(groups, view).querySelector<HTMLElement>('[data-label="12.1"]');
     expect(row?.querySelector(".group-name")?.textContent).toBe("C₃ ⋊ C₄");
-    expect(row?.querySelector(".group-meta")?.textContent).toBe("12.1 · order 12 · rank 2");
+    expect(row?.querySelector(".group-meta")?.textContent).toBe("12.1 · order 12");
   });
 
   it("adds the nilpotency class when the group is nilpotent", () => {
     const row = renderGroupList(groups, view).querySelector<HTMLElement>('[data-label="32.13"]');
-    expect(row?.querySelector(".group-meta")?.textContent).toBe(
-      "32.13 · order 32 · rank 2 · class 2",
-    );
+    expect(row?.querySelector(".group-meta")?.textContent).toBe("32.13 · order 32 · class 2");
   });
 
   it("marks the selected row", () => {

@@ -64,9 +64,9 @@ export const filterGroups = (
 ): CatalogueGroup[] =>
   type === null ? [...groups] : groups.filter((group) => group.solvabilityType === type);
 
-/** `12.1 · order 12 · rank 2`, plus the nilpotency class when there is one. */
+/** `12.1 · order 12`, plus the nilpotency class when there is one. */
 const groupMeta = (group: CatalogueGroup): string => {
-  const parts = [group.label, `order ${String(group.order)}`, `rank ${String(group.rank)}`];
+  const parts = [group.label, `order ${String(group.order)}`];
   if (group.nilpotent) parts.push(`class ${String(group.nilpotencyClass)}`);
   return parts.join(" · ");
 };

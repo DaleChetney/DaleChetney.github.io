@@ -258,12 +258,10 @@ describe("groups page", () => {
     expect(document.querySelectorAll(".group-row")).toHaveLength(402);
   });
 
-  it("shows each group's rank, and its nilpotency class when it has one", () => {
-    expect(groupRow("12.1").querySelector(".group-meta")?.textContent).toBe(
-      "12.1 · order 12 · rank 2",
-    );
+  it("shows a group's nilpotency class when it has one", () => {
+    expect(groupRow("12.1").querySelector(".group-meta")?.textContent).toBe("12.1 · order 12");
     expect(groupRow("16.2").querySelector(".group-meta")?.textContent).toBe(
-      "16.2 · order 16 · rank 2 · class 1",
+      "16.2 · order 16 · class 1",
     );
   });
 
