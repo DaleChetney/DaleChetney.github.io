@@ -17,7 +17,7 @@ export interface Settings {
 }
 
 /** The range the curvature slider offers. */
-export const CURVATURE = { min: -2, max: 2, step: 0.1 } as const;
+export const CURVATURE = { min: -3, max: 3, step: 0.1 } as const;
 
 export const DEFAULT_SETTINGS: Settings = { theme: "system", arrowCurvature: 1 };
 

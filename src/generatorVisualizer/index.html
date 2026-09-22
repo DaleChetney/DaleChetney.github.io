@@ -87,16 +87,19 @@
         border-bottom-color: currentColor;
       }
 
-      #settings {
-        display: flex;
-        flex-direction: column;
-        gap: 1.1rem;
-      }
-
+      /*
+        The pane sets no display of its own: the `hidden` attribute and the
+        folded-panel rule both hide by display, and an id rule would outrank
+        them. The spacing is the settings' own.
+      */
       .setting {
         margin: 0;
         padding: 0;
         border: 0;
+      }
+
+      .setting + .setting {
+        margin-top: 1.1rem;
       }
 
       .setting legend,

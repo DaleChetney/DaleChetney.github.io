@@ -5,9 +5,14 @@ import { resolve } from "node:path";
 
 // main.ts reaches into index.html by id and throws if one is missing, which no
 // type check can see. Running it against the real markup pins the two together,
-// over the catalogue the site actually ships.
+// over the catalogue the site actually ships. The stylesheet comes along so
+// that what the cascade hides can be asked about; jsdom resolves declared
+// styles even though it lays nothing out.
 beforeAll(async () => {
   const html = readFileSync(resolve(import.meta.dirname, "index.html"), "utf8");
+  const style = document.createElement("style");
+  style.textContent = /<style>([\s\S]*)<\/style>/.exec(html)?.[1] ?? "";
+  document.head.append(style);
   document.body.innerHTML = /<body>([\s\S]*)<\/body>/.exec(html)?.[1] ?? "";
   const catalogue: unknown = JSON.parse(
     readFileSync(resolve(import.meta.dirname, "../../public/groups.json"), "utf8"),
@@ -491,6 +496,24 @@ describe("settings tab", () => {
     expect(tab("Generators").getAttribute("aria-selected")).toBe("true");
     expect(pane("element-sections").hidden).toBe(false);
     expect(pane("settings").hidden).toBe(true);
+  });
+
+  it("keeps the settings pane out of the layout while the generators tab is open", () => {
+    expect(getComputedStyle(pane("settings")).display).toBe("none");
+    tab("Settings").click();
+    expect(getComputedStyle(pane("settings")).display).not.toBe("none");
+    expect(getComputedStyle(pane("element-sections")).display).toBe("none");
+    tab("Generators").click();
+  });
+
+  it("folds the settings pane away with the panel", () => {
+    tab("Settings").click();
+    const section = document.querySelector<HTMLElement>("#panel-right");
+    section?.querySelector<HTMLButtonElement>(".panel-toggle")?.click();
+    expect(getComputedStyle(pane("settings")).display).toBe("none");
+    section?.querySelector<HTMLButtonElement>(".panel-toggle")?.click();
+    expect(getComputedStyle(pane("settings")).display).not.toBe("none");
+    tab("Generators").click();
   });
 
   it("switches to the settings and back", () => {
