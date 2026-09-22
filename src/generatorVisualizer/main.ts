@@ -37,7 +37,7 @@ let scene = sceneFor(groupFor(DEFAULT_LABEL));
 
 /**
  * The two panels that show the selection. The left one is not among them: its
- * 526 rows change only when the group does.
+ * 402 rows change only when the group does.
  */
 function render(): void {
   centerPanel.show(scene);

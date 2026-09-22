@@ -44,16 +44,18 @@ export interface CatalogueGroup {
   order: number;
 
   /*
-   * Everything from here to `subgroups` is baked but unread. LMFDB records
-   * these and the bake copies them through, but no code on the page branches
-   * on any of them — so treat them as data available to a future filter or
-   * badge, not as a description of anything the page currently does.
+   * `abelian`, `cyclic`, `solvable`, `simple` and the automorphism fields
+   * are baked but unread. LMFDB records these and the bake copies them
+   * through, but no code on the page branches on any of them — so treat them
+   * as data available to a future filter or badge, not as a description of
+   * anything the page currently does.
    */
   abelian: boolean;
   cyclic: boolean;
   nilpotent: boolean;
   solvable: boolean;
   simple: boolean;
+  /** LMFDB's code for where the group sits between cyclic and non-solvable. */
   solvabilityType: number;
   /** `-1` when the group is not nilpotent, as LMFDB stores it. */
   nilpotencyClass: number;
