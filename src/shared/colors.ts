@@ -6,10 +6,10 @@ import chroma from "chroma-js";
  * follows the system light/dark preference — and stops one series reading as
  * more prominent than another when only hue should distinguish them.
  */
-const LIGHTNESS = 55;
+const LIGHTNESS = 0.55;
 
 /** Saturation ceiling, past which most hues leave sRGB at this lightness. */
-const MAX_CHROMA = 80;
+const CHROMA = 0.4;
 
 /** Where the wheel starts, chosen so a lone color comes out red rather than pink. */
 const START_HUE = 10;
@@ -22,14 +22,17 @@ const START_HUE = 10;
  * wheel promises, at the cost of some colors being less saturated than others.
  */
 const fitToGamut = (hue: number): string => {
-  let inside = 0;
-  let outside = MAX_CHROMA;
+  if (!chroma.oklch(LIGHTNESS, CHROMA, hue).clipped())
+    return chroma.oklch(LIGHTNESS, CHROMA, hue).hex();
+
+  let extraLightness = LIGHTNESS;
+  let reducedChroma = CHROMA;
   for (let step = 0; step < 20; step++) {
-    const middle = (inside + outside) / 2;
-    if (chroma.hcl(hue, middle, LIGHTNESS).clipped()) outside = middle;
-    else inside = middle;
+    extraLightness += 0.01;
+    reducedChroma -= 0.015;
+    if (!chroma.oklch(extraLightness, reducedChroma, hue).clipped()) break;
   }
-  return chroma.hcl(hue, inside, LIGHTNESS).hex();
+  return chroma.oklch(extraLightness, reducedChroma, hue).hex();
 };
 
 /**
