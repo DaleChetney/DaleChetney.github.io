@@ -2,6 +2,7 @@
 import { describe, it, expect, vi } from "vitest";
 import type { CatalogueGroup } from "../catalogue";
 import {
+  type GroupSort,
   factorizationText,
   filterGroups,
   groupListCaption,
@@ -109,12 +110,32 @@ describe("sortGroups", () => {
     expect(orders(sortGroups(ofOrders(16, 7, 12), "order"))).toEqual([7, 12, 16]);
   });
 
-  it("sorts by distinct primes, then by order", () => {
+  it("sorts by distinct primes", () => {
     expect(orders(sortGroups(mixed, "distinct-primes"))).toEqual([7, 16, 12, 36, 30]);
   });
 
-  it("sorts by prime factors with multiplicity, then by order", () => {
+  it("sorts by prime factors with multiplicity", () => {
     expect(orders(sortGroups(mixed, "prime-factors"))).toEqual([7, 12, 30, 16, 36]);
+  });
+
+  it("breaks ties by the order it was given, not by the group's order", () => {
+    expect(orders(sortGroups(ofOrders(36, 16, 30, 12), "prime-factors"))).toEqual([30, 12, 36, 16]);
+  });
+
+  describe("stacked", () => {
+    // 27 = 3³ shares Ω = 3 with 12 and 30, and ω = 1 with 7 and 16.
+    const stacked = ofOrders(7, 12, 16, 27, 30, 36);
+    const then = (first: GroupSort, second: GroupSort): number[] =>
+      orders(sortGroups(sortGroups(stacked, first), second));
+
+    it("lets the earlier sort break the later one's ties", () => {
+      expect(then("distinct-primes", "prime-factors")).toEqual([7, 27, 12, 30, 16, 36]);
+      expect(then("prime-factors", "distinct-primes")).toEqual([7, 27, 16, 12, 36, 30]);
+    });
+
+    it("comes back to plain order when sorted by order last", () => {
+      expect(then("prime-factors", "order")).toEqual([7, 12, 16, 27, 30, 36]);
+    });
   });
 
   it("keeps catalogue order among groups of the same order", () => {
@@ -179,12 +200,12 @@ describe("renderGroupList", () => {
   it("shows the label and order alongside the name, since names collide", () => {
     const row = renderGroupList(groups, view).querySelector<HTMLElement>('[data-label="12.1"]');
     expect(row?.querySelector(".group-name")?.textContent).toBe("C₃ ⋊ C₄");
-    expect(row?.querySelector(".group-meta")?.textContent).toBe("12.1 · order 12 = 2²·3");
+    expect(row?.querySelector(".group-meta")?.textContent).toBe("12.1 · order 2²·3");
   });
 
   it("adds the nilpotency class when the group is nilpotent", () => {
     const row = renderGroupList(groups, view).querySelector<HTMLElement>('[data-label="32.13"]');
-    expect(row?.querySelector(".group-meta")?.textContent).toBe("32.13 · order 32 = 2⁵ · class 2");
+    expect(row?.querySelector(".group-meta")?.textContent).toBe("32.13 · order 2⁵ · nilpotency 2");
   });
 
   it("marks the selected row", () => {

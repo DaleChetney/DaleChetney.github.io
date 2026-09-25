@@ -273,15 +273,16 @@ describe("groups page", () => {
     expect(document.querySelectorAll(".group-row")).toHaveLength(402);
   });
 
-  it("shows a group's order factored, and its nilpotency class when it has one", () => {
-    expect(groupRow("12.1").querySelector(".group-meta")?.textContent).toBe(
-      "12.1 · order 12 = 2²·3",
-    );
+  it("shows a group's order factored, and whether it is abelian or its nilpotency class", () => {
+    expect(groupRow("12.1").querySelector(".group-meta")?.textContent).toBe("12.1 · order 2²·3");
     expect(groupRow("16.2").querySelector(".group-meta")?.textContent).toBe(
-      "16.2 · order 16 = 2⁴ · class 1",
+      "16.2 · order 2⁴ · abelian",
     );
     expect(groupRow("7.1").querySelector(".group-meta")?.textContent).toBe(
-      "7.1 · order 7 · class 1",
+      "7.1 · order 7 · abelian",
+    );
+    expect(groupRow("8.3").querySelector(".group-meta")?.textContent).toBe(
+      "8.3 · order 2³ · nilpotency 2",
     );
   });
 
@@ -298,6 +299,17 @@ describe("groups page", () => {
     pickSort("order");
     expect(rowLabels()[0]).toBe("2.1");
     expect(rowLabels().indexOf("4.1")).toBeLessThan(rowLabels().indexOf("31.1"));
+  });
+
+  it("stacks sorts, so the one before breaks the next one's ties", () => {
+    // 12 and 27 both have Ω = 3; ω puts 27 = 3³ ahead of 12 = 2²·3.
+    pickSort("distinct-primes");
+    pickSort("prime-factors");
+    expect(rowLabels().indexOf("27.1")).toBeLessThan(rowLabels().indexOf("12.1"));
+    pickSort("order");
+    pickSort("prime-factors");
+    expect(rowLabels().indexOf("12.1")).toBeLessThan(rowLabels().indexOf("27.1"));
+    pickSort("order");
   });
 
   it("offers both of C_3:C_4's representations, the smallest first", () => {

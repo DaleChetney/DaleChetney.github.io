@@ -66,7 +66,7 @@ export const filterGroups = (
 ): CatalogueGroup[] =>
   type === null ? [...groups] : groups.filter((group) => group.solvabilityType === type);
 
-/** How the list can be ordered. Ties always fall back to order, then label. */
+/** How the list can be ordered. Ties keep whatever order the list was already in. */
 export type GroupSort = "order" | "distinct-primes" | "prime-factors";
 
 export const SORT_OPTIONS: readonly { value: GroupSort; name: string }[] = [
@@ -76,7 +76,7 @@ export const SORT_OPTIONS: readonly { value: GroupSort; name: string }[] = [
 ];
 
 const SORT_KEYS: Readonly<Record<GroupSort, (order: number) => number>> = {
-  order: () => 0,
+  order: (order) => order,
   "distinct-primes": distinctPrimeCount,
   "prime-factors": primeDivisorCount,
 };
@@ -85,15 +85,18 @@ export const renderSortOptions = (): HTMLOptionElement[] =>
   SORT_OPTIONS.map((option) => el("option", { value: option.value }, [option.name]));
 
 /**
- * `groups` ordered by `sort`'s key on the group's order, then by order. The
- * sort is stable, so groups of equal order keep the catalogue's label order.
+ * `groups` ordered by `sort`'s key on the group's order.
+ * The sort is stable, so ties keep the order `groups` came in: sorting by ω and
+ * then by Ω leaves ω breaking Ω's ties, the way a table's column headers do.
+ * Groups of equal order tie on every key, so they keep the catalogue's label
+ * order however many sorts are stacked.
  */
 export const sortGroups = (
   groups: readonly CatalogueGroup[],
   sort: GroupSort,
 ): CatalogueGroup[] => {
   const key = SORT_KEYS[sort];
-  return [...groups].sort((a, b) => key(a.order) - key(b.order) || a.order - b.order);
+  return [...groups].sort((a, b) => key(a.order) - key(b.order));
 };
 
 /** `2³·3²·5` for 360; a prime or 1 is just itself. */
@@ -102,18 +105,14 @@ export const factorizationText = (n: number): string =>
     .map(([prime, exponent]) => String(prime) + (exponent === 1 ? "" : superscript(exponent)))
     .join("·") || String(n);
 
-/** `order 12 = 2²·3`, leaving off a factorization that says nothing new. */
-const orderText = (order: number): string => {
-  const factorization = factorizationText(order);
-  return factorization === String(order)
-    ? `order ${String(order)}`
-    : `order ${String(order)} = ${factorization}`;
-};
-
-/** `12.1 · order 12 = 2²·3`, plus the nilpotency class when there is one. */
+/**
+ * `12.1 · order 2²·3`, plus the nilpotency class when there is one.
+ */
 const groupMeta = (group: CatalogueGroup): string => {
-  const parts = [group.label, orderText(group.order)];
-  if (group.nilpotent) parts.push(`class ${String(group.nilpotencyClass)}`);
+  const parts = [group.label, `order ${factorizationText(group.order)}`];
+  if (group.abelian) {
+    parts.push(`abelian`);
+  } else if (group.nilpotent) parts.push(`nilpotency ${String(group.nilpotencyClass)}`);
   return parts.join(" · ");
 };
 
@@ -134,8 +133,8 @@ const groupRow = (group: CatalogueGroup, view: GroupListView): HTMLElement => {
 };
 
 /**
- * The left panel's list. Every match is rendered: 402 rows is well inside what
- * the browser will keep responsive, and the alternative costs scroll fidelity.
+ * The left panel's list. Every match is rendered: the catalogue is currently small enough
+ * that the browser will keep responsive, and the alternative costs scroll fidelity.
  */
 export const renderGroupList = (
   groups: readonly CatalogueGroup[],
