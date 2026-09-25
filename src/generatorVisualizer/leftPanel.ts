@@ -21,7 +21,7 @@ const rowFocus = (active: Element): string | null => {
  * The left panel: the whole catalogue, filtered by solvability type and sorted
  * by order or by how its order factors.
  *
- * It owns the chosen type and sort, because nothing else on the page has any
+ * It owns the chosen type and the list's current order, because nothing else on the page has any
  * use for them, and re-renders itself whenever either dropdown changes.
  * Choosing a group is the one thing it reports outwards; it does not know what
  * happens next.
@@ -30,11 +30,15 @@ const rowFocus = (active: Element): string | null => {
  * of them change when a generator is toggled.
  */
 export class LeftPanel {
-  readonly #groups: readonly CatalogueGroup[];
+  /**
+   * The whole catalogue in its current order. Each sort replaces this with a
+   * re-sorted copy, so the previous sort breaks the new one's ties and the
+   * caller's array is never reordered.
+   */
+  #groups: readonly CatalogueGroup[];
   readonly #onSelect: (label: string) => void;
   /** LMFDB's solvability type code, or `null` for every group. */
   #type: number | null = null;
-  #sort: GroupSort = "order";
   #selected: string | null = null;
 
   constructor(groups: readonly CatalogueGroup[], onSelect: (label: string) => void) {
@@ -50,7 +54,8 @@ export class LeftPanel {
     const sort = qs<HTMLSelectElement>("#group-sort");
     sort.replaceChildren(...renderSortOptions());
     sort.addEventListener("change", (event) => {
-      this.#sort = (event.currentTarget as HTMLSelectElement).value as GroupSort;
+      const value = (event.currentTarget as HTMLSelectElement).value as GroupSort;
+      this.#groups = sortGroups(this.#groups, value);
       this.#draw();
     });
   }
@@ -62,7 +67,7 @@ export class LeftPanel {
   }
 
   #draw(): void {
-    const matches = sortGroups(filterGroups(this.#groups, this.#type), this.#sort);
+    const matches = filterGroups(this.#groups, this.#type);
     qs("#group-count").textContent = groupListCaption(matches.length, this.#groups.length);
     preservingFocus(rowFocus, () => {
       mount(

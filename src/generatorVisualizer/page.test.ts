@@ -300,6 +300,17 @@ describe("groups page", () => {
     expect(rowLabels().indexOf("4.1")).toBeLessThan(rowLabels().indexOf("31.1"));
   });
 
+  it("stacks sorts, so the one before breaks the next one's ties", () => {
+    // 12 and 27 both have Ω = 3; ω puts 27 = 3³ ahead of 12 = 2²·3.
+    pickSort("distinct-primes");
+    pickSort("prime-factors");
+    expect(rowLabels().indexOf("27.1")).toBeLessThan(rowLabels().indexOf("12.1"));
+    pickSort("order");
+    pickSort("prime-factors");
+    expect(rowLabels().indexOf("12.1")).toBeLessThan(rowLabels().indexOf("27.1"));
+    pickSort("order");
+  });
+
   it("offers both of C_3:C_4's representations, the smallest first", () => {
     const row = Array.from(document.querySelectorAll("#representation-row .representation"));
     expect(row.map((button) => button.getAttribute("data-representation"))).toEqual([

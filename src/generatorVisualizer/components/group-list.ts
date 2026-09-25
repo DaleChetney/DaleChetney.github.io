@@ -66,7 +66,7 @@ export const filterGroups = (
 ): CatalogueGroup[] =>
   type === null ? [...groups] : groups.filter((group) => group.solvabilityType === type);
 
-/** How the list can be ordered. Ties always fall back to order, then label. */
+/** How the list can be ordered. Ties keep whatever order the list was already in. */
 export type GroupSort = "order" | "distinct-primes" | "prime-factors";
 
 export const SORT_OPTIONS: readonly { value: GroupSort; name: string }[] = [
@@ -76,7 +76,7 @@ export const SORT_OPTIONS: readonly { value: GroupSort; name: string }[] = [
 ];
 
 const SORT_KEYS: Readonly<Record<GroupSort, (order: number) => number>> = {
-  order: () => 0,
+  order: (order) => order,
   "distinct-primes": distinctPrimeCount,
   "prime-factors": primeDivisorCount,
 };
@@ -85,15 +85,18 @@ export const renderSortOptions = (): HTMLOptionElement[] =>
   SORT_OPTIONS.map((option) => el("option", { value: option.value }, [option.name]));
 
 /**
- * `groups` ordered by `sort`'s key on the group's order, then by order. The
- * sort is stable, so groups of equal order keep the catalogue's label order.
+ * `groups` ordered by `sort`'s key on the group's order, and by nothing else.
+ * The sort is stable, so ties keep the order `groups` came in: sorting by ω and
+ * then by Ω leaves ω breaking Ω's ties, the way a table's column headers do.
+ * Groups of equal order tie on every key, so they keep the catalogue's label
+ * order however many sorts are stacked.
  */
 export const sortGroups = (
   groups: readonly CatalogueGroup[],
   sort: GroupSort,
 ): CatalogueGroup[] => {
   const key = SORT_KEYS[sort];
-  return [...groups].sort((a, b) => key(a.order) - key(b.order) || a.order - b.order);
+  return [...groups].sort((a, b) => key(a.order) - key(b.order));
 };
 
 /** `2³·3²·5` for 360; a prime or 1 is just itself. */
