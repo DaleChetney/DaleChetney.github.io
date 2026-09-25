@@ -274,11 +274,9 @@ describe("groups page", () => {
   });
 
   it("shows a group's order factored, and its nilpotency class when it has one", () => {
-    expect(groupRow("12.1").querySelector(".group-meta")?.textContent).toBe(
-      "12.1 · order 12 = 2²·3",
-    );
+    expect(groupRow("12.1").querySelector(".group-meta")?.textContent).toBe("12.1 · order 2²·3");
     expect(groupRow("16.2").querySelector(".group-meta")?.textContent).toBe(
-      "16.2 · order 16 = 2⁴ · class 1",
+      "16.2 · order 2⁴ · class 1",
     );
     expect(groupRow("7.1").querySelector(".group-meta")?.textContent).toBe(
       "7.1 · order 7 · class 1",

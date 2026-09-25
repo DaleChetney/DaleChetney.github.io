@@ -105,17 +105,12 @@ export const factorizationText = (n: number): string =>
     .map(([prime, exponent]) => String(prime) + (exponent === 1 ? "" : superscript(exponent)))
     .join("·") || String(n);
 
-/** `order 12 = 2²·3`, leaving off a factorization that says nothing new. */
-const orderText = (order: number): string => {
-  const factorization = factorizationText(order);
-  return factorization === String(order)
-    ? `order ${String(order)}`
-    : `order ${String(order)} = ${factorization}`;
-};
-
-/** `12.1 · order 12 = 2²·3`, plus the nilpotency class when there is one. */
+/**
+ * `12.1 · order 2²·3`, plus the nilpotency class when there is one. The order
+ * is only factored, never written out, because the label already starts with it.
+ */
 const groupMeta = (group: CatalogueGroup): string => {
-  const parts = [group.label, orderText(group.order)];
+  const parts = [group.label, `order ${factorizationText(group.order)}`];
   if (group.nilpotent) parts.push(`class ${String(group.nilpotencyClass)}`);
   return parts.join(" · ");
 };
