@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { texToUnicode } from "./tex";
+import { superscript, texToUnicode } from "./tex";
 
 describe("texToUnicode", () => {
   it("leaves a name with nothing to render alone", () => {
@@ -52,5 +52,15 @@ describe("texToUnicode", () => {
   it("raises on a macro it does not know", () => {
     // A new macro is a change in LMFDB's data, not something to render blindly.
     expect(() => texToUnicode("\\Sp(4,2)")).toThrow(RangeError);
+  });
+});
+
+describe("superscript", () => {
+  it.each([
+    [0, "⁰"],
+    [2, "²"],
+    [10, "¹⁰"],
+  ])("writes %i as %s", (n, expected) => {
+    expect(superscript(n)).toBe(expected);
   });
 });

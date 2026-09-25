@@ -217,20 +217,25 @@
         color: inherit;
       }
 
-      /* The list scrolls; the filter and count above it stay put. */
+      /* The list scrolls; the dropdowns and count above it stay put. */
       #panel-left {
         display: flex;
         flex-direction: column;
         overflow: hidden;
       }
 
-      #group-filter {
+      #group-filter,
+      #group-sort {
         font: inherit;
         padding: 0.35rem 0.5rem;
         border: 1px solid var(--edge);
         border-radius: 0.35rem;
         background: canvas;
         color: canvastext;
+      }
+
+      #group-sort {
+        margin-top: 0.35rem;
       }
 
       #group-count {
@@ -502,6 +507,7 @@
         <button class="panel-toggle" type="button" aria-label="Toggle group list"></button>
       </div>
       <select id="group-filter" aria-label="Filter groups by solvability"></select>
+      <select id="group-sort" aria-label="Sort groups"></select>
       <p id="group-count" class="hint"></p>
       <div id="group-list"></div>
     </section>

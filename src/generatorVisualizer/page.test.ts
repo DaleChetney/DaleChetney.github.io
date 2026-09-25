@@ -75,6 +75,16 @@ const filter = (): HTMLSelectElement => {
   if (select === null) throw new Error("no filter dropdown");
   return select;
 };
+const pickSort = (value: string): void => {
+  const select = document.querySelector<HTMLSelectElement>("#group-sort");
+  if (select === null) throw new Error("no sort dropdown");
+  select.value = value;
+  select.dispatchEvent(new Event("change"));
+};
+const rowLabels = (): string[] =>
+  Array.from(document.querySelectorAll(".group-row")).map(
+    (row) => row.getAttribute("data-label") ?? "",
+  );
 const pickType = (value: string): void => {
   filter().value = value;
   filter().dispatchEvent(new Event("change"));
@@ -263,11 +273,31 @@ describe("groups page", () => {
     expect(document.querySelectorAll(".group-row")).toHaveLength(402);
   });
 
-  it("shows a group's nilpotency class when it has one", () => {
-    expect(groupRow("12.1").querySelector(".group-meta")?.textContent).toBe("12.1 · order 12");
-    expect(groupRow("16.2").querySelector(".group-meta")?.textContent).toBe(
-      "16.2 · order 16 · class 1",
+  it("shows a group's order factored, and its nilpotency class when it has one", () => {
+    expect(groupRow("12.1").querySelector(".group-meta")?.textContent).toBe(
+      "12.1 · order 12 = 2²·3",
     );
+    expect(groupRow("16.2").querySelector(".group-meta")?.textContent).toBe(
+      "16.2 · order 16 = 2⁴ · class 1",
+    );
+    expect(groupRow("7.1").querySelector(".group-meta")?.textContent).toBe(
+      "7.1 · order 7 · class 1",
+    );
+  });
+
+  it("sorts the list by how the order factors, and back by order", () => {
+    pickSort("distinct-primes");
+    const labels = rowLabels();
+    expect(labels).toHaveLength(402);
+    // ω = 1 is the prime powers, so every 2-group comes before the first order 6.
+    expect(labels[0]).toBe("2.1");
+    expect(labels.indexOf("32.1")).toBeLessThan(labels.indexOf("6.1"));
+    pickSort("prime-factors");
+    // Ω puts the primes first: 31 before 4.
+    expect(rowLabels().indexOf("31.1")).toBeLessThan(rowLabels().indexOf("4.1"));
+    pickSort("order");
+    expect(rowLabels()[0]).toBe("2.1");
+    expect(rowLabels().indexOf("4.1")).toBeLessThan(rowLabels().indexOf("31.1"));
   });
 
   it("offers both of C_3:C_4's representations, the smallest first", () => {
