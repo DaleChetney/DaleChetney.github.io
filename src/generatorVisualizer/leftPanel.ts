@@ -26,7 +26,7 @@ const rowFocus = (active: Element): string | null => {
  * Choosing a group is the one thing it reports outwards; it does not know what
  * happens next.
  *
- * Deliberately off the selection path: none of them change when a generator is toggled.
+ * Deliberately off the selection path, since nothing here changes when a generator is toggled.
  */
 export class LeftPanel {
   /**

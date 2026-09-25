@@ -273,13 +273,16 @@ describe("groups page", () => {
     expect(document.querySelectorAll(".group-row")).toHaveLength(402);
   });
 
-  it("shows a group's order factored, and its nilpotency class when it has one", () => {
+  it("shows a group's order factored, and whether it is abelian or its nilpotency class", () => {
     expect(groupRow("12.1").querySelector(".group-meta")?.textContent).toBe("12.1 · order 2²·3");
     expect(groupRow("16.2").querySelector(".group-meta")?.textContent).toBe(
-      "16.2 · order 2⁴ · class 1",
+      "16.2 · order 2⁴ · abelian",
     );
     expect(groupRow("7.1").querySelector(".group-meta")?.textContent).toBe(
-      "7.1 · order 7 · class 1",
+      "7.1 · order 7 · abelian",
+    );
+    expect(groupRow("8.3").querySelector(".group-meta")?.textContent).toBe(
+      "8.3 · order 2³ · nilpotency 2",
     );
   });
 
