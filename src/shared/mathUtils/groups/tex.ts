@@ -30,6 +30,9 @@ const digits = (value: string, table: string): string =>
     .map((digit) => table[Number(digit)])
     .join("");
 
+/** A non-negative integer in superscript digits, e.g. `12` as `¹²`. */
+export const superscript = (n: number): string => digits(String(n), SUPERSCRIPT_DIGITS);
+
 /**
  * Render LMFDB's `tex_name` as plain Unicode, e.g. `C_2\times \SD_{16}` as
  * `C₂ × SD₁₆`.

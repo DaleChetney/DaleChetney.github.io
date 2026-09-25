@@ -1,4 +1,6 @@
 import { el } from "@shared/dom";
+import { superscript } from "@shared/mathUtils/groups/tex";
+import { distinctPrimeCount, primeDivisorCount, primeFactorization } from "@shared/mathUtils/math";
 import type { CatalogueGroup } from "../catalogue";
 
 export interface GroupListView {
@@ -64,9 +66,53 @@ export const filterGroups = (
 ): CatalogueGroup[] =>
   type === null ? [...groups] : groups.filter((group) => group.solvabilityType === type);
 
-/** `12.1 · order 12`, plus the nilpotency class when there is one. */
+/** How the list can be ordered. Ties always fall back to order, then label. */
+export type GroupSort = "order" | "distinct-primes" | "prime-factors";
+
+export const SORT_OPTIONS: readonly { value: GroupSort; name: string }[] = [
+  { value: "order", name: "Sort by order" },
+  { value: "distinct-primes", name: "Sort by distinct primes, ω" },
+  { value: "prime-factors", name: "Sort by prime factors, Ω" },
+];
+
+const SORT_KEYS: Readonly<Record<GroupSort, (order: number) => number>> = {
+  order: () => 0,
+  "distinct-primes": distinctPrimeCount,
+  "prime-factors": primeDivisorCount,
+};
+
+export const renderSortOptions = (): HTMLOptionElement[] =>
+  SORT_OPTIONS.map((option) => el("option", { value: option.value }, [option.name]));
+
+/**
+ * `groups` ordered by `sort`'s key on the group's order, then by order. The
+ * sort is stable, so groups of equal order keep the catalogue's label order.
+ */
+export const sortGroups = (
+  groups: readonly CatalogueGroup[],
+  sort: GroupSort,
+): CatalogueGroup[] => {
+  const key = SORT_KEYS[sort];
+  return [...groups].sort((a, b) => key(a.order) - key(b.order) || a.order - b.order);
+};
+
+/** `2³·3²·5` for 360; a prime or 1 is just itself. */
+export const factorizationText = (n: number): string =>
+  primeFactorization(n)
+    .map(([prime, exponent]) => String(prime) + (exponent === 1 ? "" : superscript(exponent)))
+    .join("·") || String(n);
+
+/** `order 12 = 2²·3`, leaving off a factorization that says nothing new. */
+const orderText = (order: number): string => {
+  const factorization = factorizationText(order);
+  return factorization === String(order)
+    ? `order ${String(order)}`
+    : `order ${String(order)} = ${factorization}`;
+};
+
+/** `12.1 · order 12 = 2²·3`, plus the nilpotency class when there is one. */
 const groupMeta = (group: CatalogueGroup): string => {
-  const parts = [group.label, `order ${String(group.order)}`];
+  const parts = [group.label, orderText(group.order)];
   if (group.nilpotent) parts.push(`class ${String(group.nilpotencyClass)}`);
   return parts.join(" · ");
 };

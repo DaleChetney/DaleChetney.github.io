@@ -2,11 +2,14 @@
 import { describe, it, expect, vi } from "vitest";
 import type { CatalogueGroup } from "../catalogue";
 import {
+  factorizationText,
   filterGroups,
   groupListCaption,
   renderFilterOptions,
   renderGroupList,
+  renderSortOptions,
   solvabilityOptions,
+  sortGroups,
 } from "./group-list";
 
 const group = (over: Partial<CatalogueGroup> = {}): CatalogueGroup => ({
@@ -95,6 +98,59 @@ describe("renderFilterOptions", () => {
   });
 });
 
+describe("sortGroups", () => {
+  const ofOrders = (...orders: number[]): CatalogueGroup[] =>
+    orders.map((order, i) => group({ label: `${String(order)}.${String(i)}`, order }));
+  const orders = (sorted: readonly CatalogueGroup[]): number[] => sorted.map((g) => g.order);
+  // 30 = 2·3·5, 16 = 2⁴, 12 = 2²·3, 7 prime, 36 = 2²·3².
+  const mixed = ofOrders(7, 12, 16, 30, 36);
+
+  it("keeps order when sorting by order", () => {
+    expect(orders(sortGroups(ofOrders(16, 7, 12), "order"))).toEqual([7, 12, 16]);
+  });
+
+  it("sorts by distinct primes, then by order", () => {
+    expect(orders(sortGroups(mixed, "distinct-primes"))).toEqual([7, 16, 12, 36, 30]);
+  });
+
+  it("sorts by prime factors with multiplicity, then by order", () => {
+    expect(orders(sortGroups(mixed, "prime-factors"))).toEqual([7, 12, 30, 16, 36]);
+  });
+
+  it("keeps catalogue order among groups of the same order", () => {
+    const twelves = [group({ label: "12.3" }), group({ label: "12.1" })];
+    expect(labels(sortGroups(twelves, "prime-factors"))).toEqual(["12.3", "12.1"]);
+  });
+
+  it("leaves its input alone", () => {
+    const input = ofOrders(16, 7);
+    sortGroups(input, "order");
+    expect(orders(input)).toEqual([16, 7]);
+  });
+});
+
+describe("renderSortOptions", () => {
+  it("offers order first, then ω and Ω", () => {
+    expect(renderSortOptions().map((option) => option.value)).toEqual([
+      "order",
+      "distinct-primes",
+      "prime-factors",
+    ]);
+  });
+});
+
+describe("factorizationText", () => {
+  it.each([
+    [1, "1"],
+    [7, "7"],
+    [12, "2²·3"],
+    [16, "2⁴"],
+    [360, "2³·3²·5"],
+  ])("writes %i as %s", (n, expected) => {
+    expect(factorizationText(n)).toBe(expected);
+  });
+});
+
 describe("groupListCaption", () => {
   it("counts the whole catalogue when nothing is filtered out", () => {
     expect(groupListCaption(402, 402)).toBe("402 groups");
@@ -123,12 +179,12 @@ describe("renderGroupList", () => {
   it("shows the label and order alongside the name, since names collide", () => {
     const row = renderGroupList(groups, view).querySelector<HTMLElement>('[data-label="12.1"]');
     expect(row?.querySelector(".group-name")?.textContent).toBe("C₃ ⋊ C₄");
-    expect(row?.querySelector(".group-meta")?.textContent).toBe("12.1 · order 12");
+    expect(row?.querySelector(".group-meta")?.textContent).toBe("12.1 · order 12 = 2²·3");
   });
 
   it("adds the nilpotency class when the group is nilpotent", () => {
     const row = renderGroupList(groups, view).querySelector<HTMLElement>('[data-label="32.13"]');
-    expect(row?.querySelector(".group-meta")?.textContent).toBe("32.13 · order 32 · class 2");
+    expect(row?.querySelector(".group-meta")?.textContent).toBe("32.13 · order 32 = 2⁵ · class 2");
   });
 
   it("marks the selected row", () => {
