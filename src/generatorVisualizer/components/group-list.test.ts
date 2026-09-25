@@ -205,7 +205,7 @@ describe("renderGroupList", () => {
 
   it("adds the nilpotency class when the group is nilpotent", () => {
     const row = renderGroupList(groups, view).querySelector<HTMLElement>('[data-label="32.13"]');
-    expect(row?.querySelector(".group-meta")?.textContent).toBe("32.13 · order 2⁵ · class 2");
+    expect(row?.querySelector(".group-meta")?.textContent).toBe("32.13 · order 2⁵ · nilpotency 2");
   });
 
   it("marks the selected row", () => {

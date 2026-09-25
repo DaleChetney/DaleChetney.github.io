@@ -85,7 +85,7 @@ export const renderSortOptions = (): HTMLOptionElement[] =>
   SORT_OPTIONS.map((option) => el("option", { value: option.value }, [option.name]));
 
 /**
- * `groups` ordered by `sort`'s key on the group's order, and by nothing else.
+ * `groups` ordered by `sort`'s key on the group's order.
  * The sort is stable, so ties keep the order `groups` came in: sorting by ω and
  * then by Ω leaves ω breaking Ω's ties, the way a table's column headers do.
  * Groups of equal order tie on every key, so they keep the catalogue's label
@@ -106,12 +106,13 @@ export const factorizationText = (n: number): string =>
     .join("·") || String(n);
 
 /**
- * `12.1 · order 2²·3`, plus the nilpotency class when there is one. The order
- * is only factored, never written out, because the label already starts with it.
+ * `12.1 · order 2²·3`, plus the nilpotency class when there is one.
  */
 const groupMeta = (group: CatalogueGroup): string => {
   const parts = [group.label, `order ${factorizationText(group.order)}`];
-  if (group.nilpotent) parts.push(`class ${String(group.nilpotencyClass)}`);
+  if (group.abelian) {
+    parts.push(`abelian`);
+  } else if (group.nilpotent) parts.push(`nilpotency ${String(group.nilpotencyClass)}`);
   return parts.join(" · ");
 };
 
@@ -132,8 +133,8 @@ const groupRow = (group: CatalogueGroup, view: GroupListView): HTMLElement => {
 };
 
 /**
- * The left panel's list. Every match is rendered: 402 rows is well inside what
- * the browser will keep responsive, and the alternative costs scroll fidelity.
+ * The left panel's list. Every match is rendered: the catalogue is currently small enough
+ * that the browser will keep responsive, and the alternative costs scroll fidelity.
  */
 export const renderGroupList = (
   groups: readonly CatalogueGroup[],
