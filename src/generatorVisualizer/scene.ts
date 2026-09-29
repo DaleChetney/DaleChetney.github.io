@@ -20,7 +20,13 @@ import {
 import type { BoundedLattice } from "fp-ts/BoundedLattice";
 import type { CatalogueGroup, CatalogueRepresentation, CatalogueSubgroupClass } from "./catalogue";
 import type { Diagram } from "./components/diagram/permutationDiagram";
-import { diagramWidthShare, layoutOrbits } from "./components/diagram/ringLayout";
+import type { RingSplit } from "./components/diagram/ringControls";
+import {
+  diagramWidthShare,
+  layoutOrbits,
+  ringCounts,
+  stepRings,
+} from "./components/diagram/ringLayout";
 import { layoutLattice, type LatticeDiagram } from "./components/lattice";
 
 /** How many generators a subgroup section will offer. */
@@ -30,8 +36,11 @@ const ELEMENT_LIMIT = 12;
 const RANKS_PER_CLASS = 1000;
 
 /** Lay the rings out to the share of the panel this many of them have earned. */
-const layoutDiagram = (orbits: readonly (readonly number[])[], targetWidth: number): Diagram =>
-  layoutOrbits(orbits, targetWidth * diagramWidthShare(orbits.length));
+const layoutDiagram = (
+  orbits: readonly (readonly number[])[],
+  targetWidth: number,
+  rings: readonly number[],
+): Diagram => layoutOrbits(orbits, targetWidth * diagramWidthShare(orbits.length), rings);
 
 /** A class's conjugate subgroups, and their identities for membership tests. */
 interface ConjugacyClass {
@@ -79,6 +88,11 @@ export class Scene {
    * arrangement.
    */
   readonly #arrangement: number[][];
+  /**
+   * How many concentric rings each orbit is drawn as. A swap keeps every
+   * orbit's size, so it never leaves a count that no longer divides.
+   */
+  readonly #rings: number[];
   /** A point picked to be swapped, waiting on the second; null while none is. */
   #picked: number | null = null;
   readonly #classes: readonly CatalogueSubgroupClass[];
@@ -111,7 +125,8 @@ export class Scene {
       c.cyclic && c.order > 1 ? [index] : [],
     );
     this.latticeDiagram = layoutLattice(classes, group.order, group.displayName);
-    this.#diagram = layoutDiagram(orbits, targetWidth);
+    this.#rings = orbits.map(() => 1);
+    this.#diagram = layoutDiagram(orbits, targetWidth, this.#rings);
     this.#targetWidth = targetWidth;
     this.#arrangement = orbits;
     this.#classes = classes;
@@ -163,7 +178,28 @@ export class Scene {
    */
   relayout(targetWidth: number): void {
     this.#targetWidth = targetWidth;
-    this.#diagram = layoutDiagram(this.#arrangement, targetWidth);
+    this.#diagram = layoutDiagram(this.#arrangement, targetWidth, this.#rings);
+  }
+
+  /** How many orbits the diagram draws, split or not. */
+  get orbitCount(): number {
+    return this.#arrangement.length;
+  }
+
+  /** The orbits that can be split into concentric rings, and how each is split now. */
+  ringSplits(): RingSplit[] {
+    return this.#arrangement.flatMap((slots, orbit) => {
+      const counts = ringCounts(slots.length);
+      return counts.length > 1
+        ? [{ orbit, size: slots.length, rings: this.#rings[orbit], counts }]
+        : [];
+    });
+  }
+
+  /** Split an orbit into the next number of rings up or down that divides it. */
+  stepRings(orbit: number, step: 1 | -1): void {
+    this.#rings[orbit] = stepRings(this.#arrangement[orbit].length, this.#rings[orbit], step);
+    this.relayout(this.#targetWidth);
   }
 
   // --- rearranging it --------------------------------------------------------

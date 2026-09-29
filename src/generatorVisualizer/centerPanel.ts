@@ -1,6 +1,7 @@
 import { mount, preservingFocus, qs } from "@shared/dom";
 import { actionArrows } from "./components/diagram/arrow";
 import { renderPermutationDiagram } from "./components/diagram/permutationDiagram";
+import { renderRingControls } from "./components/diagram/ringControls";
 import { DEFAULT_TARGET_WIDTH } from "./components/diagram/ringLayout";
 import { renderLattice } from "./components/lattice";
 import { renderRepresentationRow } from "./components/representation-row";
@@ -20,6 +21,15 @@ const latticeFocus = (active: Element): string | null => {
   return node == null ? null : `.lattice-node[data-class="${node}"]`;
 };
 
+/** Ring steppers by the orbit and direction they step, which a redraw keeps. */
+const ringFocus = (active: Element): string | null => {
+  const button = active.closest(".ring-step[data-orbit][data-step]");
+  if (button === null) return null;
+  const orbit = button.getAttribute("data-orbit") ?? "";
+  const step = button.getAttribute("data-step") ?? "";
+  return `.ring-step[data-orbit="${orbit}"][data-step="${step}"]`;
+};
+
 /** Diagram nodes likewise, by the point they stand for. */
 const diagramFocus = (active: Element): string | null => {
   const node = active.closest(".diagram .node[data-point]")?.getAttribute("data-point");
@@ -33,11 +43,14 @@ export interface CenterPanelHandlers {
   onPickPoint: (point: number) => void;
   /** Another representation of the same group was asked for. */
   onSelectRepresentation: (id: string) => void;
+  /** An orbit was asked to split into more concentric rings, or fewer. */
+  onStepRings: (orbit: number, step: 1 | -1) => void;
 }
 
 /**
- * The centre panel: the group's name and automorphism group, the representations on offer, the
- * permutation diagram, and the subgroup lattice beneath it.
+ * The centre panel: the group's name and automorphism group, the representations
+ * on offer, the permutation diagram, and the subgroup lattice beneath it with
+ * the ring controls beside it.
  *
  * It holds no state. Everything it draws is a question asked of the scene at
  * draw time, so the two never disagree; what the reader does here is reported
@@ -54,6 +67,7 @@ export class CenterPanel {
   show(scene: Scene, settings: Settings): void {
     this.#showHeading(scene);
     this.#showDiagram(scene, settings);
+    this.#showRingControls(scene);
     this.#showLattice(scene);
   }
 
@@ -94,6 +108,17 @@ export class CenterPanel {
             curvature: settings.arrowCurvature,
           },
         ),
+      );
+    });
+  }
+
+  /** A stepper for each orbit that can be split into concentric rings. */
+  #showRingControls(scene: Scene): void {
+    preservingFocus(ringFocus, () => {
+      qs("#ring-controls").replaceChildren(
+        renderRingControls(scene.ringSplits(), scene.orbitCount, {
+          onStep: this.#handlers.onStepRings,
+        }),
       );
     });
   }

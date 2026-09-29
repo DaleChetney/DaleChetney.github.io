@@ -478,6 +478,97 @@ describe("groups page", () => {
     });
   });
 
+  describe("splitting orbits into concentric rings", () => {
+    const controls = (): string[] =>
+      Array.from(document.querySelectorAll("#ring-controls .ring-control"), (row) =>
+        [row.querySelector(".ring-name"), row.querySelector(".ring-count")]
+          .map((node) => node?.textContent ?? "")
+          .join(": "),
+      );
+    const step = (orbit: number, direction: 1 | -1): HTMLButtonElement => {
+      const found = document.querySelector<HTMLButtonElement>(
+        `#ring-controls .ring-step[data-orbit="${String(orbit)}"][data-step="${String(direction)}"]`,
+      );
+      if (found === null) throw new Error(`no stepper for orbit ${String(orbit)}`);
+      return found;
+    };
+    /** How many distinct distances the nodes sit at from the diagram's middle. */
+    const ringRadii = (): number => {
+      const circles = Array.from(document.querySelectorAll("#diagram .node circle"));
+      const svg = document.querySelector("#diagram svg");
+      const [cx, cy] = [
+        Number(svg?.getAttribute("width")) / 2,
+        Number(svg?.getAttribute("height")) / 2,
+      ];
+      return new Set(
+        circles.map((c) =>
+          Math.hypot(Number(c.getAttribute("cx")) - cx, Number(c.getAttribute("cy")) - cy).toFixed(
+            2,
+          ),
+        ),
+      ).size;
+    };
+    const pickRepresentation = (id: string): void => {
+      document.querySelector<HTMLElement>(`.representation[data-representation="${id}"]`)?.click();
+    };
+
+    it("offers no stepper when no orbit can be split: C_3:C_4's 3 + 4", () => {
+      groupRow(DEFAULT.label).click();
+      expect(controls()).toEqual([]);
+      expect(document.querySelector("#ring-controls h2")).toBeNull();
+    });
+
+    it("splits a 12-point orbit into 2, 3 and 4 rings, and no further", () => {
+      pickRepresentation("12T5");
+      expect(controls()).toEqual(["12 points: 1 ring"]);
+      expect(ringRadii()).toBe(1);
+      expect(step(0, -1).disabled).toBe(true);
+
+      step(0, 1).click();
+      expect(controls()).toEqual(["12 points: 2 rings"]);
+      expect(ringRadii()).toBe(2);
+      step(0, 1).click();
+      step(0, 1).click();
+      expect(controls()).toEqual(["12 points: 4 rings"]);
+      expect(ringRadii()).toBe(4);
+      expect(step(0, 1).disabled).toBe(true);
+
+      step(0, -1).click();
+      expect(controls()).toEqual(["12 points: 3 rings"]);
+      expect(document.querySelectorAll("#diagram .node")).toHaveLength(12);
+    });
+
+    it("keeps focus on the stepper across the redraw it triggers", () => {
+      step(0, -1).focus();
+      step(0, -1).click();
+      expect(document.activeElement).toBe(step(0, -1));
+    });
+
+    it("keeps the split through a swap and a resize", () => {
+      const node = (point: number) =>
+        document.querySelector(`#diagram .node[data-point="${String(point)}"]`);
+      node(1)?.dispatchEvent(new MouseEvent("click"));
+      node(12)?.dispatchEvent(new MouseEvent("click"));
+      window.dispatchEvent(new Event("resize"));
+      expect(controls()).toEqual(["12 points: 2 rings"]);
+    });
+
+    it("starts from one ring on a new representation", () => {
+      pickRepresentation("perm-7");
+      pickRepresentation("12T5");
+      expect(controls()).toEqual(["12 points: 1 ring"]);
+    });
+
+    it("gives each splittable orbit its own stepper: C_4.Q_8's 8 + 8", () => {
+      groupRow("32.32").click();
+      expect(controls()).toEqual(["Orbit 1 · 8 points: 1 ring", "Orbit 2 · 8 points: 1 ring"]);
+      step(1, 1).click();
+      expect(controls()).toEqual(["Orbit 1 · 8 points: 1 ring", "Orbit 2 · 8 points: 2 rings"]);
+      // Leave the page on the group the tests after this one expect.
+      groupRow("8.3").click();
+    });
+  });
+
   it("folds each side panel down on its toggle", () => {
     for (const id of ["panel-left", "panel-right"]) {
       const section = document.querySelector<HTMLElement>(`#${id}`);

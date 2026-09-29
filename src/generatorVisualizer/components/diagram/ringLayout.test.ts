@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { NODE_RADIUS, MIN_NODE_SPACING } from "./node";
-import { diagramWidthShare, layoutOrbits } from "./ringLayout";
+import { diagramWidthShare, layoutOrbits, ringCounts, stepRings } from "./ringLayout";
 
 const distinct = <T>(values: readonly T[]): number => new Set(values).size;
 
@@ -136,5 +136,91 @@ describe("layoutOrbits scaled to a target width", () => {
     expect(layoutOrbits([ring(1, 8)], 0).width).toBe(diagram.width);
     expect(closestPair(diagram)).toBeGreaterThan(NODE_RADIUS * 2);
     expect(MIN_NODE_SPACING).toBeGreaterThan(NODE_RADIUS * 2);
+  });
+});
+
+describe("ringCounts", () => {
+  it("offers the divisors that leave at least three nodes a ring", () => {
+    expect(ringCounts(8)).toEqual([1, 2]);
+    expect(ringCounts(12)).toEqual([1, 2, 3, 4]);
+    expect(ringCounts(9)).toEqual([1, 3]);
+  });
+
+  it("stops at five rings", () => {
+    expect(ringCounts(60)).toEqual([1, 2, 3, 4, 5]);
+    expect(ringCounts(24)).toEqual([1, 2, 3, 4]);
+  });
+
+  it("offers only the one ring to a prime orbit, or one too small to split", () => {
+    expect(ringCounts(7)).toEqual([1]);
+    expect(ringCounts(4)).toEqual([1]);
+    expect(ringCounts(1)).toEqual([1]);
+  });
+});
+
+describe("stepRings", () => {
+  it("skips the counts that do not divide the orbit", () => {
+    expect(stepRings(24, 1, 1)).toBe(2);
+    expect(stepRings(24, 2, 1)).toBe(3);
+    expect(stepRings(9, 1, 1)).toBe(3);
+    expect(stepRings(9, 3, -1)).toBe(1);
+  });
+
+  it("stays put at either end", () => {
+    expect(stepRings(12, 4, 1)).toBe(4);
+    expect(stepRings(12, 1, -1)).toBe(1);
+    expect(stepRings(7, 1, 1)).toBe(1);
+  });
+});
+
+describe("layoutOrbits split into concentric rings", () => {
+  /** Where the ring holding `orbit` is centred: the middle of its points' bounding box. */
+  const distancesFromCentre = (diagram: ReturnType<typeof layoutOrbits>, orbit: number[]) => {
+    const placed = diagram.points.filter((p) => orbit.includes(p.point));
+    const xs = placed.map((p) => p.x);
+    const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
+    const cy = diagram.height / 2;
+    return new Map(placed.map((p) => [p.point, Math.hypot(p.x - cx, p.y - cy)]));
+  };
+
+  it("puts each run of slots on its own ring, the first outermost", () => {
+    const diagram = layoutOrbits([ring(1, 12)], 900, [3]);
+    const radius = distancesFromCentre(diagram, ring(1, 12));
+    const radii = (points: number[]) => points.map((p) => radius.get(p) ?? NaN);
+    for (const run of [ring(1, 4), ring(5, 4), ring(9, 4)]) {
+      expect(distinct(radii(run).map((r) => r.toFixed(3)))).toBe(1);
+    }
+    expect(radius.get(1)).toBeGreaterThan(radius.get(5) ?? Infinity);
+    expect(radius.get(5)).toBeGreaterThan(radius.get(9) ?? Infinity);
+  });
+
+  it("lines each slot up with the ones inside it", () => {
+    const diagram = layoutOrbits([ring(1, 8)], 900, [2]);
+    const at = (point: number) => diagram.points.find((p) => p.point === point);
+    // Slot j of each run sits at the same angle, so 1 is straight above 5.
+    expect(at(1)?.x).toBeCloseTo(at(5)?.x ?? NaN);
+    expect(at(1)?.y).toBeLessThan(at(5)?.y ?? -Infinity);
+  });
+
+  it("still spreads to about the width asked for", () => {
+    for (const target of [600, 1200]) {
+      const diagram = layoutOrbits([ring(1, 3), ring(4, 12)], target, [1, 2]);
+      expect(diagram.width, `target ${String(target)}`).toBeCloseTo(target, 0);
+    }
+  });
+
+  it("never puts two nodes on top of each other, at any width or split", () => {
+    for (const target of [120, 600, 1600]) {
+      for (const split of [2, 3, 4, 5]) {
+        const diagram = layoutOrbits([ring(1, 60)], target, [split]);
+        expect(closestPair(diagram), `${String(split)} rings at ${String(target)}`).toBeGreaterThan(
+          NODE_RADIUS * 2,
+        );
+      }
+    }
+  });
+
+  it("draws a count that does not divide the orbit as one ring", () => {
+    expect(layoutOrbits([ring(1, 8)], 900, [4])).toEqual(layoutOrbits([ring(1, 8)], 900));
   });
 });

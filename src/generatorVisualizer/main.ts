@@ -40,6 +40,10 @@ const centerPanel = new CenterPanel({
     render();
   },
   onSelectRepresentation: selectRepresentation,
+  onStepRings: (orbit, step) => {
+    scene.stepRings(orbit, step);
+    render();
+  },
 });
 const rightPanel = new RightPanel((key) => {
   scene.toggleElement(key);
