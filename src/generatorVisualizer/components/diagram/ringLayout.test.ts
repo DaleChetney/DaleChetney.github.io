@@ -220,6 +220,27 @@ describe("layoutOrbits split into concentric rings", () => {
     }
   });
 
+  it("spaces the rings further apart when there is room to", () => {
+    /** The radial distance between the outermost ring and the one inside it. */
+    const gap = (target: number): number => {
+      const diagram = layoutOrbits([ring(1, 12)], target, [3]);
+      const radius = distancesFromCentre(diagram, ring(1, 12));
+      return (radius.get(1) ?? NaN) - (radius.get(5) ?? NaN);
+    };
+    expect(gap(1400)).toBeGreaterThan(gap(700) * 1.5);
+    // Cramped, the rings still keep a node's width and more between them.
+    expect(gap(100)).toBeGreaterThan(NODE_RADIUS * 2);
+  });
+
+  it("spaces the rings as far apart as the neighbours around them", () => {
+    const diagram = layoutOrbits([ring(1, 12)], 1400, [3]);
+    const radius = distancesFromCentre(diagram, ring(1, 12));
+    const radial = (radius.get(5) ?? NaN) - (radius.get(9) ?? NaN);
+    // The innermost ring's arc between neighbours is 2πr / 4.
+    const arc = (2 * Math.PI * (radius.get(9) ?? NaN)) / 4;
+    expect(radial).toBeCloseTo(arc, 1);
+  });
+
   it("draws a count that does not divide the orbit as one ring", () => {
     expect(layoutOrbits([ring(1, 8)], 900, [4])).toEqual(layoutOrbits([ring(1, 8)], 900));
   });

@@ -5,8 +5,8 @@ const MIN_RING_RADIUS = 44;
 const RING_GAP = 54;
 const MARGIN = 34;
 
-/** How far apart the concentric rings an orbit is split into are drawn, radially. */
-const CONCENTRIC_GAP = NODE_RADIUS * 2 + 18;
+/** The closest the concentric rings an orbit is split into are drawn, radially. */
+const MIN_CONCENTRIC_GAP = NODE_RADIUS * 2 + 18;
 
 /** The most concentric rings one orbit is split into. */
 export const MAX_RINGS = 5;
@@ -59,28 +59,39 @@ const ringRadius = (size: number, spacing: number): number =>
 /** Width a ring of this radius occupies, never less than a single node. */
 const ringSpan = (radius: number): number => Math.max(radius * 2, NODE_RADIUS * 2);
 
-/** Radial room the rings inside an orbit's outermost take up, on each side. */
-const nestedDepth = (rings: number): number => CONCENTRIC_GAP * (rings - 1);
+/** How far apart neighbours sit around a ring, and how far apart its concentric rings sit. */
+interface Spacing {
+  arc: number;
+  radial: number;
+}
 
 /**
  * The spacing that makes the rings fill `targetWidth` between them.
  *
- * Every innermost ring's radius is proportional to its size, so the widths add
- * up to `spacing * Σ size / π` plus the fixed depth of the nested rings, and the
- * spacing that fills a target follows directly. Nodes and arrows keep their own
- * size whatever comes out: widening the diagram spreads the points apart rather
- * than magnifying them.
+ * Every innermost ring's radius is proportional to its size, and each ring
+ * nested outside it adds the radial gap, so the widths add up to
+ * `arc * Σ size / π + 2 * radial * Σ (rings - 1)`. The radial gap is kept equal
+ * to the arc, so split rings spread apart as the room grows just as neighbours
+ * do; only once the arc is too tight for that is the gap held at its floor and
+ * the arc solved for alone. Nodes and arrows keep their own size whatever comes
+ * out: widening the diagram spreads the points apart rather than magnifying them.
  */
 const nodeSpacing = (
   orbits: readonly (readonly number[])[],
   rings: readonly number[],
   targetWidth: number | undefined,
-): number => {
-  const perimeter = orbits.reduce((total, orbit, i) => total + orbit.length / rings[i], 0);
-  if (targetWidth === undefined || perimeter === 0) return MIN_NODE_SPACING;
-  const nested = rings.reduce((total, count) => total + 2 * nestedDepth(count), 0);
-  const available = targetWidth - RING_GAP * Math.max(orbits.length - 1, 0) - MARGIN * 2 - nested;
-  return Math.max(MIN_NODE_SPACING, (Math.PI * available) / perimeter);
+): Spacing => {
+  const perimeter =
+    orbits.reduce((total, orbit, i) => total + orbit.length / rings[i], 0) / Math.PI;
+  const nested = rings.reduce((total, count) => total + 2 * (count - 1), 0);
+  const floor = { arc: MIN_NODE_SPACING, radial: MIN_CONCENTRIC_GAP };
+  if (targetWidth === undefined || perimeter === 0) return floor;
+  const available = targetWidth - RING_GAP * Math.max(orbits.length - 1, 0) - MARGIN * 2;
+
+  const even = available / (perimeter + nested);
+  if (even >= MIN_CONCENTRIC_GAP) return { arc: even, radial: even };
+  const arc = (available - nested * MIN_CONCENTRIC_GAP) / perimeter;
+  return { arc: Math.max(MIN_NODE_SPACING, arc), radial: MIN_CONCENTRIC_GAP };
 };
 
 /**
@@ -108,7 +119,8 @@ export const layoutOrbits = (
   const spacing = nodeSpacing(orbits, counts, targetWidth);
   // The innermost ring is sized as a lone ring of its size would be; the rest nest outside it.
   const outerRadii = orbits.map(
-    (orbit, i) => ringRadius(orbit.length / counts[i], spacing) + nestedDepth(counts[i]),
+    (orbit, i) =>
+      ringRadius(orbit.length / counts[i], spacing.arc) + spacing.radial * (counts[i] - 1),
   );
 
   const width =
@@ -125,7 +137,7 @@ export const layoutOrbits = (
     const centerX = cursor + ringSpan(outer) / 2;
     cursor += ringSpan(outer) + RING_GAP;
     orbit.forEach((point, i) => {
-      const radius = outer - CONCENTRIC_GAP * Math.floor(i / perRing);
+      const radius = outer - spacing.radial * Math.floor(i / perRing);
       // Start at the top and run clockwise, so a cycle reads the way it is written.
       const angle = -Math.PI / 2 + (2 * Math.PI * (i % perRing)) / perRing;
       points.push({
