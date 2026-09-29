@@ -36,7 +36,7 @@ export interface CenterPanelHandlers {
 }
 
 /**
- * The centre panel: the group's name, the representations on offer, the
+ * The centre panel: the group's name and automorphism group, the representations on offer, the
  * permutation diagram, and the subgroup lattice beneath it.
  *
  * It holds no state. Everything it draws is a question asked of the scene at
@@ -59,6 +59,9 @@ export class CenterPanel {
 
   #showHeading(scene: Scene): void {
     qs("#group-name").textContent = scene.group.displayName;
+    // Every group in the catalogue has one, but LMFDB leaves the column nullable.
+    const aut = scene.group.autDisplayName;
+    qs("#group-aut").textContent = aut === null ? "" : `Aut(G) ≅ ${aut}`;
     const label = qs<HTMLAnchorElement>("#group-label");
     label.textContent = scene.group.label;
     label.href = `https://www.lmfdb.org/Groups/Abstract/${scene.group.label}`;

@@ -121,6 +121,10 @@ describe("groups page", () => {
     expect(document.querySelector("#group-label")?.textContent).toContain(DEFAULT.label);
   });
 
+  it("names the automorphism group beside it", () => {
+    expect(document.querySelector("#group-aut")?.textContent).toBe("Aut(G) ≅ D₆");
+  });
+
   it("opens a section for the subgroup selected by default", () => {
     expect(sectionLabels()).toEqual(["C₆"]);
     // C_6 has one conjugate, so its two generators are listed flat.
@@ -370,6 +374,7 @@ describe("groups page", () => {
     groupRow("8.3").click();
     expect(document.querySelector("#group-name")?.textContent).toBe("D₄");
     expect(document.querySelector("#group-label")?.textContent).toBe("8.3");
+    expect(document.querySelector("#group-aut")?.textContent).toBe("Aut(G) ≅ D₄");
     expect(document.querySelectorAll("#diagram .node")).toHaveLength(4);
     expect(groupRow("8.3").classList.contains("selected")).toBe(true);
     expect(groupRow(DEFAULT.label).classList.contains("selected")).toBe(false);
