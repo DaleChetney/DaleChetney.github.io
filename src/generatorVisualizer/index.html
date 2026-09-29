@@ -406,6 +406,11 @@
         opacity: 0.25;
       }
 
+      .stage-footer {
+        display: flex;
+        align-items: flex-start;
+      }
+
       /*
         The lattice is scaled whole rather than re-laid-out, since stretching a
         Hasse diagram is just a bigger picture of the same thing. 60% is the
@@ -413,23 +418,18 @@
         out the same size in every lattice, and only one past ten columns wide
         has to shrink to fit.
       */
-      .stage-footer {
-        display: flex;
-        align-items: flex-end;
-      }
-
       #lattice-panel {
         flex: 0 0 60%;
         max-width: 60%;
       }
 
-      /* The rest of the width, with the steppers kept to its bottom right corner. */
+      /* The rest of the width, with the steppers kept to its top right corner. */
       #ring-controls {
         flex: 1;
         display: flex;
         flex-direction: column;
         align-items: flex-end;
-        gap: 0.4rem;
+        gap: 0.6rem;
       }
 
       #ring-controls h2 {
@@ -439,43 +439,54 @@
       .ring-control {
         display: flex;
         align-items: center;
-        gap: 0.6rem;
-        font-size: 0.85rem;
+        gap: 0.75rem;
       }
 
       .ring-name {
+        font-size: 0.95rem;
         opacity: 0.65;
       }
 
+      /* The count and the buttons that change it share one box. */
+      .ring-stepper {
+        display: flex;
+        align-items: stretch;
+        border: 1px solid var(--edge);
+        border-radius: 0.5rem;
+        overflow: hidden;
+      }
+
       .ring-count {
+        font-size: 2.25rem;
+        font-weight: 600;
         font-variant-numeric: tabular-nums;
-        min-width: 4.5ch;
-        text-align: right;
+        line-height: 1;
+        min-width: 2ch;
+        padding: 0.35rem 0.6rem;
+        text-align: center;
+        align-self: center;
       }
 
       .ring-steps {
         display: flex;
         flex-direction: column;
+        border-left: 1px solid var(--edge);
       }
 
       .ring-step {
+        flex: 1;
         font: inherit;
-        font-size: 0.6rem;
+        font-size: 0.9rem;
         line-height: 1;
         color: inherit;
         background: none;
-        border: 1px solid var(--edge);
-        padding: 0.1rem 0.35rem;
+        border: 0;
+        padding: 0.2rem 0.7rem;
         cursor: pointer;
       }
 
-      .ring-step:first-child {
-        border-radius: 0.3rem 0.3rem 0 0;
-        border-bottom: 0;
-      }
-
-      .ring-step:last-child {
-        border-radius: 0 0 0.3rem 0.3rem;
+      .ring-step + .ring-step {
+        border-top: 1px solid var(--edge);
       }
 
       .ring-step:hover:not(:disabled) {

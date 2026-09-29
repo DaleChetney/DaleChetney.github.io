@@ -482,7 +482,7 @@ describe("groups page", () => {
     const controls = (): string[] =>
       Array.from(document.querySelectorAll("#ring-controls .ring-control"), (row) =>
         [row.querySelector(".ring-name"), row.querySelector(".ring-count")]
-          .map((node) => node?.textContent ?? "")
+          .flatMap((node) => (node === null ? [] : [node.textContent]))
           .join(": "),
       );
     const step = (orbit: number, direction: 1 | -1): HTMLButtonElement => {
@@ -520,21 +520,21 @@ describe("groups page", () => {
 
     it("splits a 12-point orbit into 2, 3 and 4 rings, and no further", () => {
       pickRepresentation("12T5");
-      expect(controls()).toEqual(["12 points: 1 ring"]);
+      expect(controls()).toEqual(["1"]);
       expect(ringRadii()).toBe(1);
       expect(step(0, -1).disabled).toBe(true);
 
       step(0, 1).click();
-      expect(controls()).toEqual(["12 points: 2 rings"]);
+      expect(controls()).toEqual(["2"]);
       expect(ringRadii()).toBe(2);
       step(0, 1).click();
       step(0, 1).click();
-      expect(controls()).toEqual(["12 points: 4 rings"]);
+      expect(controls()).toEqual(["4"]);
       expect(ringRadii()).toBe(4);
       expect(step(0, 1).disabled).toBe(true);
 
       step(0, -1).click();
-      expect(controls()).toEqual(["12 points: 3 rings"]);
+      expect(controls()).toEqual(["3"]);
       expect(document.querySelectorAll("#diagram .node")).toHaveLength(12);
     });
 
@@ -550,20 +550,20 @@ describe("groups page", () => {
       node(1)?.dispatchEvent(new MouseEvent("click"));
       node(12)?.dispatchEvent(new MouseEvent("click"));
       window.dispatchEvent(new Event("resize"));
-      expect(controls()).toEqual(["12 points: 2 rings"]);
+      expect(controls()).toEqual(["2"]);
     });
 
     it("starts from one ring on a new representation", () => {
       pickRepresentation("perm-7");
       pickRepresentation("12T5");
-      expect(controls()).toEqual(["12 points: 1 ring"]);
+      expect(controls()).toEqual(["1"]);
     });
 
     it("gives each splittable orbit its own stepper: C_4.Q_8's 8 + 8", () => {
       groupRow("32.32").click();
-      expect(controls()).toEqual(["Orbit 1 · 8 points: 1 ring", "Orbit 2 · 8 points: 1 ring"]);
+      expect(controls()).toEqual(["Orbit of 8: 1", "Orbit of 8: 1"]);
       step(1, 1).click();
-      expect(controls()).toEqual(["Orbit 1 · 8 points: 1 ring", "Orbit 2 · 8 points: 2 rings"]);
+      expect(controls()).toEqual(["Orbit of 8: 1", "Orbit of 8: 2"]);
       // Leave the page on the group the tests after this one expect.
       groupRow("8.3").click();
     });

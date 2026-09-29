@@ -17,13 +17,11 @@ export interface RingControlsView {
   onStep: (orbit: number, step: 1 | -1) => void;
 }
 
-const plural = (count: number, noun: string): string =>
-  `${String(count)} ${noun}${count === 1 ? "" : "s"}`;
-
 /**
- * An up/down stepper per splittable orbit. The label names the orbit by its
- * size, and by its place left to right when there is more than one; an orbit
- * that cannot be split has nothing to offer and gets no stepper.
+ * An up/down stepper per splittable orbit: the ring count, with the buttons
+ * that change it beside it in one box. A lone orbit needs no name; beside
+ * others it is named by its size. An orbit that cannot be split has nothing to
+ * offer and gets no stepper.
  */
 export const renderRingControls = (
   splits: readonly RingSplit[],
@@ -35,10 +33,7 @@ export const renderRingControls = (
 
   fragment.append(el("h2", {}, ["Rings"]));
   for (const split of splits) {
-    const name =
-      orbitCount > 1
-        ? `Orbit ${String(split.orbit + 1)} · ${plural(split.size, "point")}`
-        : plural(split.size, "point");
+    const name = orbitCount > 1 ? `Orbit of ${String(split.size)}` : null;
     const at = split.counts.indexOf(split.rings);
 
     const button = (step: 1 | -1, symbol: string, label: string, enabled: boolean) => {
@@ -47,20 +42,23 @@ export const renderRingControls = (
       ]);
       node.dataset.orbit = String(split.orbit);
       node.dataset.step = String(step);
-      node.setAttribute("aria-label", `${label}: ${name}`);
+      node.setAttribute("aria-label", name === null ? label : `${label}: ${name}`);
       node.addEventListener("click", () => {
         view.onStep(split.orbit, step);
       });
       return node;
     };
 
-    const row = el("div", { className: "ring-control" }, [
-      el("span", { className: "ring-name" }, [name]),
-      el("output", { className: "ring-count" }, [plural(split.rings, "ring")]),
+    const stepper = el("div", { className: "ring-stepper" }, [
+      el("output", { className: "ring-count" }, [String(split.rings)]),
       el("span", { className: "ring-steps" }, [
         button(1, "▲", "More rings", at < split.counts.length - 1),
         button(-1, "▼", "Fewer rings", at > 0),
       ]),
+    ]);
+    const row = el("div", { className: "ring-control" }, [
+      ...(name === null ? [] : [el("span", { className: "ring-name" }, [name])]),
+      stepper,
     ]);
     row.dataset.orbit = String(split.orbit);
     fragment.append(row);

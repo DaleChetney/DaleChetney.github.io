@@ -32,18 +32,26 @@ describe("renderRingControls", () => {
     const host = mounted([split(0, 12, 1, [1, 2, 3, 4]), split(2, 8, 2, [1, 2])], 3);
     expect(host.querySelectorAll(".ring-control")).toHaveLength(2);
     expect(Array.from(host.querySelectorAll(".ring-name"), (n) => n.textContent)).toEqual([
-      "Orbit 1 · 12 points",
-      "Orbit 3 · 8 points",
+      "Orbit of 12",
+      "Orbit of 8",
     ]);
     expect(Array.from(host.querySelectorAll(".ring-count"), (n) => n.textContent)).toEqual([
-      "1 ring",
-      "2 rings",
+      "1",
+      "2",
     ]);
   });
 
-  it("names a lone orbit by its size alone", () => {
+  it("leaves a lone orbit unnamed, showing only its ring count", () => {
     const host = mounted([split(0, 12, 3, [1, 2, 3, 4])], 1);
-    expect(host.querySelector(".ring-name")?.textContent).toBe("12 points");
+    expect(host.querySelector(".ring-name")).toBeNull();
+    expect(host.querySelector(".ring-count")?.textContent).toBe("3");
+  });
+
+  it("boxes the count with its buttons", () => {
+    const host = mounted([split(0, 12, 3, [1, 2, 3, 4])], 1);
+    const stepper = host.querySelector(".ring-stepper");
+    expect(stepper?.querySelector(".ring-count")).not.toBeNull();
+    expect(stepper?.querySelectorAll(".ring-step")).toHaveLength(2);
   });
 
   it("disables the step past either end", () => {
