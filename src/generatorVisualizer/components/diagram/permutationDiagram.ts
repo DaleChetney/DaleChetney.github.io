@@ -1,5 +1,5 @@
 import { svg } from "../../svg";
-import { arrowheadDefs, renderArrows, type ActionArrow } from "./arrow";
+import { arrowheadDefs, arrowPath, renderArrows, type ActionArrow } from "./arrow";
 import { renderNode, type PlacedPoint } from "./node";
 
 /** Placed points and the canvas they were placed on. */
@@ -64,4 +64,31 @@ export const renderPermutationDiagram = (
   root.append(arrowheadDefs(arrows, colorOf), renderArrows(arrows, colorOf, view.curvature));
 
   return root;
+};
+
+/**
+ * Move a drawn diagram's nodes, and the arrows between them, to where `points`
+ * places them. The elements themselves are kept, so this can run every frame
+ * of an animation without dropping a click or the focus halfway through it.
+ */
+export const moveDiagram = (
+  root: SVGSVGElement,
+  points: readonly PlacedPoint[],
+  curvature = 1,
+): void => {
+  const byPoint = new Map(points.map((placed) => [placed.point, placed]));
+  for (const node of root.querySelectorAll<SVGGElement>(".node[data-point]")) {
+    const placed = byPoint.get(Number(node.dataset.point));
+    if (placed === undefined) continue;
+    node.querySelector("circle")?.setAttribute("cx", String(placed.x));
+    node.querySelector("circle")?.setAttribute("cy", String(placed.y));
+    node.querySelector("text")?.setAttribute("x", String(placed.x));
+    node.querySelector("text")?.setAttribute("y", String(placed.y));
+  }
+  for (const path of root.querySelectorAll<SVGPathElement>(".edges path")) {
+    const from = byPoint.get(Number(path.dataset.from));
+    const to = byPoint.get(Number(path.dataset.to));
+    if (from === undefined || to === undefined) continue;
+    path.setAttribute("d", arrowPath({ from, to }, curvature));
+  }
 };

@@ -2,6 +2,7 @@
 import { describe, it, expect, beforeAll, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { DEFAULT_SETTINGS } from "./settings";
 
 // main.ts reaches into index.html by id and throws if one is missing, which no
 // type check can see. Running it against the real markup pins the two together,
@@ -698,5 +699,199 @@ describe("settings tab", () => {
     }
     slider().value = "1";
     slider().dispatchEvent(new Event("input"));
+  });
+});
+
+describe("turning the rings", () => {
+  /** Animation frames held back until the test runs them. */
+  let pending: FrameRequestCallback[] = [];
+  let clock = 0;
+  /** Run frames `step` seconds apart until `seconds` have passed. */
+  const advance = (seconds: number, step = 0.05): void => {
+    for (let elapsed = 0; elapsed < seconds - 1e-9; elapsed += step) {
+      clock += step * 1000;
+      const frames = pending;
+      pending = [];
+      for (const frame of frames) frame(clock);
+    }
+  };
+  const play = (orbit = 0): HTMLButtonElement => {
+    const found = document.querySelector<HTMLButtonElement>(
+      `#ring-controls .ring-play[data-orbit="${String(orbit)}"]`,
+    );
+    if (found === null) throw new Error(`no play button on orbit ${String(orbit)}`);
+    return found;
+  };
+  const step = (orbit: number, direction: 1 | -1): void => {
+    document
+      .querySelector<HTMLButtonElement>(
+        `#ring-controls .ring-step[data-orbit="${String(orbit)}"][data-step="${String(direction)}"]`,
+      )
+      ?.click();
+  };
+  /**
+   * Play an orbit for `seconds`, running `during` before pausing it again, and
+   * pause even if it throws. The first frame after play only marks the time,
+   * so it runs before the clock starts counting.
+   */
+  const playFor = (seconds: number, during: () => void = () => {}, orbit = 0): void => {
+    play(orbit).click();
+    try {
+      advance(0.05);
+      advance(seconds);
+      during();
+    } finally {
+      play(orbit).click();
+    }
+  };
+  const periodSlider = (): HTMLInputElement => {
+    const found = document.querySelector<HTMLInputElement>("#rotation-period");
+    if (found === null) throw new Error("no rotation period slider");
+    return found;
+  };
+  const setPeriod = (seconds: number): void => {
+    periodSlider().value = String(seconds);
+    periodSlider().dispatchEvent(new Event("input"));
+  };
+  const node = (point: number): SVGGElement => {
+    const found = document.querySelector<SVGGElement>(`#diagram .node[data-point="${point}"]`);
+    if (found === null) throw new Error(`no node for point ${point}`);
+    return found;
+  };
+  /** Where each point sits, relative to the middle of the diagram. */
+  const placed = (): Map<number, { dx: number; dy: number }> => {
+    const svg = document.querySelector("#diagram svg");
+    const [cx, cy] = [
+      Number(svg?.getAttribute("width")) / 2,
+      Number(svg?.getAttribute("height")) / 2,
+    ];
+    return new Map(
+      Array.from(document.querySelectorAll<SVGGElement>("#diagram .node"), (group) => {
+        const circle = group.querySelector("circle");
+        return [
+          Number(group.dataset.point),
+          {
+            dx: Number(circle?.getAttribute("cx")) - cx,
+            dy: Number(circle?.getAttribute("cy")) - cy,
+          },
+        ];
+      }),
+    );
+  };
+  /** A point's clockwise angle about the middle of a one-orbit diagram, in turns. */
+  const angleOf = (point: number): number => {
+    const at = placed().get(point) ?? { dx: 0, dy: 0 };
+    return Math.atan2(at.dy, at.dx) / (2 * Math.PI);
+  };
+  const swept = (from: number, to: number): number => (((to - from) % 1) + 1) % 1;
+  /** A one-orbit diagram's points on its innermost ring, and on its outermost. */
+  const innerAndOuter = (): [number, number] => {
+    const radii = [...placed()].map(([point, { dx, dy }]) => [point, Math.hypot(dx, dy)]);
+    radii.sort((a, b) => a[1] - b[1]);
+    return [radii[0][0], radii[radii.length - 1][0]];
+  };
+
+  beforeAll(() => {
+    vi.stubGlobal("requestAnimationFrame", (frame: FrameRequestCallback) => {
+      pending.push(frame);
+      return pending.length;
+    });
+    vi.stubGlobal("cancelAnimationFrame", () => {
+      pending = [];
+    });
+    groupRow(DEFAULT.label).click();
+    document.querySelector<HTMLElement>('.representation[data-representation="12T5"]')?.click();
+  });
+
+  it("will not play an orbit drawn as a single ring", () => {
+    expect(play().disabled).toBe(true);
+    step(0, 1);
+    expect(play().disabled).toBe(false);
+  });
+
+  it("sits the play button at the left of the orbit's stepper", () => {
+    expect(document.querySelector(".ring-stepper")?.firstElementChild).toBe(play());
+  });
+
+  it("offers play while still, and pause while turning, keeping the focus", () => {
+    expect(play().getAttribute("aria-label")).toBe("Play rotation");
+    play().focus();
+    play().click();
+    expect(play().getAttribute("aria-label")).toBe("Pause rotation");
+    expect(document.activeElement).toBe(play());
+    play().click();
+    expect(play().getAttribute("aria-label")).toBe("Play rotation");
+  });
+
+  it("turns the innermost ring once per the default period, the next at 0.66 of that", () => {
+    const period = DEFAULT_SETTINGS.rotationPeriod;
+    expect(periodSlider().value).toBe(String(period));
+    const [inner, outer] = innerAndOuter();
+    const before = [angleOf(inner), angleOf(outer)];
+    playFor(1);
+    expect(swept(before[0], angleOf(inner))).toBeCloseTo(1 / period);
+    expect(swept(before[1], angleOf(outer))).toBeCloseTo(0.66 / period);
+  });
+
+  it("stays put while paused", () => {
+    const before = placed();
+    advance(1);
+    expect(placed()).toEqual(before);
+  });
+
+  it("turns at the period the settings give", () => {
+    setPeriod(8);
+    const [inner] = innerAndOuter();
+    const before = angleOf(inner);
+    playFor(1);
+    expect(swept(before, angleOf(inner))).toBeCloseTo(0.125);
+    setPeriod(DEFAULT_SETTINGS.rotationPeriod);
+  });
+
+  it("moves the nodes it has rather than drawing new ones, so a click lands mid-turn", () => {
+    // Pressing play redraws; it is the frames after it that must not.
+    playFor(0.1, () => {
+      const first = node(1);
+      advance(0.2);
+      expect(node(1)).toBe(first);
+      first.dispatchEvent(new MouseEvent("click"));
+      expect(node(1).classList.contains("picked")).toBe(true);
+      // Clicking it again puts it back down.
+      node(1).dispatchEvent(new MouseEvent("click"));
+    });
+  });
+
+  it("carries the arrows round with the nodes", () => {
+    const paths = (): string[] => arrows().map((path) => path.getAttribute("d") ?? "");
+    const before = paths();
+    expect(before.length).toBeGreaterThan(0);
+    playFor(0.5);
+    expect(paths()).not.toEqual(before);
+    expect(paths()).toHaveLength(before.length);
+  });
+
+  it("stops an orbit brought down to a single ring", () => {
+    play().click();
+    advance(0.1);
+    step(0, -1);
+    expect(play().disabled).toBe(true);
+    expect(play().getAttribute("aria-label")).toBe("Play rotation");
+    const before = placed();
+    advance(1);
+    expect(placed()).toEqual(before);
+  });
+
+  it("turns only the orbit played: C_4.Q_8's 8 + 8", () => {
+    groupRow("32.32").click();
+    step(0, 1);
+    step(1, 1);
+    const before = placed();
+    playFor(0.5, () => {}, 1);
+    const moved = [...placed()].filter(([point, at]) => {
+      const was = before.get(point);
+      return was === undefined || Math.hypot(at.dx - was.dx, at.dy - was.dy) > 1e-6;
+    });
+    expect(moved).toHaveLength(8);
+    expect(before.size).toBe(16);
   });
 });

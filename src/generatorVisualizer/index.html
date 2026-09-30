@@ -447,7 +447,7 @@
         opacity: 0.65;
       }
 
-      /* The count and the buttons that change it share one box. */
+      /* The play button, the count and the buttons that change it share one box. */
       .ring-stepper {
         display: flex;
         align-items: stretch;
@@ -473,7 +473,8 @@
         border-left: 1px solid var(--edge);
       }
 
-      .ring-step {
+      .ring-step,
+      .ring-play {
         flex: 1;
         font: inherit;
         font-size: 0.9rem;
@@ -485,15 +486,21 @@
         cursor: pointer;
       }
 
+      .ring-play {
+        border-right: 1px solid var(--edge);
+      }
+
       .ring-step + .ring-step {
         border-top: 1px solid var(--edge);
       }
 
-      .ring-step:hover:not(:disabled) {
+      .ring-step:hover:not(:disabled),
+      .ring-play:hover:not(:disabled) {
         background: var(--panel);
       }
 
-      .ring-step:disabled {
+      .ring-step:disabled,
+      .ring-play:disabled {
         opacity: 0.35;
         cursor: default;
       }
@@ -653,6 +660,13 @@
           <div class="slider-row">
             <input type="range" id="arrow-curvature" />
             <output for="arrow-curvature"></output>
+          </div>
+        </div>
+        <div class="setting">
+          <label for="rotation-period">Seconds per rotation</label>
+          <div class="slider-row">
+            <input type="range" id="rotation-period" />
+            <output for="rotation-period"></output>
           </div>
         </div>
       </div>

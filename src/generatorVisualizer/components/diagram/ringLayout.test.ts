@@ -1,6 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { NODE_RADIUS, MIN_NODE_SPACING } from "./node";
-import { diagramWidthShare, layoutOrbits, ringCounts, stepRings } from "./ringLayout";
+import {
+  diagramWidthShare,
+  layoutOrbits,
+  RING_SLOWDOWN,
+  ringCounts,
+  stepRings,
+} from "./ringLayout";
 
 const distinct = <T>(values: readonly T[]): number => new Set(values).size;
 
@@ -66,6 +72,64 @@ describe("layoutOrbits", () => {
       expect(x + NODE_RADIUS).toBeLessThanOrEqual(diagram.width);
       expect(y + NODE_RADIUS).toBeLessThanOrEqual(diagram.height);
     }
+  });
+
+  describe("turned", () => {
+    const twelve = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+    /** Each point's clockwise angle about its ring's centre, in turns. */
+    const angles = (turn: number, rings = 1): Map<number, number> => {
+      const diagram = layoutOrbits([twelve], 640, [rings], [turn]);
+      const [cx, cy] = [diagram.width / 2, diagram.height / 2];
+      return new Map(
+        diagram.points.map((p) => [p.point, Math.atan2(p.y - cy, p.x - cx) / (2 * Math.PI)]),
+      );
+    };
+    /** How far a point has moved clockwise from one angle to another, in turns, in [0, 1). */
+    const swept = (from = 0, to = 0): number => (((to - from) % 1) + 1) % 1;
+
+    it("leaves the layout where it was at no turn, and at a whole turn", () => {
+      const still = layoutOrbits([twelve], 640);
+      expect(layoutOrbits([twelve], 640, [], [0])).toEqual(still);
+      layoutOrbits([twelve], 640, [], [1]).points.forEach((p, i) => {
+        expect(p.x).toBeCloseTo(still.points[i].x);
+        expect(p.y).toBeCloseTo(still.points[i].y);
+      });
+    });
+
+    it("turns a single ring clockwise by the turn", () => {
+      const [before, after] = [angles(0), angles(0.1)];
+      for (const point of twelve) {
+        expect(swept(before.get(point), after.get(point))).toBeCloseTo(0.1);
+      }
+    });
+
+    it("turns each ring outward at a fixed share of the one inside it", () => {
+      // Three rings of four: points 9-12 are innermost, 1-4 outermost.
+      const [before, after] = [angles(0, 3), angles(0.1, 3)];
+      const sweep = (point: number): number => swept(before.get(point), after.get(point));
+      expect(sweep(9)).toBeCloseTo(0.1);
+      expect(sweep(5)).toBeCloseTo(0.1 * RING_SLOWDOWN);
+      expect(sweep(1)).toBeCloseTo(0.1 * RING_SLOWDOWN ** 2);
+    });
+
+    it("turns only the orbit it is given a turn for", () => {
+      const still = layoutOrbits([twelve, [13, 14, 15]], 640);
+      const turned = layoutOrbits([twelve, [13, 14, 15]], 640, [], [0, 0.2]);
+      const at = (diagram: typeof still, point: number) =>
+        diagram.points.find((p) => p.point === point);
+      expect(at(turned, 1)).toEqual(at(still, 1));
+      expect(at(turned, 13)).not.toEqual(at(still, 13));
+    });
+
+    it("keeps every node inside the bounds as it turns", () => {
+      const diagram = layoutOrbits([twelve, [13, 14, 15]], 640, [2], [0.37, 0.8]);
+      for (const { x, y } of diagram.points) {
+        expect(x - NODE_RADIUS).toBeGreaterThanOrEqual(0);
+        expect(y - NODE_RADIUS).toBeGreaterThanOrEqual(0);
+        expect(x + NODE_RADIUS).toBeLessThanOrEqual(diagram.width);
+        expect(y + NODE_RADIUS).toBeLessThanOrEqual(diagram.height);
+      }
+    });
   });
 
   it("centres a singleton orbit rather than ringing it", () => {

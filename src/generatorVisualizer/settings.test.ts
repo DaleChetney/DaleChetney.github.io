@@ -1,6 +1,13 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from "vitest";
-import { applyTheme, CURVATURE, DEFAULT_SETTINGS, loadSettings, saveSettings } from "./settings";
+import {
+  applyTheme,
+  CURVATURE,
+  DEFAULT_SETTINGS,
+  loadSettings,
+  ROTATION_PERIOD,
+  saveSettings,
+} from "./settings";
 
 const KEY = "generatorVisualizer.settings";
 
@@ -9,16 +16,19 @@ describe("settings", () => {
 
   it("starts from the defaults when nothing is stored", () => {
     expect(loadSettings()).toEqual(DEFAULT_SETTINGS);
-    expect(DEFAULT_SETTINGS).toEqual({ theme: "system", arrowCurvature: 1 });
+    expect(DEFAULT_SETTINGS).toEqual({ theme: "system", arrowCurvature: 1, rotationPeriod: 6 });
   });
 
   it("round-trips what was saved", () => {
-    saveSettings({ theme: "dark", arrowCurvature: -0.5 });
-    expect(loadSettings()).toEqual({ theme: "dark", arrowCurvature: -0.5 });
+    saveSettings({ theme: "dark", arrowCurvature: -0.5, rotationPeriod: 7.5 });
+    expect(loadSettings()).toEqual({ theme: "dark", arrowCurvature: -0.5, rotationPeriod: 7.5 });
   });
 
   it("falls back per field on a stored value it does not recognise", () => {
-    localStorage.setItem(KEY, JSON.stringify({ theme: "sepia", arrowCurvature: "wide" }));
+    localStorage.setItem(
+      KEY,
+      JSON.stringify({ theme: "sepia", arrowCurvature: "wide", rotationPeriod: "slow" }),
+    );
     expect(loadSettings()).toEqual(DEFAULT_SETTINGS);
   });
 
@@ -27,6 +37,13 @@ describe("settings", () => {
     expect(loadSettings().arrowCurvature).toBe(CURVATURE.max);
     localStorage.setItem(KEY, JSON.stringify({ arrowCurvature: -99 }));
     expect(loadSettings().arrowCurvature).toBe(CURVATURE.min);
+  });
+
+  it("keeps a stored rotation period within the slider's range", () => {
+    localStorage.setItem(KEY, JSON.stringify({ rotationPeriod: 999 }));
+    expect(loadSettings().rotationPeriod).toBe(ROTATION_PERIOD.max);
+    localStorage.setItem(KEY, JSON.stringify({ rotationPeriod: 0 }));
+    expect(loadSettings().rotationPeriod).toBe(ROTATION_PERIOD.min);
   });
 
   it("offers curvature both ways round the chord", () => {

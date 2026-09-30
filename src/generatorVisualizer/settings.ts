@@ -14,30 +14,44 @@ export interface Settings {
    * chord; negative bows them the other way round.
    */
   arrowCurvature: number;
+  /** Seconds the innermost ring takes to turn once while the rings are playing. */
+  rotationPeriod: number;
 }
 
 /** The range the curvature slider offers. */
 export const CURVATURE = { min: -3, max: 3, step: 0.1 } as const;
 
-export const DEFAULT_SETTINGS: Settings = { theme: "system", arrowCurvature: 1 };
+/** The range the rotation period slider offers, in seconds per turn. */
+export const ROTATION_PERIOD = { min: 1, max: 20, step: 0.5 } as const;
+
+export const DEFAULT_SETTINGS: Settings = {
+  theme: "system",
+  arrowCurvature: 1,
+  rotationPeriod: 6,
+};
 
 const isTheme = (value: unknown): value is Theme => THEMES.includes(value as Theme);
+
+/** A stored number kept inside its slider's range, or the default if it is not a number. */
+const inRange = (value: unknown, range: { min: number; max: number }, fallback: number): number =>
+  typeof value === "number" ? Math.min(range.max, Math.max(range.min, value)) : fallback;
 
 /**
  * The stored settings, field by field: a value that is missing or that this
  * version of the page does not recognise falls back to its default, and a
- * curvature is kept inside the slider's range.
+ * number is kept inside its slider's range.
  */
 export const loadSettings = (): Settings => {
   const stored: unknown = load(STORAGE_KEY, {});
   const fields = typeof stored === "object" && stored !== null ? (stored as Partial<Settings>) : {};
-  const curvature = typeof fields.arrowCurvature === "number" ? fields.arrowCurvature : null;
   return {
     theme: isTheme(fields.theme) ? fields.theme : DEFAULT_SETTINGS.theme,
-    arrowCurvature:
-      curvature === null
-        ? DEFAULT_SETTINGS.arrowCurvature
-        : Math.min(CURVATURE.max, Math.max(CURVATURE.min, curvature)),
+    arrowCurvature: inRange(fields.arrowCurvature, CURVATURE, DEFAULT_SETTINGS.arrowCurvature),
+    rotationPeriod: inRange(
+      fields.rotationPeriod,
+      ROTATION_PERIOD,
+      DEFAULT_SETTINGS.rotationPeriod,
+    ),
   };
 };
 

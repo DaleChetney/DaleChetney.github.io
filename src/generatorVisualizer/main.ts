@@ -4,6 +4,7 @@ import { CenterPanel, stageWidth } from "./centerPanel";
 import { collapsiblePanel } from "./collapsiblePanel";
 import { LeftPanel } from "./leftPanel";
 import { RightPanel } from "./rightPanel";
+import { Rotation } from "./rotation";
 import { Scene } from "./scene";
 import { applyTheme, loadSettings, saveSettings } from "./settings";
 import { settingsPanel } from "./settingsPanel";
@@ -44,6 +45,16 @@ const centerPanel = new CenterPanel({
     scene.stepRings(orbit, step);
     render();
   },
+  onTogglePlay: (orbit) => {
+    scene.togglePlay(orbit);
+    render();
+  },
+});
+// Each frame turns the orbits that are playing, and moves the diagram already
+// drawn rather than drawing it again.
+const rotation = new Rotation((seconds) => {
+  scene.turnBy(seconds / settings.rotationPeriod);
+  centerPanel.turn(scene, settings);
 });
 const rightPanel = new RightPanel((key) => {
   scene.toggleElement(key);
@@ -54,9 +65,12 @@ let scene = sceneFor(groupFor(DEFAULT_LABEL));
 
 /**
  * The two panels that show the selection. The left one is not among them: its
- * 402 rows change only when the group does.
+ * 402 rows change only when the group does. The clock runs only while some
+ * orbit of the scene is turning, and every change of scene passes through here.
  */
 function render(): void {
+  if (scene.turning) rotation.play();
+  else rotation.pause();
   centerPanel.show(scene, settings);
   rightPanel.show(scene);
 }

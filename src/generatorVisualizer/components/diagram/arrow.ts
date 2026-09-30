@@ -75,7 +75,7 @@ const arrowheadId = (generator: number): string => `arrowhead-${generator}`;
  * `curvature` scales the bow: 0 is the straight chord, and a negative value
  * bows to the other side.
  */
-const arrowPath = (arrow: ActionArrow, curvature: number): string => {
+export const arrowPath = (arrow: Pick<ActionArrow, "from" | "to">, curvature: number): string => {
   const dx = arrow.to.x - arrow.from.x;
   const dy = arrow.to.y - arrow.from.y;
   const distance = Math.hypot(dx, dy) || 1;

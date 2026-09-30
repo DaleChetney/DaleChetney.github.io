@@ -14,6 +14,13 @@ export const MAX_RINGS = 5;
 /** The fewest nodes a ring may hold once an orbit is split: fewer is not a ring. */
 const MIN_RING_SIZE = 3;
 
+/**
+ * How fast each concentric ring turns relative to the one just inside it:
+ * the innermost turns at the full rate, and every ring outside it at this
+ * share of the rate of the ring it encloses.
+ */
+export const RING_SLOWDOWN = 0.66;
+
 /** Panel width to lay out against when the page has not been measured yet. */
 export const DEFAULT_TARGET_WIDTH = 640;
 
@@ -107,11 +114,16 @@ const nodeSpacing = (
  *
  * `targetWidth` is the width to spread out to. It is a target rather than a
  * bound: a ring crowded at that width is drawn wider instead of tighter.
+ *
+ * `turns[i]` is how far the innermost ring of orbit `i` has turned clockwise,
+ * in whole turns; each ring outside it has turned {@link RING_SLOWDOWN} as far
+ * as the ring inside it. An orbit drawn as one ring is its own innermost ring.
  */
 export const layoutOrbits = (
   orbits: readonly (readonly number[])[],
   targetWidth?: number,
   rings: readonly number[] = [],
+  turns: readonly number[] = [],
 ): Diagram => {
   const counts = orbits.map((orbit, i) =>
     ringCounts(orbit.length).includes(rings[i] ?? 1) ? (rings[i] ?? 1) : 1,
@@ -137,9 +149,11 @@ export const layoutOrbits = (
     const centerX = cursor + ringSpan(outer) / 2;
     cursor += ringSpan(outer) + RING_GAP;
     orbit.forEach((point, i) => {
-      const radius = outer - spacing.radial * Math.floor(i / perRing);
+      const ring = Math.floor(i / perRing);
+      const radius = outer - spacing.radial * ring;
+      const turned = (turns[ringIndex] ?? 0) * RING_SLOWDOWN ** (counts[ringIndex] - 1 - ring);
       // Start at the top and run clockwise, so a cycle reads the way it is written.
-      const angle = -Math.PI / 2 + (2 * Math.PI * (i % perRing)) / perRing;
+      const angle = -Math.PI / 2 + 2 * Math.PI * ((i % perRing) / perRing + turned);
       points.push({
         point,
         x: centerX + radius * Math.cos(angle),
