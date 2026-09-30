@@ -1,6 +1,6 @@
 import { mount, preservingFocus, qs } from "@shared/dom";
 import { actionArrows } from "./components/diagram/arrow";
-import { renderPermutationDiagram } from "./components/diagram/permutationDiagram";
+import { moveDiagram, renderPermutationDiagram } from "./components/diagram/permutationDiagram";
 import { renderRingControls } from "./components/diagram/ringControls";
 import { DEFAULT_TARGET_WIDTH } from "./components/diagram/ringLayout";
 import { renderLattice } from "./components/lattice";
@@ -21,8 +21,13 @@ const latticeFocus = (active: Element): string | null => {
   return node == null ? null : `.lattice-node[data-class="${node}"]`;
 };
 
-/** Ring steppers by the orbit and direction they step, which a redraw keeps. */
+/**
+ * Ring steppers by the orbit and direction they step, which a redraw keeps;
+ * play buttons by their orbit alone.
+ */
 const ringFocus = (active: Element): string | null => {
+  const play = active.closest(".ring-play[data-orbit]")?.getAttribute("data-orbit");
+  if (play != null) return `.ring-play[data-orbit="${play}"]`;
   const button = active.closest(".ring-step[data-orbit][data-step]");
   if (button === null) return null;
   const orbit = button.getAttribute("data-orbit") ?? "";
@@ -45,6 +50,8 @@ export interface CenterPanelHandlers {
   onSelectRepresentation: (id: string) => void;
   /** An orbit was asked to split into more concentric rings, or fewer. */
   onStepRings: (orbit: number, step: 1 | -1) => void;
+  /** An orbit's rings were asked to start turning, or to stop. */
+  onTogglePlay: (orbit: number) => void;
 }
 
 /**
@@ -69,6 +76,16 @@ export class CenterPanel {
     this.#showDiagram(scene, settings);
     this.#showRingControls(scene);
     this.#showLattice(scene);
+  }
+
+  /**
+   * Move the diagram already drawn to where the scene now places its points,
+   * without redrawing it: this runs every frame while the rings turn, and a
+   * redraw would drop any click on a node that straddled a frame.
+   */
+  turn(scene: Scene, settings: Settings): void {
+    const drawn = document.querySelector<SVGSVGElement>("#diagram svg");
+    if (drawn !== null) moveDiagram(drawn, scene.diagram.points, settings.arrowCurvature);
   }
 
   #showHeading(scene: Scene): void {
@@ -112,12 +129,13 @@ export class CenterPanel {
     });
   }
 
-  /** A stepper for each orbit that can be split into concentric rings. */
+  /** A stepper, with its play button, for each orbit that can be split into concentric rings. */
   #showRingControls(scene: Scene): void {
     preservingFocus(ringFocus, () => {
       qs("#ring-controls").replaceChildren(
         renderRingControls(scene.ringSplits(), scene.orbitCount, {
           onStep: this.#handlers.onStepRings,
+          onTogglePlay: this.#handlers.onTogglePlay,
         }),
       );
     });

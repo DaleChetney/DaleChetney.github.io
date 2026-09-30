@@ -40,7 +40,8 @@ const layoutDiagram = (
   orbits: readonly (readonly number[])[],
   targetWidth: number,
   rings: readonly number[],
-): Diagram => layoutOrbits(orbits, targetWidth * diagramWidthShare(orbits.length), rings);
+  turns: readonly number[],
+): Diagram => layoutOrbits(orbits, targetWidth * diagramWidthShare(orbits.length), rings, turns);
 
 /** A class's conjugate subgroups, and their identities for membership tests. */
 interface ConjugacyClass {
@@ -93,6 +94,13 @@ export class Scene {
    * orbit's size, so it never leaves a count that no longer divides.
    */
   readonly #rings: number[];
+  /**
+   * How far each orbit's innermost ring has turned, in whole turns. Every
+   * orbit has one, turning or not, so a single ring can be turned too.
+   */
+  readonly #turns: number[];
+  /** The orbits whose rings are turning. */
+  readonly #playing = new Set<number>();
   /** A point picked to be swapped, waiting on the second; null while none is. */
   #picked: number | null = null;
   readonly #classes: readonly CatalogueSubgroupClass[];
@@ -126,7 +134,8 @@ export class Scene {
     );
     this.latticeDiagram = layoutLattice(classes, group.order, group.displayName);
     this.#rings = orbits.map(() => 1);
-    this.#diagram = layoutDiagram(orbits, targetWidth, this.#rings);
+    this.#turns = orbits.map(() => 0);
+    this.#diagram = layoutDiagram(orbits, targetWidth, this.#rings, this.#turns);
     this.#targetWidth = targetWidth;
     this.#arrangement = orbits;
     this.#classes = classes;
@@ -178,7 +187,30 @@ export class Scene {
    */
   relayout(targetWidth: number): void {
     this.#targetWidth = targetWidth;
-    this.#diagram = layoutDiagram(this.#arrangement, targetWidth, this.#rings);
+    this.#diagram = layoutDiagram(this.#arrangement, targetWidth, this.#rings, this.#turns);
+  }
+
+  /** Whether any orbit's rings are turning. */
+  get turning(): boolean {
+    return this.#playing.size > 0;
+  }
+
+  /**
+   * Start an orbit's rings turning, or stop them. Only an orbit split into
+   * rings can turn: a single ring has no other to turn against.
+   */
+  togglePlay(orbit: number): void {
+    if (this.#playing.has(orbit)) this.#playing.delete(orbit);
+    else if (this.#rings[orbit] > 1) this.#playing.add(orbit);
+  }
+
+  /**
+   * Turn every orbit that is playing on by this many turns of its innermost
+   * ring; each ring outside it turns a fixed share as far as the one inside it.
+   */
+  turnBy(turns: number): void {
+    for (const orbit of this.#playing) this.#turns[orbit] += turns;
+    this.relayout(this.#targetWidth);
   }
 
   /** How many orbits the diagram draws, split or not. */
@@ -191,14 +223,26 @@ export class Scene {
     return this.#arrangement.flatMap((slots, orbit) => {
       const counts = ringCounts(slots.length);
       return counts.length > 1
-        ? [{ orbit, size: slots.length, rings: this.#rings[orbit], counts }]
+        ? [
+            {
+              orbit,
+              size: slots.length,
+              rings: this.#rings[orbit],
+              counts,
+              playing: this.#playing.has(orbit),
+            },
+          ]
         : [];
     });
   }
 
-  /** Split an orbit into the next number of rings up or down that divides it. */
+  /**
+   * Split an orbit into the next number of rings up or down that divides it.
+   * Brought down to a single ring, it stops turning.
+   */
   stepRings(orbit: number, step: 1 | -1): void {
     this.#rings[orbit] = stepRings(this.#arrangement[orbit].length, this.#rings[orbit], step);
+    if (this.#rings[orbit] === 1) this.#playing.delete(orbit);
     this.relayout(this.#targetWidth);
   }
 

@@ -11,6 +11,8 @@ const fixture = (): HTMLElement => {
       <label><input type="radio" name="theme" value="system" /> System</label>
       <input type="range" id="arrow-curvature" />
       <output for="arrow-curvature"></output>
+      <input type="range" id="rotation-period" />
+      <output for="rotation-period"></output>
     </div>`;
   const pane = document.querySelector<HTMLElement>("#settings");
   if (pane === null) throw new Error("fixture missing");
@@ -21,12 +23,14 @@ const radio = (value: string): HTMLInputElement => {
   if (found === null) throw new Error(`no radio ${value}`);
   return found;
 };
-const slider = (): HTMLInputElement => {
-  const found = document.querySelector<HTMLInputElement>("#arrow-curvature");
-  if (found === null) throw new Error("no slider");
+const slider = (id = "arrow-curvature"): HTMLInputElement => {
+  const found = document.querySelector<HTMLInputElement>(`#${id}`);
+  if (found === null) throw new Error(`no slider ${id}`);
   return found;
 };
-const initial: Settings = { theme: "dark", arrowCurvature: -0.5 };
+const readout = (id = "arrow-curvature"): string | null | undefined =>
+  document.querySelector(`output[for="${id}"]`)?.textContent;
+const initial: Settings = { theme: "dark", arrowCurvature: -0.5, rotationPeriod: 6 };
 
 describe("settingsPanel", () => {
   it("reflects the settings it is given", () => {
@@ -34,7 +38,9 @@ describe("settingsPanel", () => {
     expect(radio("dark").checked).toBe(true);
     expect(radio("light").checked).toBe(false);
     expect(slider().value).toBe("-0.5");
-    expect(document.querySelector("output")?.textContent).toBe("-0.5");
+    expect(readout()).toBe("-0.5");
+    expect(slider("rotation-period").value).toBe("6");
+    expect(readout("rotation-period")).toBe("6");
   });
 
   it("sizes the slider to the curvature range", () => {
@@ -44,11 +50,16 @@ describe("settingsPanel", () => {
     expect(Number(slider().step)).toBeGreaterThan(0);
   });
 
+  it("offers only positive rotation periods", () => {
+    settingsPanel(fixture(), initial, () => {});
+    expect(Number(slider("rotation-period").min)).toBeGreaterThan(0);
+  });
+
   it("reports a theme change", () => {
     const onChange = vi.fn();
     settingsPanel(fixture(), initial, onChange);
     radio("light").click();
-    expect(onChange).toHaveBeenCalledWith({ theme: "light", arrowCurvature: -0.5 });
+    expect(onChange).toHaveBeenCalledWith({ ...initial, theme: "light" });
   });
 
   it("reports the slider as it moves, and shows the value", () => {
@@ -56,7 +67,22 @@ describe("settingsPanel", () => {
     settingsPanel(fixture(), initial, onChange);
     slider().value = "1.5";
     slider().dispatchEvent(new Event("input"));
-    expect(onChange).toHaveBeenCalledWith({ theme: "dark", arrowCurvature: 1.5 });
-    expect(document.querySelector("output")?.textContent).toBe("1.5");
+    expect(onChange).toHaveBeenCalledWith({ ...initial, arrowCurvature: 1.5 });
+    expect(readout()).toBe("1.5");
+  });
+
+  it("reports the rotation period as it moves, keeping the other changes", () => {
+    const onChange = vi.fn();
+    settingsPanel(fixture(), initial, onChange);
+    slider().value = "2";
+    slider().dispatchEvent(new Event("input"));
+    slider("rotation-period").value = "10";
+    slider("rotation-period").dispatchEvent(new Event("input"));
+    expect(onChange).toHaveBeenLastCalledWith({
+      ...initial,
+      arrowCurvature: 2,
+      rotationPeriod: 10,
+    });
+    expect(readout("rotation-period")).toBe("10");
   });
 });

@@ -2,7 +2,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { decodePermutation, permutationOrbits } from "@shared/mathUtils/groups/permutations";
 import { actionArrows } from "./arrow";
-import { renderPermutationDiagram, type DiagramView } from "./permutationDiagram";
+import { moveDiagram, renderPermutationDiagram, type DiagramView } from "./permutationDiagram";
 import { layoutOrbits } from "./ringLayout";
 
 const generators = [129, 16, 840].map((code) => decodePermutation(code, 7));
@@ -116,5 +116,46 @@ describe("renderPermutationDiagram curvature", () => {
     const usual = paths(render([0]));
     expect(paths(render([0], { curvature: 1 }))).toEqual(usual);
     expect(paths(render([0], { curvature: -1 }))).not.toEqual(usual);
+  });
+});
+
+describe("moveDiagram", () => {
+  const turned = layoutOrbits(permutationOrbits(generators, 7), undefined, [], [0.25, 0.25]);
+  const paths = (root: SVGSVGElement): string[] =>
+    Array.from(root.querySelectorAll(".edges path")).map((path) => path.getAttribute("d") ?? "");
+
+  it("moves the nodes and arrows where a fresh drawing would put them", () => {
+    const root = render([0, 2]);
+    moveDiagram(root, turned.points);
+    const fresh = renderPermutationDiagram(
+      turned,
+      actionArrows(turned.points, [generators[0], generators[2]]),
+      colorOf,
+      { picked: null, onPick: () => {} },
+    );
+    expect(root.outerHTML).toBe(fresh.outerHTML);
+    expect(paths(root)).not.toEqual(paths(render([0, 2])));
+  });
+
+  it("keeps the elements it moves, so a click in progress lands", () => {
+    const onPick = vi.fn();
+    const root = render([0], { onPick });
+    const before = node(root, 1);
+    moveDiagram(root, turned.points);
+    expect(node(root, 1)).toBe(before);
+    before.dispatchEvent(new MouseEvent("click"));
+    expect(onPick).toHaveBeenCalledWith(1);
+  });
+
+  it("bows the moved arrows by the curvature given", () => {
+    const root = render([0], { curvature: -1 });
+    moveDiagram(root, turned.points, -1);
+    const fresh = renderPermutationDiagram(
+      turned,
+      actionArrows(turned.points, [generators[0]]),
+      colorOf,
+      { picked: null, onPick: () => {}, curvature: -1 },
+    );
+    expect(paths(root)).toEqual(paths(fresh));
   });
 });
