@@ -19,12 +19,13 @@ import {
 } from "@shared/mathUtils/groups/subgroups";
 import type { BoundedLattice } from "fp-ts/BoundedLattice";
 import type { CatalogueGroup, CatalogueRepresentation, CatalogueSubgroupClass } from "./catalogue";
-import type { Diagram } from "./components/diagram/permutationDiagram";
+import type { Diagram, PlacedRing } from "./components/diagram/permutationDiagram";
 import type { RingSplit } from "./components/diagram/ringControls";
 import {
   diagramWidthShare,
   layoutOrbits,
   ringCounts,
+  ringRates,
   stepRings,
 } from "./components/diagram/ringLayout";
 import { layoutLattice, type LatticeDiagram } from "./components/lattice";
@@ -40,7 +41,7 @@ const layoutDiagram = (
   orbits: readonly (readonly number[])[],
   targetWidth: number,
   rings: readonly number[],
-  turns: readonly number[],
+  turns: readonly (readonly number[])[],
 ): Diagram => layoutOrbits(orbits, targetWidth * diagramWidthShare(orbits.length), rings, turns);
 
 /** A class's conjugate subgroups, and their identities for membership tests. */
@@ -95,10 +96,11 @@ export class Scene {
    */
   readonly #rings: number[];
   /**
-   * How far each orbit's innermost ring has turned, in whole turns. Every
-   * orbit has one, turning or not, so a single ring can be turned too.
+   * How far each ring of each orbit has turned, in whole turns, the outermost
+   * ring first. Every ring has one, a single ring included, so any ring can be
+   * turned on its own as well as by playing its orbit.
    */
-  readonly #turns: number[];
+  readonly #turns: number[][];
   /** The orbits whose rings are turning. */
   readonly #playing = new Set<number>();
   /** A point picked to be swapped, waiting on the second; null while none is. */
@@ -134,7 +136,7 @@ export class Scene {
     );
     this.latticeDiagram = layoutLattice(classes, group.order, group.displayName);
     this.#rings = orbits.map(() => 1);
-    this.#turns = orbits.map(() => 0);
+    this.#turns = orbits.map(() => [0]);
     this.#diagram = layoutDiagram(orbits, targetWidth, this.#rings, this.#turns);
     this.#targetWidth = targetWidth;
     this.#arrangement = orbits;
@@ -209,7 +211,24 @@ export class Scene {
    * ring; each ring outside it turns a fixed share as far as the one inside it.
    */
   turnBy(turns: number): void {
-    for (const orbit of this.#playing) this.#turns[orbit] += turns;
+    for (const orbit of this.#playing) {
+      const rates = ringRates(this.#rings[orbit]);
+      this.#turns[orbit] = this.#turns[orbit].map((turned, ring) => turned + turns * rates[ring]);
+    }
+    this.relayout(this.#targetWidth);
+  }
+
+  /** The ring a point is drawn on: which orbit, which ring of it, and its centre. */
+  ringOf(point: number): PlacedRing | undefined {
+    return this.#diagram.rings.find((placed) => placed.points.includes(point));
+  }
+
+  /**
+   * Turn one ring of an orbit on by this many turns, clockwise, leaving the
+   * orbit's other rings where they are.
+   */
+  turnRing(orbit: number, ring: number, turns: number): void {
+    this.#turns[orbit][ring] += turns;
     this.relayout(this.#targetWidth);
   }
 
@@ -238,10 +257,12 @@ export class Scene {
 
   /**
    * Split an orbit into the next number of rings up or down that divides it.
-   * Brought down to a single ring, it stops turning.
+   * The rings are new, so each starts from where it would lie unturned; brought
+   * down to a single ring, the orbit stops turning.
    */
   stepRings(orbit: number, step: 1 | -1): void {
     this.#rings[orbit] = stepRings(this.#arrangement[orbit].length, this.#rings[orbit], step);
+    this.#turns[orbit] = Array.from({ length: this.#rings[orbit] }, () => 0);
     if (this.#rings[orbit] === 1) this.#playing.delete(orbit);
     this.relayout(this.#targetWidth);
   }

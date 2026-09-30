@@ -2,9 +2,24 @@ import { svg } from "../../svg";
 import { arrowheadDefs, arrowPath, renderArrows, type ActionArrow } from "./arrow";
 import { renderNode, type PlacedPoint } from "./node";
 
-/** Placed points and the canvas they were placed on. */
+/** One concentric ring of an orbit, as placed: where it turns about, and what is on it. */
+export interface PlacedRing {
+  /** The orbit it belongs to, left to right. */
+  orbit: number;
+  /** Its place in the orbit, the outermost ring first. */
+  ring: number;
+  /** The centre it turns about, shared by every ring of its orbit. */
+  cx: number;
+  cy: number;
+  radius: number;
+  /** The points on it, in slot order. */
+  points: readonly number[];
+}
+
+/** Placed points, the rings they were placed on, and the canvas. */
 export interface Diagram {
   points: PlacedPoint[];
+  rings: PlacedRing[];
   width: number;
   height: number;
 }
