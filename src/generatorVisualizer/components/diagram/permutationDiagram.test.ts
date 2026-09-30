@@ -120,7 +120,7 @@ describe("renderPermutationDiagram curvature", () => {
 });
 
 describe("moveDiagram", () => {
-  const turned = layoutOrbits(permutationOrbits(generators, 7), undefined, [], [0.25, 0.25]);
+  const turned = layoutOrbits(permutationOrbits(generators, 7), undefined, [], [[0.25], [0.25]]);
   const paths = (root: SVGSVGElement): string[] =>
     Array.from(root.querySelectorAll(".edges path")).map((path) => path.getAttribute("d") ?? "");
 

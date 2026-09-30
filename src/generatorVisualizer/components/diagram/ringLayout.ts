@@ -1,5 +1,5 @@
 import { MIN_NODE_SPACING, NODE_RADIUS, type PlacedPoint } from "./node";
-import type { Diagram } from "./permutationDiagram";
+import type { Diagram, PlacedRing } from "./permutationDiagram";
 
 const MIN_RING_RADIUS = 44;
 const RING_GAP = 54;
@@ -20,6 +20,13 @@ const MIN_RING_SIZE = 3;
  * share of the rate of the ring it encloses.
  */
 export const RING_SLOWDOWN = 0.66;
+
+/**
+ * How far each of `rings` concentric rings turns while the innermost turns
+ * once, the outermost ring first, as {@link layoutOrbits} numbers them.
+ */
+export const ringRates = (rings: number): number[] =>
+  Array.from({ length: rings }, (_, ring) => RING_SLOWDOWN ** (rings - 1 - ring));
 
 /** Panel width to lay out against when the page has not been measured yet. */
 export const DEFAULT_TARGET_WIDTH = 640;
@@ -115,15 +122,18 @@ const nodeSpacing = (
  * `targetWidth` is the width to spread out to. It is a target rather than a
  * bound: a ring crowded at that width is drawn wider instead of tighter.
  *
- * `turns[i]` is how far the innermost ring of orbit `i` has turned clockwise,
- * in whole turns; each ring outside it has turned {@link RING_SLOWDOWN} as far
- * as the ring inside it. An orbit drawn as one ring is its own innermost ring.
+ * `turns[i][r]` is how far ring `r` of orbit `i` has turned clockwise, in
+ * whole turns, the outermost ring first. Each ring turns on its own, and one
+ * with no turn given sits where it started.
+ *
+ * Every ring is reported alongside the points, with its centre and the points
+ * on it, so whatever turns a ring can tell which nodes go with it.
  */
 export const layoutOrbits = (
   orbits: readonly (readonly number[])[],
   targetWidth?: number,
   rings: readonly number[] = [],
-  turns: readonly number[] = [],
+  turns: readonly (readonly number[])[] = [],
 ): Diagram => {
   const counts = orbits.map((orbit, i) =>
     ringCounts(orbit.length).includes(rings[i] ?? 1) ? (rings[i] ?? 1) : 1,
@@ -142,25 +152,26 @@ export const layoutOrbits = (
   const height = Math.max(...outerRadii.map(ringSpan), NODE_RADIUS * 2) + MARGIN * 2;
 
   const points: PlacedPoint[] = [];
+  const placedRings: PlacedRing[] = [];
   let cursor = MARGIN;
-  orbits.forEach((orbit, ringIndex) => {
-    const outer = outerRadii[ringIndex];
-    const perRing = orbit.length / counts[ringIndex];
-    const centerX = cursor + ringSpan(outer) / 2;
+  orbits.forEach((orbit, orbitIndex) => {
+    const outer = outerRadii[orbitIndex];
+    const perRing = orbit.length / counts[orbitIndex];
+    const cx = cursor + ringSpan(outer) / 2;
+    const cy = height / 2;
     cursor += ringSpan(outer) + RING_GAP;
-    orbit.forEach((point, i) => {
-      const ring = Math.floor(i / perRing);
+    for (let ring = 0; ring < counts[orbitIndex]; ring++) {
       const radius = outer - spacing.radial * ring;
-      const turned = (turns[ringIndex] ?? 0) * RING_SLOWDOWN ** (counts[ringIndex] - 1 - ring);
-      // Start at the top and run clockwise, so a cycle reads the way it is written.
-      const angle = -Math.PI / 2 + 2 * Math.PI * ((i % perRing) / perRing + turned);
-      points.push({
-        point,
-        x: centerX + radius * Math.cos(angle),
-        y: height / 2 + radius * Math.sin(angle),
+      const turned = turns[orbitIndex]?.[ring] ?? 0;
+      const slots = orbit.slice(ring * perRing, (ring + 1) * perRing);
+      slots.forEach((point, slot) => {
+        // Start at the top and run clockwise, so a cycle reads the way it is written.
+        const angle = -Math.PI / 2 + 2 * Math.PI * (slot / perRing + turned);
+        points.push({ point, x: cx + radius * Math.cos(angle), y: cy + radius * Math.sin(angle) });
       });
-    });
+      placedRings.push({ orbit: orbitIndex, ring, cx, cy, radius, points: slots });
+    }
   });
 
-  return { points, width, height };
+  return { points, rings: placedRings, width, height };
 };

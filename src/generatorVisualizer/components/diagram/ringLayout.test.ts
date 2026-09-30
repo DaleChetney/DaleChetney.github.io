@@ -4,6 +4,7 @@ import {
   diagramWidthShare,
   layoutOrbits,
   RING_SLOWDOWN,
+  ringRates,
   ringCounts,
   stepRings,
 } from "./ringLayout";
@@ -77,8 +78,8 @@ describe("layoutOrbits", () => {
   describe("turned", () => {
     const twelve = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
     /** Each point's clockwise angle about its ring's centre, in turns. */
-    const angles = (turn: number, rings = 1): Map<number, number> => {
-      const diagram = layoutOrbits([twelve], 640, [rings], [turn]);
+    const angles = (turns: number[], rings = 1): Map<number, number> => {
+      const diagram = layoutOrbits([twelve], 640, [rings], [turns]);
       const [cx, cy] = [diagram.width / 2, diagram.height / 2];
       return new Map(
         diagram.points.map((p) => [p.point, Math.atan2(p.y - cy, p.x - cx) / (2 * Math.PI)]),
@@ -89,32 +90,32 @@ describe("layoutOrbits", () => {
 
     it("leaves the layout where it was at no turn, and at a whole turn", () => {
       const still = layoutOrbits([twelve], 640);
-      expect(layoutOrbits([twelve], 640, [], [0])).toEqual(still);
-      layoutOrbits([twelve], 640, [], [1]).points.forEach((p, i) => {
+      expect(layoutOrbits([twelve], 640, [], [[0]])).toEqual(still);
+      layoutOrbits([twelve], 640, [], [[1]]).points.forEach((p, i) => {
         expect(p.x).toBeCloseTo(still.points[i].x);
         expect(p.y).toBeCloseTo(still.points[i].y);
       });
     });
 
-    it("turns a single ring clockwise by the turn", () => {
-      const [before, after] = [angles(0), angles(0.1)];
+    it("turns a single ring clockwise by its turn", () => {
+      const [before, after] = [angles([0]), angles([0.1])];
       for (const point of twelve) {
         expect(swept(before.get(point), after.get(point))).toBeCloseTo(0.1);
       }
     });
 
-    it("turns each ring outward at a fixed share of the one inside it", () => {
-      // Three rings of four: points 9-12 are innermost, 1-4 outermost.
-      const [before, after] = [angles(0, 3), angles(0.1, 3)];
+    it("turns each ring by its own turn alone", () => {
+      // Three rings of four, outermost first: 1-4, then 5-8, then 9-12.
+      const [before, after] = [angles([0, 0, 0], 3), angles([0.3, 0.1, 0], 3)];
       const sweep = (point: number): number => swept(before.get(point), after.get(point));
-      expect(sweep(9)).toBeCloseTo(0.1);
-      expect(sweep(5)).toBeCloseTo(0.1 * RING_SLOWDOWN);
-      expect(sweep(1)).toBeCloseTo(0.1 * RING_SLOWDOWN ** 2);
+      expect(sweep(1)).toBeCloseTo(0.3);
+      expect(sweep(5)).toBeCloseTo(0.1);
+      expect(sweep(9)).toBeCloseTo(0);
     });
 
     it("turns only the orbit it is given a turn for", () => {
       const still = layoutOrbits([twelve, [13, 14, 15]], 640);
-      const turned = layoutOrbits([twelve, [13, 14, 15]], 640, [], [0, 0.2]);
+      const turned = layoutOrbits([twelve, [13, 14, 15]], 640, [], [[], [0.2]]);
       const at = (diagram: typeof still, point: number) =>
         diagram.points.find((p) => p.point === point);
       expect(at(turned, 1)).toEqual(at(still, 1));
@@ -122,7 +123,7 @@ describe("layoutOrbits", () => {
     });
 
     it("keeps every node inside the bounds as it turns", () => {
-      const diagram = layoutOrbits([twelve, [13, 14, 15]], 640, [2], [0.37, 0.8]);
+      const diagram = layoutOrbits([twelve, [13, 14, 15]], 640, [2], [[0.37, 0.1], [0.8]]);
       for (const { x, y } of diagram.points) {
         expect(x - NODE_RADIUS).toBeGreaterThanOrEqual(0);
         expect(y - NODE_RADIUS).toBeGreaterThanOrEqual(0);
@@ -132,10 +133,55 @@ describe("layoutOrbits", () => {
     });
   });
 
+  describe("rings", () => {
+    it("reports each ring's points, outermost first, about the orbit's centre", () => {
+      const diagram = layoutOrbits([ring(1, 12)], 640, [3], [[0.2, 0.1, 0.05]]);
+      expect(diagram.rings.map((r) => [r.orbit, r.ring, r.points])).toEqual([
+        [0, 0, [1, 2, 3, 4]],
+        [0, 1, [5, 6, 7, 8]],
+        [0, 2, [9, 10, 11, 12]],
+      ]);
+      for (const placed of diagram.rings) {
+        expect(placed.cx).toBeCloseTo(diagram.width / 2);
+        expect(placed.cy).toBeCloseTo(diagram.height / 2);
+        for (const point of placed.points) {
+          const at = diagram.points.find((p) => p.point === point);
+          expect(Math.hypot((at?.x ?? 0) - placed.cx, (at?.y ?? 0) - placed.cy)).toBeCloseTo(
+            placed.radius,
+          );
+        }
+      }
+      const radii = diagram.rings.map((r) => r.radius);
+      expect([...radii].sort((a, b) => b - a)).toEqual(radii);
+    });
+
+    it("gives each orbit its own centre, and an unsplit orbit one ring", () => {
+      const diagram = layoutOrbits([ring(1, 3), ring(4, 4)]);
+      expect(diagram.rings.map((r) => r.points)).toEqual([
+        [1, 2, 3],
+        [4, 5, 6, 7],
+      ]);
+      expect(diagram.rings[0].cx).toBeLessThan(diagram.rings[1].cx);
+    });
+  });
+
   it("centres a singleton orbit rather than ringing it", () => {
     const diagram = layoutOrbits([[1]]);
     expect(diagram.points).toHaveLength(1);
     expect(diagram.points[0].y).toBeCloseTo(diagram.height / 2);
+  });
+});
+
+describe("ringRates", () => {
+  it("turns a lone ring at the full rate", () => {
+    expect(ringRates(1)).toEqual([1]);
+  });
+
+  it("slows each ring outward by a fixed share, the outermost listed first", () => {
+    const [outer, middle, inner] = ringRates(3);
+    expect(inner).toBe(1);
+    expect(middle).toBeCloseTo(RING_SLOWDOWN);
+    expect(outer).toBeCloseTo(RING_SLOWDOWN ** 2);
   });
 });
 
