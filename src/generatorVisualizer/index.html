@@ -323,8 +323,14 @@
         height: auto;
       }
 
+      /*
+        A node held down turns its ring, so a press on one must not scroll the
+        page under a finger or select the label under a mouse.
+      */
       .diagram .node {
         cursor: pointer;
+        touch-action: none;
+        user-select: none;
       }
 
       .diagram .node circle {

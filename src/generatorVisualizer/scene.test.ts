@@ -87,3 +87,33 @@ describe("Scene rings", () => {
     expect(moved(before, positions(scene))).toHaveLength(12);
   });
 });
+
+describe("Scene held ring", () => {
+  it("passes a held ring by while its orbit plays, turning the rest", () => {
+    const scene = twelve();
+    scene.stepRings(0, 1);
+    scene.togglePlay(0);
+    const [outer, inner] = scene.diagram.rings;
+    expect(scene.grabRing(inner.points[0])).toEqual(inner);
+    const before = positions(scene);
+    scene.turnBy(0.1);
+    expect(moved(before, positions(scene)).sort((a, b) => a - b)).toEqual(
+      [...outer.points].sort((a, b) => a - b),
+    );
+  });
+
+  it("carries on playing a ring once it is let go", () => {
+    const scene = twelve();
+    scene.stepRings(0, 1);
+    scene.togglePlay(0);
+    scene.grabRing(scene.diagram.rings[1].points[0]);
+    scene.letGoRing();
+    const before = positions(scene);
+    scene.turnBy(0.1);
+    expect(moved(before, positions(scene))).toHaveLength(12);
+  });
+
+  it("holds nothing for a point not drawn", () => {
+    expect(twelve().grabRing(99)).toBeUndefined();
+  });
+});

@@ -1,6 +1,8 @@
 import { byLabel, fetchCatalogue, type CatalogueGroup } from "./catalogue";
 import { qs } from "@shared/dom";
-import { CenterPanel, stageWidth } from "./centerPanel";
+import { CenterPanel, diagramPointAt, stageWidth } from "./centerPanel";
+import type { PlacedRing } from "./components/diagram/permutationDiagram";
+import { RingDrag } from "./components/diagram/ringDrag";
 import { collapsiblePanel } from "./collapsiblePanel";
 import { LeftPanel } from "./leftPanel";
 import { RightPanel } from "./rightPanel";
@@ -49,7 +51,27 @@ const centerPanel = new CenterPanel({
     scene.togglePlay(orbit);
     render();
   },
+  onDragStart: (point, clientX, clientY) => {
+    const ring = scene.grabRing(point);
+    const at = diagramPointAt(clientX, clientY);
+    if (ring === undefined || at === null) return;
+    drag = { ring, tracker: new RingDrag({ x: ring.cx, y: ring.cy }, at) };
+  },
+  // A drag moves the diagram already drawn, like a frame of play: a redraw would
+  // replace the node that has the pointer captured and end the drag.
+  onDragMove: (clientX, clientY) => {
+    const at = diagramPointAt(clientX, clientY);
+    if (drag === null || at === null) return;
+    scene.turnRing(drag.ring.orbit, drag.ring.ring, drag.tracker.moveTo(at));
+    centerPanel.turn(scene, settings);
+  },
+  onDragEnd: () => {
+    drag = null;
+    scene.letGoRing();
+  },
 });
+/** The drag in progress and the ring it has hold of; null while there is none. */
+let drag: { ring: PlacedRing; tracker: RingDrag } | null = null;
 // Each frame turns the orbits that are playing, and moves the diagram already
 // drawn rather than drawing it again.
 const rotation = new Rotation((seconds) => {

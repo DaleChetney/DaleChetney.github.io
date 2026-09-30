@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeAll, vi } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { HOLD_DELAY } from "./components/diagram/holdToDrag";
 import { DEFAULT_SETTINGS } from "./settings";
 
 // main.ts reaches into index.html by id and throws if one is missing, which no
@@ -893,5 +894,156 @@ describe("turning the rings", () => {
     });
     expect(moved).toHaveLength(8);
     expect(before.size).toBe(16);
+  });
+});
+
+describe("dragging a ring", () => {
+  /** Animation frames held back until the test runs them. */
+  let pending: FrameRequestCallback[] = [];
+  let clock = 0;
+  const frames = (seconds: number, step = 0.05): void => {
+    for (let elapsed = 0; elapsed < seconds - 1e-9; elapsed += step) {
+      clock += step * 1000;
+      const due = pending;
+      pending = [];
+      for (const frame of due) frame(clock);
+    }
+  };
+  const svg = (): SVGSVGElement => {
+    const found = document.querySelector<SVGSVGElement>("#diagram svg");
+    if (found === null) throw new Error("no diagram");
+    return found;
+  };
+  const center = (): { x: number; y: number } => ({
+    x: Number(svg().getAttribute("width")) / 2,
+    y: Number(svg().getAttribute("height")) / 2,
+  });
+  const node = (point: number): SVGGElement => {
+    const found = svg().querySelector<SVGGElement>(`.node[data-point="${point}"]`);
+    if (found === null) throw new Error(`no node for point ${point}`);
+    return found;
+  };
+  const at = (point: number): { x: number; y: number } => {
+    const circle = node(point).querySelector("circle");
+    return { x: Number(circle?.getAttribute("cx")), y: Number(circle?.getAttribute("cy")) };
+  };
+  /** A point's clockwise angle about the middle of the one-orbit diagram, in turns. */
+  const angleOf = (point: number): number => {
+    const { x, y } = at(point);
+    return Math.atan2(y - center().y, x - center().x) / (2 * Math.PI);
+  };
+  const swept = (from: number, to: number): number => (((to - from) % 1) + 1) % 1;
+  const pointer = (target: EventTarget, type: string, x = 0, y = 0): void => {
+    target.dispatchEvent(
+      new PointerEvent(type, { clientX: x, clientY: y, button: 0, bubbles: true }),
+    );
+  };
+  /** Press and hold a node long enough to take hold of its ring. */
+  const hold = (point: number): SVGGElement => {
+    const held = node(point);
+    pointer(held, "pointerdown", at(point).x, at(point).y);
+    vi.advanceTimersByTime(HOLD_DELAY);
+    return held;
+  };
+  /** Drag a held node `turns` clockwise round the centre, in small steps. */
+  const dragBy = (held: SVGGElement, point: number, turns: number): void => {
+    const start = at(point);
+    const [dx, dy] = [start.x - center().x, start.y - center().y];
+    const steps = Math.ceil(Math.abs(turns) / 0.05);
+    for (let step = 1; step <= steps; step++) {
+      const angle = (2 * Math.PI * turns * step) / steps;
+      pointer(
+        held,
+        "pointermove",
+        center().x + dx * Math.cos(angle) - dy * Math.sin(angle),
+        center().y + dx * Math.sin(angle) + dy * Math.cos(angle),
+      );
+    }
+  };
+  const release = (held: SVGGElement): void => {
+    pointer(held, "pointerup");
+    held.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  };
+  /** The points on each ring of the one orbit, outermost first, by distance from the centre. */
+  const rings = (): number[][] => {
+    const byRadius = new Map<string, number[]>();
+    for (const group of svg().querySelectorAll<SVGGElement>(".node")) {
+      const point = Number(group.dataset.point);
+      const { x, y } = at(point);
+      const radius = Math.hypot(x - center().x, y - center().y).toFixed(1);
+      byRadius.set(radius, [...(byRadius.get(radius) ?? []), point]);
+    }
+    return [...byRadius].sort((a, b) => Number(b[0]) - Number(a[0])).map(([, points]) => points);
+  };
+  const stepRings = (direction: 1 | -1): void => {
+    document
+      .querySelector<HTMLButtonElement>(`.ring-step[data-orbit="0"][data-step="${direction}"]`)
+      ?.click();
+  };
+  const play = (): void => {
+    document.querySelector<HTMLButtonElement>('.ring-play[data-orbit="0"]')?.click();
+  };
+
+  beforeAll(() => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    // jsdom lays nothing out, so the SVG is drawn at its own coordinates.
+    SVGGraphicsElement.prototype.getScreenCTM = () =>
+      ({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 }) as unknown as DOMMatrix;
+    vi.stubGlobal("requestAnimationFrame", (frame: FrameRequestCallback) => {
+      pending.push(frame);
+      return pending.length;
+    });
+    vi.stubGlobal("cancelAnimationFrame", () => {
+      pending = [];
+    });
+    groupRow(DEFAULT.label).click();
+    document.querySelector<HTMLElement>('.representation[data-representation="12T5"]')?.click();
+  });
+
+  afterAll(() => {
+    vi.useRealTimers();
+  });
+
+  it("turns a single-ring orbit with the pointer, without picking the node", () => {
+    const before = angleOf(5);
+    const held = hold(1);
+    dragBy(held, 1, 0.2);
+    release(held);
+    expect(swept(before, angleOf(5))).toBeCloseTo(0.2);
+    expect(svg().querySelector(".node.picked")).toBeNull();
+  });
+
+  it("still picks a node on a quick click", () => {
+    pointer(node(1), "pointerdown");
+    pointer(node(1), "pointerup");
+    node(1).dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(node(1).classList.contains("picked")).toBe(true);
+    node(1).dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  });
+
+  it("turns only the ring holding the node", () => {
+    stepRings(1);
+    const [outer, inner] = rings();
+    const [outerBefore, innerBefore] = [angleOf(outer[0]), angleOf(inner[0])];
+    const held = hold(inner[1]);
+    dragBy(held, inner[1], -0.15);
+    release(held);
+    expect(angleOf(outer[0])).toBeCloseTo(outerBefore);
+    expect(swept(innerBefore, angleOf(inner[0]))).toBeCloseTo(0.85);
+  });
+
+  it("holds the dragged ring still while its orbit plays, and lets it play on release", () => {
+    const [outer, inner] = rings();
+    play();
+    frames(0.05);
+    const held = hold(inner[0]);
+    const [outerBefore, innerBefore] = [angleOf(outer[0]), angleOf(inner[0])];
+    frames(0.5);
+    expect(angleOf(inner[0])).toBeCloseTo(innerBefore);
+    expect(angleOf(outer[0])).not.toBeCloseTo(outerBefore);
+    release(held);
+    frames(0.5);
+    expect(angleOf(inner[0])).not.toBeCloseTo(innerBefore);
+    play();
   });
 });

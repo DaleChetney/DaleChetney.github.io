@@ -2,6 +2,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { decodePermutation, permutationOrbits } from "@shared/mathUtils/groups/permutations";
 import { actionArrows } from "./arrow";
+import { HOLD_DELAY } from "./holdToDrag";
 import { moveDiagram, renderPermutationDiagram, type DiagramView } from "./permutationDiagram";
 import { layoutOrbits } from "./ringLayout";
 
@@ -157,5 +158,49 @@ describe("moveDiagram", () => {
       { picked: null, onPick: () => {}, curvature: -1 },
     );
     expect(paths(root)).toEqual(paths(fresh));
+  });
+});
+
+describe("renderPermutationDiagram drag", () => {
+  const press = (target: Element, type: string, x = 0, y = 0): void => {
+    target.dispatchEvent(
+      new PointerEvent(type, { clientX: x, clientY: y, button: 0, bubbles: true }),
+    );
+  };
+
+  it("reports a node held long enough as a drag of its point, and not as a pick", () => {
+    vi.useFakeTimers();
+    try {
+      const view = {
+        onPick: vi.fn(),
+        onDragStart: vi.fn(),
+        onDragMove: vi.fn(),
+        onDragEnd: vi.fn(),
+      };
+      const root = render([0], view);
+      document.body.append(root);
+      const held = node(root, 3);
+      press(held, "pointerdown", 5, 6);
+      vi.advanceTimersByTime(HOLD_DELAY);
+      press(held, "pointermove", 7, 8);
+      press(held, "pointerup");
+      held.dispatchEvent(new MouseEvent("click"));
+      expect(view.onDragStart).toHaveBeenCalledWith(3, 5, 6);
+      expect(view.onDragMove).toHaveBeenCalledWith(7, 8);
+      expect(view.onDragEnd).toHaveBeenCalledOnce();
+      expect(view.onPick).not.toHaveBeenCalled();
+      root.remove();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("still picks a node on a quick click", () => {
+    const onPick = vi.fn();
+    const root = render([0], { onPick });
+    press(node(root, 3), "pointerdown");
+    press(node(root, 3), "pointerup");
+    node(root, 3).dispatchEvent(new MouseEvent("click"));
+    expect(onPick).toHaveBeenCalledWith(3);
   });
 });
