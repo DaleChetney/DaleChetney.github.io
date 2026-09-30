@@ -2,6 +2,7 @@ import { mount, preservingFocus, qs } from "@shared/dom";
 import { actionArrows } from "./components/diagram/arrow";
 import { moveDiagram, renderPermutationDiagram } from "./components/diagram/permutationDiagram";
 import { renderRingControls } from "./components/diagram/ringControls";
+import { toDiagram, type DiagramPoint } from "./components/diagram/ringDrag";
 import { DEFAULT_TARGET_WIDTH } from "./components/diagram/ringLayout";
 import { renderLattice } from "./components/lattice";
 import { renderRepresentationRow } from "./components/representation-row";
@@ -14,6 +15,15 @@ import type { Settings } from "./settings";
  * that has not been laid out yet reports zero, hence the fallback.
  */
 export const stageWidth = (): number => qs("#diagram").clientWidth || DEFAULT_TARGET_WIDTH;
+
+/**
+ * Where a pointer at these client coordinates sits in the drawn diagram's own
+ * coordinates, or null while there is no diagram on screen to measure.
+ */
+export const diagramPointAt = (clientX: number, clientY: number): DiagramPoint | null => {
+  const drawn = document.querySelector<SVGSVGElement>("#diagram svg");
+  return drawn === null ? null : toDiagram(drawn, clientX, clientY);
+};
 
 /** Lattice nodes are identified by the class they stand for, which outlives a redraw. */
 const latticeFocus = (active: Element): string | null => {
@@ -52,6 +62,12 @@ export interface CenterPanelHandlers {
   onStepRings: (orbit: number, step: 1 | -1) => void;
   /** An orbit's rings were asked to start turning, or to stop. */
   onTogglePlay: (orbit: number) => void;
+  /** A node was held long enough to drag its ring round, the pointer at these client coordinates. */
+  onDragStart: (point: number, clientX: number, clientY: number) => void;
+  /** The pointer moved during a drag. */
+  onDragMove: (clientX: number, clientY: number) => void;
+  /** The drag ended. */
+  onDragEnd: () => void;
 }
 
 /**
@@ -123,6 +139,9 @@ export class CenterPanel {
             picked: scene.picked,
             onPick: this.#handlers.onPickPoint,
             curvature: settings.arrowCurvature,
+            onDragStart: this.#handlers.onDragStart,
+            onDragMove: this.#handlers.onDragMove,
+            onDragEnd: this.#handlers.onDragEnd,
           },
         ),
       );

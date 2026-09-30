@@ -103,6 +103,8 @@ export class Scene {
   readonly #turns: number[][];
   /** The orbits whose rings are turning. */
   readonly #playing = new Set<number>();
+  /** The ring a drag has hold of, which playing passes by; null while none is held. */
+  #held: PlacedRing | null = null;
   /** A point picked to be swapped, waiting on the second; null while none is. */
   #picked: number | null = null;
   readonly #classes: readonly CatalogueSubgroupClass[];
@@ -209,13 +211,35 @@ export class Scene {
   /**
    * Turn every orbit that is playing on by this many turns of its innermost
    * ring; each ring outside it turns a fixed share as far as the one inside it.
+   * A ring held by a drag stays where the pointer has it.
    */
   turnBy(turns: number): void {
     for (const orbit of this.#playing) {
       const rates = ringRates(this.#rings[orbit]);
-      this.#turns[orbit] = this.#turns[orbit].map((turned, ring) => turned + turns * rates[ring]);
+      this.#turns[orbit] = this.#turns[orbit].map((turned, ring) =>
+        this.#isHeld(orbit, ring) ? turned : turned + turns * rates[ring],
+      );
     }
     this.relayout(this.#targetWidth);
+  }
+
+  /**
+   * Take hold of the ring a point is on, to be turned by a drag: playing its
+   * orbit passes it by until it is let go, and then it carries on from where
+   * it was left. Gives the ring, or nothing for a point not drawn.
+   */
+  grabRing(point: number): PlacedRing | undefined {
+    this.#held = this.ringOf(point) ?? null;
+    return this.#held ?? undefined;
+  }
+
+  /** Let go of the ring held by a drag. */
+  letGoRing(): void {
+    this.#held = null;
+  }
+
+  #isHeld(orbit: number, ring: number): boolean {
+    return this.#held?.orbit === orbit && this.#held.ring === ring;
   }
 
   /** The ring a point is drawn on: which orbit, which ring of it, and its centre. */

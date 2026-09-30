@@ -1,5 +1,6 @@
 import { svg } from "../../svg";
 import { arrowheadDefs, arrowPath, renderArrows, type ActionArrow } from "./arrow";
+import { holdToDrag } from "./holdToDrag";
 import { renderNode, type PlacedPoint } from "./node";
 
 /** One concentric ring of an orbit, as placed: where it turns about, and what is on it. */
@@ -31,6 +32,15 @@ export interface DiagramView {
   onPick: (point: number) => void;
   /** How far the arrows bow, as a multiple of the usual amount; 1 when absent. */
   curvature?: number;
+  /**
+   * A node was held long enough to drag, with the pointer at these client
+   * coordinates. Without it a node cannot be dragged, only clicked.
+   */
+  onDragStart?: (point: number, clientX: number, clientY: number) => void;
+  /** The pointer moved during a drag. */
+  onDragMove?: (clientX: number, clientY: number) => void;
+  /** The drag ended. */
+  onDragEnd?: () => void;
 }
 
 /**
@@ -64,7 +74,14 @@ export const renderPermutationDiagram = (
     node.setAttribute("tabindex", "0");
     node.setAttribute("role", "button");
     node.setAttribute("aria-pressed", String(view.picked === placed.point));
+    const hold = holdToDrag(node, {
+      onStart: (x, y) => view.onDragStart?.(placed.point, x, y),
+      onMove: (x, y) => view.onDragMove?.(x, y),
+      onEnd: () => view.onDragEnd?.(),
+    });
     node.addEventListener("click", () => {
+      // A drag's release is not a click, and must not pick the node it let go of.
+      if (hold.swallowClick()) return;
       view.onPick(placed.point);
     });
     node.addEventListener("keydown", (event) => {
