@@ -82,18 +82,28 @@ export const layoutLattice = (
 };
 
 /**
- * The layout width that earns the lattice its whole allowance on the page.
+ * How many columns wide a lattice must be to earn its whole allowance on the
+ * page, on a wide screen and on a phone.
  *
- * A diagram this wide is drawn at the full 60% the panel gives it, and every
- * narrower one is drawn at the same scale rather than stretched to fill — so a
- * lattice of two nodes has the same size nodes as a lattice of ten, and only a
- * wider one is shrunk to fit. Ten columns is the calibration point because that
- * is the size the nodes already read well at.
+ * A diagram this wide is drawn at the full allowance — 60% of the panel on a
+ * wide screen, all of it on a phone — and every narrower one is drawn at the
+ * same scale rather than stretched to fill, so a lattice of two nodes has the
+ * same size nodes as a wider one, and only one wider still is shrunk to fit.
+ * Ten columns is where the nodes read well in the wide allowance; three is
+ * where they do across a phone.
  */
-const LATTICE_REFERENCE_WIDTH = 10 * COLUMN_WIDTH + MARGIN_X * 2;
+const WIDE_REFERENCE_COLUMNS = 10;
+const NARROW_REFERENCE_COLUMNS = 3;
 
-/** How much of its allowance a lattice of this layout width should take. */
-const latticeWidthShare = (width: number): number => Math.min(1, width / LATTICE_REFERENCE_WIDTH);
+/**
+ * How much of its allowance a lattice of this layout width should take, when
+ * one of `columns` columns would take all of it. The margins count on both
+ * sides, so a narrower lattice's nodes come out the size the reference's do.
+ */
+const latticeWidthShare = (width: number, columns: number): number =>
+  Math.min(1, width / (columns * COLUMN_WIDTH + MARGIN_X * 2));
+
+const percent = (share: number): string => `${(share * 100).toFixed(2)}%`;
 
 /** Shorten a cover line at both ends so it does not run into the labels. */
 const trimmedLine = (
@@ -137,8 +147,16 @@ export const renderLattice = (diagram: LatticeDiagram, view: LatticeView): SVGSV
     role: "group",
   });
   // Width as a share of the allowance rather than all of it: the scale, and so
-  // the size of a node, is then the same whatever the lattice looks like.
-  root.style.width = `${(latticeWidthShare(diagram.width) * 100).toFixed(2)}%`;
+  // the size of a node, is then the same whatever the lattice looks like. Both
+  // shares are offered, and the stylesheet takes the one the screen calls for.
+  root.style.setProperty(
+    "--wide-share",
+    percent(latticeWidthShare(diagram.width, WIDE_REFERENCE_COLUMNS)),
+  );
+  root.style.setProperty(
+    "--narrow-share",
+    percent(latticeWidthShare(diagram.width, NARROW_REFERENCE_COLUMNS)),
+  );
 
   const lines = svg("g", { class: "lattice-edges" });
   for (const [upper, lower] of diagram.edges) {

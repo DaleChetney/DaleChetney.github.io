@@ -73,8 +73,11 @@ describe("renderLattice", () => {
       ...over,
     });
 
-  /** Percentage of its allowance a lattice of this layout width is drawn at. */
-  const drawnPercent = (width: number): number =>
+  /**
+   * Percentage of its allowance a lattice of this layout width is drawn at, on
+   * a wide screen unless the narrow share is asked for.
+   */
+  const drawnPercent = (width: number, share = "--wide-share"): number =>
     Number(
       renderLattice(
         { ...diagram, width },
@@ -86,8 +89,16 @@ describe("renderLattice", () => {
           generated: new Set(),
           onToggle: () => {},
         },
-      ).style.width.replace("%", ""),
+      )
+        .style.getPropertyValue(share)
+        .replace("%", ""),
     );
+  /**
+   * The layout width of a lattice this many columns wide, from the one at hand:
+   * its columns, and the 20 of margin layoutLattice puts either side of them.
+   */
+  const columnsWide = (columns: number): number =>
+    ((diagram.width - 40) / diagram.columns) * columns + 40;
 
   it("draws every node and cover", () => {
     const root = view();
@@ -105,6 +116,17 @@ describe("renderLattice", () => {
   it("never asks for more than the whole allowance", () => {
     expect(drawnPercent(5_000)).toBe(100);
     expect(drawnPercent(50_000)).toBe(100);
+  });
+
+  it("fills a phone's allowance from three columns wide, and takes a share below that", () => {
+    const narrow = (columns: number) => drawnPercent(columnsWide(columns), "--narrow-share");
+    expect(narrow(3)).toBe(100);
+    expect(narrow(6)).toBe(100);
+    // Margins and all, so the nodes come out the size a three-column lattice's do.
+    const scale = (columns: number) => narrow(columns) / columnsWide(columns);
+    expect(scale(1)).toBeCloseTo(scale(3), 4);
+    expect(scale(2)).toBeCloseTo(scale(3), 4);
+    expect(narrow(1)).toBeLessThan(narrow(2));
   });
 
   it("scales every lattice alike, whatever its shape", () => {

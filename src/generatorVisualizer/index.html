@@ -531,7 +531,9 @@
         margin: 0 0 0.5rem;
       }
 
+      /* renderLattice gives each lattice its share of the allowance. */
       .lattice {
+        width: var(--wide-share);
         max-width: 100%;
         height: auto;
         overflow: visible;
@@ -615,7 +617,7 @@
       /*
         A phone. Keep the query in step with NARROW_SCREEN in centerPanel.ts,
         which lays the diagram out to the whole panel under it. The lattice
-        fills the panel too, overriding the share renderLattice sets inline, the
+        takes the whole panel as its allowance, at its narrow share of it, the
         ring controls go beneath it rather than beside it, and the hint goes.
       */
       @media (max-width: 700px) {
@@ -630,8 +632,8 @@
           max-width: none;
         }
 
-        #lattice-panel .lattice {
-          width: 100% !important;
+        .lattice {
+          width: var(--narrow-share);
         }
 
         #lattice-panel .hint {
