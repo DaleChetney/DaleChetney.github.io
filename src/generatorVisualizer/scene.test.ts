@@ -117,3 +117,113 @@ describe("Scene held ring", () => {
     expect(twelve().grabRing(99)).toBeUndefined();
   });
 });
+
+describe("Scene lock", () => {
+  /** The twelve points split into two rings, with the orbit unlocked. */
+  const unlocked = (): Scene => {
+    const scene = twelve();
+    scene.stepRings(0, 1);
+    scene.toggleLock(0);
+    return scene;
+  };
+
+  it("starts every orbit locked", () => {
+    const scene = twelve();
+    expect(scene.isLocked(0)).toBe(true);
+    expect(scene.ringSplits().map((split) => split.locked)).toEqual([true]);
+  });
+
+  it("offers every orbit, including one that cannot be split", () => {
+    const group = byLabel(catalogue).get("12.1");
+    const representation = group?.representations[0];
+    if (group === undefined || representation === undefined) throw new Error("no 12.1");
+    const scene = new Scene(group, representation, 640);
+    expect(scene.ringSplits().map(({ size, counts }) => [size, counts])).toEqual([
+      [3, [1]],
+      [4, [1]],
+    ]);
+  });
+
+  it("plays an orbit drawn as a single ring", () => {
+    const scene = twelve();
+    scene.togglePlay(0);
+    expect(scene.turning).toBe(true);
+    const before = positions(scene);
+    scene.turnBy(0.1);
+    expect(moved(before, positions(scene))).toHaveLength(12);
+  });
+
+  it("stops an orbit turning when it is unlocked, and will not play it", () => {
+    const scene = twelve();
+    scene.togglePlay(0);
+    scene.toggleLock(0);
+    expect(scene.turning).toBe(false);
+    scene.togglePlay(0);
+    expect(scene.turning).toBe(false);
+  });
+
+  it("moves an unlocked node anywhere, alone", () => {
+    const scene = unlocked();
+    const before = positions(scene);
+    scene.movePoint(1, { x: 100, y: 90 });
+    expect(scene.pointAt(1)).toEqual({ x: 100, y: 90 });
+    expect(moved(before, positions(scene))).toEqual([1]);
+  });
+
+  it("leaves a locked node on its ring", () => {
+    const scene = twelve();
+    const before = positions(scene);
+    scene.movePoint(1, { x: 100, y: 90 });
+    expect(positions(scene)).toEqual(before);
+  });
+
+  it("keeps a dragged node on the canvas", () => {
+    const scene = unlocked();
+    scene.movePoint(1, { x: -500, y: 1e6 });
+    const at = scene.pointAt(1);
+    expect(at?.x).toBeGreaterThan(0);
+    expect(at?.y).toBeLessThan(scene.diagram.height);
+  });
+
+  it("carries a dragged node with its orbit's centre through a resize", () => {
+    const scene = unlocked();
+    const centre = (): { cx: number; cy: number } => scene.diagram.rings[0];
+    scene.movePoint(1, { x: centre().cx + 30, y: centre().cy - 20 });
+    scene.relayout(900);
+    expect(scene.pointAt(1)?.x).toBeCloseTo(centre().cx + 30);
+    expect(scene.pointAt(1)?.y).toBeCloseTo(centre().cy - 20);
+  });
+
+  it("swaps a dragged node's place along with its slot", () => {
+    const scene = unlocked();
+    scene.movePoint(1, { x: 100, y: 90 });
+    const other = scene.pointAt(2);
+    scene.pickPoint(1);
+    scene.pickPoint(2);
+    expect(scene.pointAt(2)).toEqual({ x: 100, y: 90 });
+    expect(scene.pointAt(1)).toEqual(other);
+  });
+
+  it("sends every node back to its ring, unturned, when locked again", () => {
+    const scene = twelve();
+    scene.stepRings(0, 1);
+    const home = positions(scene);
+    scene.turnRing(0, 1, 0.2);
+    scene.toggleLock(0);
+    scene.movePoint(1, { x: 100, y: 90 });
+    scene.toggleLock(0);
+    expect(scene.isLocked(0)).toBe(true);
+    expect(positions(scene)).toEqual(home);
+  });
+
+  it("puts dragged nodes back on the rings when the orbit is split again", () => {
+    const scene = unlocked();
+    scene.movePoint(1, { x: 100, y: 90 });
+    scene.stepRings(0, 1);
+    const fresh = twelve();
+    fresh.stepRings(0, 1);
+    fresh.stepRings(0, 1);
+    expect(positions(scene)).toEqual(positions(fresh));
+    expect(scene.isLocked(0)).toBe(false);
+  });
+});

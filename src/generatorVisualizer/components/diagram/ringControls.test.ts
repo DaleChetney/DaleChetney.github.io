@@ -8,7 +8,8 @@ const split = (
   rings: number,
   counts: number[],
   playing = false,
-): RingSplit => ({ orbit, size, rings, counts, playing });
+  locked = true,
+): RingSplit => ({ orbit, size, rings, counts, playing, locked });
 
 const mounted = (
   splits: RingSplit[],
@@ -17,7 +18,12 @@ const mounted = (
 ): HTMLElement => {
   const host = document.createElement("div");
   host.append(
-    renderRingControls(splits, orbitCount, { onStep: vi.fn(), onTogglePlay: vi.fn(), ...view }),
+    renderRingControls(splits, orbitCount, {
+      onStep: vi.fn(),
+      onTogglePlay: vi.fn(),
+      onToggleLock: vi.fn(),
+      ...view,
+    }),
   );
   return host;
 };
@@ -36,12 +42,18 @@ const playButton = (host: HTMLElement, orbit: number): HTMLButtonElement => {
   return found;
 };
 
+const lockButton = (host: HTMLElement, orbit: number): HTMLButtonElement => {
+  const found = host.querySelector<HTMLButtonElement>(`.ring-lock[data-orbit="${String(orbit)}"]`);
+  if (found === null) throw new Error(`no lock button on orbit ${String(orbit)}`);
+  return found;
+};
+
 describe("renderRingControls", () => {
-  it("renders nothing when no orbit can be split", () => {
-    expect(mounted([], 2).childNodes).toHaveLength(0);
+  it("renders nothing when there are no orbits", () => {
+    expect(mounted([], 0).childNodes).toHaveLength(0);
   });
 
-  it("gives each splittable orbit its own stepper", () => {
+  it("gives each orbit its own stepper", () => {
     const host = mounted([split(0, 12, 1, [1, 2, 3, 4]), split(2, 8, 2, [1, 2])], 3);
     expect(host.querySelectorAll(".ring-control")).toHaveLength(2);
     expect(Array.from(host.querySelectorAll(".ring-name"), (n) => n.textContent)).toEqual([
@@ -60,10 +72,11 @@ describe("renderRingControls", () => {
     expect(host.querySelector(".ring-count")?.textContent).toBe("3");
   });
 
-  it("boxes the play button, the count and the steps, in that order", () => {
+  it("boxes the lock, the play button, the count and the steps, in that order", () => {
     const host = mounted([split(0, 12, 3, [1, 2, 3, 4])], 1);
     const stepper = host.querySelector(".ring-stepper");
     expect(Array.from(stepper?.children ?? [], (child) => child.className)).toEqual([
+      "ring-lock",
       "ring-play",
       "ring-count",
       "ring-steps",
@@ -90,10 +103,42 @@ describe("renderRingControls", () => {
     ]);
   });
 
-  it("offers play on a split orbit, and not on one drawn as a single ring", () => {
-    const host = mounted([split(0, 8, 1, [1, 2]), split(1, 9, 3, [1, 3])], 2);
-    expect(playButton(host, 0).disabled).toBe(true);
+  it("offers both steps disabled on an orbit that cannot be split", () => {
+    const host = mounted([split(0, 4, 1, [1])], 2);
+    expect(stepButton(host, 0, 1).disabled).toBe(true);
+    expect(stepButton(host, 0, -1).disabled).toBe(true);
+  });
+
+  it("offers play on a locked orbit, a single ring included, and not on an unlocked one", () => {
+    const host = mounted(
+      [split(0, 8, 1, [1, 2]), split(1, 9, 3, [1, 3]), split(2, 4, 1, [1], false, false)],
+      3,
+    );
+    expect(playButton(host, 0).disabled).toBe(false);
     expect(playButton(host, 1).disabled).toBe(false);
+    expect(playButton(host, 2).disabled).toBe(true);
+  });
+
+  it("offers unlock while locked, and lock while unlocked, naming the orbit", () => {
+    const host = mounted([split(0, 8, 1, [1, 2]), split(1, 4, 1, [1], false, false)], 2);
+    expect(lockButton(host, 0).getAttribute("aria-label")).toBe("Unlock nodes: Orbit of 8");
+    expect(lockButton(host, 0).getAttribute("aria-pressed")).toBe("false");
+    expect(lockButton(host, 1).getAttribute("aria-label")).toBe("Lock nodes: Orbit of 4");
+    expect(lockButton(host, 1).getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("draws the padlock open while unlocked", () => {
+    const host = mounted([split(0, 8, 1, [1, 2]), split(1, 4, 1, [1], false, false)], 2);
+    const shackle = (orbit: number) =>
+      lockButton(host, orbit).querySelector("path")?.getAttribute("d");
+    expect(shackle(0)).not.toBe(shackle(1));
+  });
+
+  it("reports the orbit whose lock was pressed", () => {
+    const onToggleLock = vi.fn();
+    const host = mounted([split(0, 8, 2, [1, 2]), split(1, 9, 3, [1, 3])], 2, { onToggleLock });
+    lockButton(host, 0).click();
+    expect(onToggleLock.mock.calls).toEqual([[0]]);
   });
 
   it("offers play while still, and pause while turning, naming the orbit", () => {
