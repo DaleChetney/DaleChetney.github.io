@@ -34,6 +34,15 @@ describe("collapsiblePanel", () => {
     expect(toggle.getAttribute("aria-expanded")).toBe("false");
   });
 
+  it("starts collapsed when told to, leaving what is stored alone", () => {
+    localStorage.setItem(KEY, "false");
+    const { section, toggle } = panel();
+    collapsiblePanel(section, KEY, true);
+    expect(section.classList.contains("collapsed")).toBe(true);
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(localStorage.getItem(KEY)).toBe("false");
+  });
+
   it("collapses on click and remembers it", () => {
     const { section, toggle } = panel();
     collapsiblePanel(section, KEY);

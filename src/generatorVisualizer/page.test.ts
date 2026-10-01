@@ -28,10 +28,16 @@ beforeAll(async () => {
     "fetch",
     vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve(catalogue) })),
   );
+  // The story below starts on the degree-7 representation with C_6 open, which
+  // is what a stored view with no selection opens; a first visit is startup.test.ts's.
+  localStorage.setItem(
+    "generatorVisualizer.lastView",
+    JSON.stringify({ group: "12.1", representation: "perm-7", selection: null }),
+  );
   await import("./main");
 });
 
-/** The group main.ts opens on, as LMFDB records it at Groups/Abstract/12.1. */
+/** The group these tests open on, as LMFDB records it at Groups/Abstract/12.1. */
 const DEFAULT = { label: "12.1", displayName: "C₃ ⋊ C₄", minimalDegree: 7 };
 
 const latticeNode = (label: string): SVGGElement => {

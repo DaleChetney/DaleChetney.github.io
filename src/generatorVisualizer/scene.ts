@@ -33,6 +33,7 @@ import {
   stepRings,
 } from "./components/diagram/ringLayout";
 import { layoutLattice, type LatticeDiagram } from "./components/lattice";
+import type { StoredSelection } from "./lastView";
 
 /** How many generators a subgroup section will offer. */
 const ELEMENT_LIMIT = 12;
@@ -555,6 +556,27 @@ export class Scene {
       if (last !== undefined) this.#openClass(last);
     }
     this.#selectionChanged();
+  }
+
+  /** The selection as it can be stored: each open class, with the keys chosen from it. */
+  storedSelection(): StoredSelection {
+    return [...this.#selection].map(([classIndex, keys]) => [classIndex, [...keys]]);
+  }
+
+  /**
+   * A stored selection, kept to what this scene offers: a class that cannot be
+   * chosen from is dropped, and so is an element its class does not offer.
+   */
+  selectionFrom(stored: StoredSelection): Map<number, Set<string>> {
+    const selection = new Map<number, Set<string>>();
+    for (const [classIndex, keys] of stored) {
+      if (!this.selectableClasses.includes(classIndex)) continue;
+      // Asking for the class's choices is what registers its elements.
+      this.choicesFor(classIndex);
+      const offered = keys.filter((key) => this.#classOfElement.get(key) === classIndex);
+      selection.set(classIndex, new Set(offered));
+    }
+    return selection;
   }
 
   /** Open or close a class. Opening one draws its first generator. */

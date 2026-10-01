@@ -1,10 +1,11 @@
 import { byLabel, fetchCatalogue, type CatalogueGroup } from "./catalogue";
 import { qs } from "@shared/dom";
-import { CenterPanel, diagramPointAt, stage } from "./centerPanel";
+import { CenterPanel, diagramPointAt, NARROW_SCREEN, stage } from "./centerPanel";
 import type { PlacedRing } from "./components/diagram/permutationDiagram";
 import { NodeDrag } from "./components/diagram/nodeDrag";
 import { RingDrag } from "./components/diagram/ringDrag";
 import { collapsiblePanel } from "./collapsiblePanel";
+import { loadLastView, saveLastView, type LastView } from "./lastView";
 import { LeftPanel } from "./leftPanel";
 import { RightPanel } from "./rightPanel";
 import { Rotation } from "./rotation";
@@ -13,15 +14,24 @@ import { applyTheme, loadSettings, saveSettings } from "./settings";
 import { settingsPanel } from "./settingsPanel";
 import { tabs } from "./tabs";
 
-/** The group the page opens on. */
-const DEFAULT_LABEL = "12.1";
+/**
+ * What the page opens on the first time: C_3:C_4 on twelve points, its class
+ * of C_4s open with two generators drawn, from different conjugates.
+ */
+const FIRST_VIEW: LastView = {
+  group: "12.1",
+  representation: "12T5",
+  selection: [[3, ["8,1,6,11,4,9,2,7,12,5,10,3", "12,5,10,3,8,1,6,11,4,9,2,7"]]],
+};
 
 const catalogue = await fetchCatalogue();
 const groups = byLabel(catalogue);
 const groupFor = (label: string): CatalogueGroup => groups.get(label) ?? catalogue.groups[0];
 
-collapsiblePanel(qs("#panel-left"), "generatorVisualizer.leftPanelCollapsed");
-collapsiblePanel(qs("#panel-right"), "generatorVisualizer.rightPanelCollapsed");
+// A phone has no room beside the diagram, so the side panels start folded away there.
+const narrow = window.matchMedia(NARROW_SCREEN).matches;
+collapsiblePanel(qs("#panel-left"), "generatorVisualizer.leftPanelCollapsed", narrow);
+collapsiblePanel(qs("#panel-right"), "generatorVisualizer.rightPanelCollapsed", narrow);
 tabs(qs("#panel-right"), "generatorVisualizer.rightPanelTab");
 
 let settings = loadSettings();
@@ -101,14 +111,20 @@ const rightPanel = new RightPanel((key) => {
   render();
 });
 
-let scene = sceneFor(groupFor(DEFAULT_LABEL));
+let scene = startingScene();
 
 /**
  * The two panels that show the selection. The left one is not among them: its
  * 402 rows change only when the group does. The clock runs only while some
- * orbit of the scene is turning, and every change of scene passes through here.
+ * orbit of the scene is turning, and every change of scene passes through here,
+ * so here is where it is remembered for next time.
  */
 function render(): void {
+  saveLastView({
+    group: scene.group.label,
+    representation: scene.representation.id,
+    selection: scene.storedSelection(),
+  });
   if (scene.turning) rotation.play();
   else rotation.pause();
   centerPanel.show(scene, settings);
@@ -119,6 +135,29 @@ function render(): void {
 function sceneFor(group: CatalogueGroup): Scene {
   const next = new Scene(group, group.representations[0], stage());
   next.open(null);
+  return next;
+}
+
+/** The scene last looked at, or on a first visit, or if the catalogue has lost it, the first one. */
+function startingScene(): Scene {
+  const last = loadLastView();
+  return (
+    (last === null ? null : sceneOf(last)) ?? sceneOf(FIRST_VIEW) ?? sceneFor(catalogue.groups[0])
+  );
+}
+
+/**
+ * The scene a stored view describes, or null for a group the catalogue no
+ * longer has. A representation it no longer has opens the group afresh, since
+ * the selection was written in that one.
+ */
+function sceneOf(view: LastView): Scene | null {
+  const group = groups.get(view.group);
+  if (group === undefined) return null;
+  const representation = group.representations.find((rep) => rep.id === view.representation);
+  if (representation === undefined) return sceneFor(group);
+  const next = new Scene(group, representation, stage());
+  next.open(view.selection === null ? null : next.selectionFrom(view.selection));
   return next;
 }
 
