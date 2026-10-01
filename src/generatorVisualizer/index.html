@@ -421,14 +421,15 @@
 
       /*
         The lattice is scaled whole rather than re-laid-out, since stretching a
-        Hasse diagram is just a bigger picture of the same thing. 60% is the
-        ceiling: renderLattice sizes the SVG to a share of it so that nodes come
-        out the same size in every lattice, and only one past ten columns wide
-        has to shrink to fit.
+        Hasse diagram is just a bigger picture of the same thing. 75% is the
+        ceiling, leaving the ring controls the little they need: renderLattice
+        sizes the SVG to a share of it so that nodes come out the same size in
+        every lattice, and only one past about twelve columns wide has to
+        shrink to fit. Keep it in step with WIDE_REFERENCE_WIDTH there.
       */
       #lattice-panel {
-        flex: 0 0 60%;
-        max-width: 60%;
+        flex: 0 0 75%;
+        max-width: 75%;
       }
 
       /* The rest of the width, with the steppers kept to its top right corner. */

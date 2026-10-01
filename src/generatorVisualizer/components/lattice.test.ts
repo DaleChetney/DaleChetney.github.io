@@ -113,6 +113,10 @@ describe("renderLattice", () => {
     expect(drawnPercent(diagram.width)).toBeLessThan(30);
   });
 
+  it("draws a ten-column lattice across 60% of a wide panel, within its 75% allowance", () => {
+    expect(drawnPercent(columnsWide(10)) * 0.75).toBeCloseTo(60, 1);
+  });
+
   it("never asks for more than the whole allowance", () => {
     expect(drawnPercent(5_000)).toBe(100);
     expect(drawnPercent(50_000)).toBe(100);

@@ -81,27 +81,33 @@ export const layoutLattice = (
   return { nodes, edges, columns: widest, width, height };
 };
 
+/** The layout width of a lattice this many columns wide, margins included. */
+const columnsWidth = (columns: number): number => columns * COLUMN_WIDTH + MARGIN_X * 2;
+
 /**
- * How many columns wide a lattice must be to earn its whole allowance on the
+ * How wide a lattice must be laid out to earn its whole allowance on the
  * page, on a wide screen and on a phone.
  *
- * A diagram this wide is drawn at the full allowance — 60% of the panel on a
+ * A diagram this wide is drawn at the full allowance — 75% of the panel on a
  * wide screen, all of it on a phone — and every narrower one is drawn at the
  * same scale rather than stretched to fill, so a lattice of two nodes has the
  * same size nodes as a wider one, and only one wider still is shrunk to fit.
- * Ten columns is where the nodes read well in the wide allowance; three is
- * where they do across a phone.
+ *
+ * On a wide screen the nodes read well at the size a ten-column lattice has
+ * across 60% of the panel. The allowance is wider than that, as room to grow,
+ * so the lattice that fills it is wider in proportion: about twelve and a half
+ * columns. Across a phone they read well at three columns to the panel.
  */
-const WIDE_REFERENCE_COLUMNS = 10;
-const NARROW_REFERENCE_COLUMNS = 3;
+const WIDE_REFERENCE_WIDTH = columnsWidth(10) * (0.75 / 0.6);
+const NARROW_REFERENCE_WIDTH = columnsWidth(3);
 
 /**
  * How much of its allowance a lattice of this layout width should take, when
- * one of `columns` columns would take all of it. The margins count on both
- * sides, so a narrower lattice's nodes come out the size the reference's do.
+ * one `reference` wide would take all of it. The margins count on both sides,
+ * so a narrower lattice's nodes come out the size the reference's do.
  */
-const latticeWidthShare = (width: number, columns: number): number =>
-  Math.min(1, width / (columns * COLUMN_WIDTH + MARGIN_X * 2));
+const latticeWidthShare = (width: number, reference: number): number =>
+  Math.min(1, width / reference);
 
 const percent = (share: number): string => `${(share * 100).toFixed(2)}%`;
 
@@ -151,11 +157,11 @@ export const renderLattice = (diagram: LatticeDiagram, view: LatticeView): SVGSV
   // shares are offered, and the stylesheet takes the one the screen calls for.
   root.style.setProperty(
     "--wide-share",
-    percent(latticeWidthShare(diagram.width, WIDE_REFERENCE_COLUMNS)),
+    percent(latticeWidthShare(diagram.width, WIDE_REFERENCE_WIDTH)),
   );
   root.style.setProperty(
     "--narrow-share",
-    percent(latticeWidthShare(diagram.width, NARROW_REFERENCE_COLUMNS)),
+    percent(latticeWidthShare(diagram.width, NARROW_REFERENCE_WIDTH)),
   );
 
   const lines = svg("g", { class: "lattice-edges" });
