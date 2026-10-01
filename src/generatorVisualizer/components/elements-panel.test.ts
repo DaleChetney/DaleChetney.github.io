@@ -19,6 +19,7 @@ const choices = (
 const section = (over: Partial<ElementSection> = {}): ElementSection => ({
   classIndex: 3,
   label: "₃C₄",
+  letter: "b",
   conjugateCount: 3,
   choices: choices([
     [[1, 3, 2, 5, 6, 7, 4], 0],
@@ -82,11 +83,17 @@ describe("renderElementSections", () => {
     expect(root.querySelector(".muted")?.textContent).toContain("1 of 40");
   });
 
-  it("shows cycle notation and reflects the selection", () => {
+  it("names each element as a power of its conjugate's first", () => {
+    const root = renderElementSections([section()], view());
+    const names = [...root.querySelectorAll(".element code")].map((code) => code.textContent);
+    expect(names).toEqual(["b₁", "b₁³", "b₂"]);
+  });
+
+  it("keeps the cycle notation for a hover, and reflects the selection", () => {
     const chosen = permutationKey([1, 3, 2, 5, 6, 7, 4]);
     const root = renderElementSections([section()], view({ isSelected: (key) => key === chosen }));
     const row = root.querySelector<HTMLElement>(`[data-element="${chosen}"]`);
-    expect(row?.querySelector("code")?.textContent).toBe("(2 3)(4 5 6 7)");
+    expect(row?.title).toBe("(2 3)(4 5 6 7)");
     expect(row?.querySelector<HTMLInputElement>("input")?.checked).toBe(true);
     expect(root.querySelectorAll<HTMLInputElement>("input:checked")).toHaveLength(1);
   });

@@ -5,12 +5,15 @@ import {
   type Permutation,
 } from "@shared/mathUtils/groups/permutations";
 import type { GeneratorChoices } from "@shared/mathUtils/groups/generatorChoices";
+import { generatorNames } from "./generatorNames";
 
 /** One selected subgroup class, and the generators it offers. */
 export interface ElementSection {
   /** Index into `SubgroupLattice.classes`. */
   classIndex: number;
   label: string;
+  /** The letter its generators are named by, as `a` in `a²`. */
+  letter: string;
   /** Number of conjugate subgroups in the class. */
   conjugateCount: number;
   choices: GeneratorChoices;
@@ -23,7 +26,11 @@ export interface ElementSelectionView {
   onToggle: (key: string) => void;
 }
 
-const elementRow = (permutation: Permutation, view: ElementSelectionView): HTMLElement => {
+const elementRow = (
+  permutation: Permutation,
+  names: Map<string, string>,
+  view: ElementSelectionView,
+): HTMLElement => {
   const key = permutationKey(permutation);
   const input = el("input", { type: "checkbox", checked: view.isSelected(key) });
   input.addEventListener("change", () => {
@@ -35,10 +42,13 @@ const elementRow = (permutation: Permutation, view: ElementSelectionView): HTMLE
   // selection, so which one it would take depends on what else is drawn.
   swatch.style.background = view.colorOf(key) ?? "currentColor";
 
-  const row = el("label", { className: "element" }, [
+  // The full permutation is too long to list, so the row names the element as
+  // a power of its conjugate's first generator and keeps the cycles for a hover.
+  const cycles = formatPermutation(permutation);
+  const row = el("label", { className: "element", title: cycles }, [
     input,
     swatch,
-    el("code", {}, [formatPermutation(permutation)]),
+    el("code", {}, [names.get(key) ?? cycles]),
   ]);
   row.dataset.element = key;
   return row;
@@ -47,17 +57,19 @@ const elementRow = (permutation: Permutation, view: ElementSelectionView): HTMLE
 const conjugateGroup = (
   section: ElementSection,
   conjugate: number,
+  names: Map<string, string>,
   view: ElementSelectionView,
 ): HTMLElement =>
   el("div", { className: "conjugate" }, [
     el("h4", {}, [`Conjugate ${conjugate + 1}`]),
     ...section.choices.elements
       .filter((choice) => choice.conjugate === conjugate)
-      .map((choice) => elementRow(choice.permutation, view)),
+      .map((choice) => elementRow(choice.permutation, names, view)),
   ]);
 
 const sectionBlock = (section: ElementSection, view: ElementSelectionView): HTMLElement => {
   const { elements, total } = section.choices;
+  const names = generatorNames(section.letter, section.choices, section.conjugateCount);
   const heading = el("h3", {}, [
     section.label,
     el("span", { className: "muted" }, [
@@ -72,9 +84,9 @@ const sectionBlock = (section: ElementSection, view: ElementSelectionView): HTML
   const body =
     section.conjugateCount > 1
       ? [...new Set(elements.map((choice) => choice.conjugate))].map((conjugate) =>
-          conjugateGroup(section, conjugate, view),
+          conjugateGroup(section, conjugate, names, view),
         )
-      : elements.map((choice) => elementRow(choice.permutation, view));
+      : elements.map((choice) => elementRow(choice.permutation, names, view));
 
   const block = el("section", { className: "element-section" }, [heading, ...body]);
   block.dataset.class = String(section.classIndex);

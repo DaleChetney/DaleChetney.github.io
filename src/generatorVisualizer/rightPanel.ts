@@ -1,5 +1,6 @@
 import { mount, preservingFocus, qs } from "@shared/dom";
 import { classLabel } from "./components/classLabel";
+import { classLetter } from "./components/generatorNames";
 import { renderElementSections, type ElementSection } from "./components/elements-panel";
 import type { Scene } from "./scene";
 
@@ -40,12 +41,15 @@ export class RightPanel {
 
 /**
  * The open classes as sections. Each is headed with the same name the lattice
- * node carries, so the two panels read as one selection.
+ * node carries, so the two panels read as one selection. Its letter comes from
+ * its place among every selectable class, not just the open ones, so a class
+ * keeps its letter whatever else is opened or closed.
  */
 const sectionsOf = (scene: Scene): ElementSection[] =>
   scene.openClasses().map((classIndex) => ({
     classIndex,
     label: classLabel(scene.classAt(classIndex), scene.group.order, scene.group.displayName),
+    letter: classLetter(scene.selectableClasses.indexOf(classIndex)),
     conjugateCount: scene.classAt(classIndex).count,
     choices: scene.choicesFor(classIndex),
   }));

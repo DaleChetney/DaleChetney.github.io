@@ -1,12 +1,5 @@
 import type { CatalogueSubgroupClass } from "../catalogue";
-
-const SUBSCRIPT_DIGITS = "₀₁₂₃₄₅₆₇₈₉";
-
-const subscript = (n: number): string =>
-  String(n)
-    .split("")
-    .map((digit) => SUBSCRIPT_DIGITS[Number(digit)])
-    .join("");
+import { subscript } from "./scriptDigits";
 
 /**
  * A class's label: LMFDB's name for the subgroup, except that the whole group
