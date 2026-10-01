@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from "vitest";
 import { decodePermutation, permutationOrbits } from "@shared/mathUtils/groups/permutations";
-import { actionArrows, renderArrows } from "./arrow";
+import { actionArrows, renderArrows, type BowWidth } from "./arrow";
 import { layoutOrbits } from "./ringLayout";
 
 const distinct = <T>(values: readonly T[]): number => new Set(values).size;
@@ -120,5 +120,39 @@ describe("renderArrows curvature", () => {
   it("defaults to curvature 1", () => {
     const d = renderArrows([arrow], colorOf).querySelector("path")?.getAttribute("d");
     expect(d).toBe(renderArrows([arrow], colorOf, 1).querySelector("path")?.getAttribute("d"));
+  });
+});
+
+describe("renderArrows bow width", () => {
+  const colorOf = (): string => "#000";
+
+  /** How far the one arrow of this length bows from its chord, at curvature 1. */
+  const bowAt = (length: number, width?: BowWidth): number => {
+    const arrow = {
+      generator: 0,
+      from: { point: 1, x: 0, y: 0 },
+      to: { point: 2, x: length, y: 0 },
+    };
+    const d = renderArrows([arrow], colorOf, 1, width).querySelector("path")?.getAttribute("d");
+    const match = /Q -?[\d.]+ (-?[\d.]+)/.exec(d ?? "");
+    if (match === null) throw new Error(`no quadratic in ${String(d)}`);
+    return Number(match[1]);
+  };
+
+  it("defaults to constant width", () => {
+    expect(bowAt(600)).toBe(bowAt(600, "constant"));
+  });
+
+  it("caps the bow of a long arrow at constant width", () => {
+    expect(bowAt(600, "constant")).toBe(bowAt(1200, "constant"));
+  });
+
+  it("keeps a long arrow's bow in proportion at relative width", () => {
+    expect(bowAt(1200, "relative")).toBeGreaterThan(bowAt(600, "relative"));
+    expect(bowAt(600, "relative")).toBeGreaterThan(bowAt(600, "constant"));
+  });
+
+  it("bows a short arrow the same either way", () => {
+    expect(bowAt(100, "relative")).toBe(bowAt(100, "constant"));
   });
 });

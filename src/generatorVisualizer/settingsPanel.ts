@@ -1,12 +1,16 @@
 import { qs } from "@shared/dom";
-import { CURVATURE, ROTATION_PERIOD, type Settings, type Theme } from "./settings";
+import { CURVATURE, ROTATION_PERIOD, type Settings } from "./settings";
+
+/** The settings chosen from a few named options, each with a radio group of its own. */
+type ChoiceSetting = "theme" | "arrowBowWidth";
 
 /** The numeric settings, each with a slider of its own. */
 type SliderSetting = "arrowCurvature" | "rotationPeriod";
 
 /**
- * Wire the settings pane's controls: a radio per theme, and a slider each for
- * the arrow curvature and the rotation period, all in the static markup.
+ * Wire the settings pane's controls: a radio group each for the theme and the
+ * arrows' bow width, and a slider each for the arrow curvature and the rotation
+ * period, all in the static markup.
  *
  * The pane holds no state. It is shown `initial` once, and from then on every
  * change is reported whole through `onChange`; whoever owns the settings
@@ -19,14 +23,17 @@ export const settingsPanel = (
 ): void => {
   let current = initial;
 
-  const themes = Array.from(pane.querySelectorAll<HTMLInputElement>('input[name="theme"]'));
-  for (const radio of themes) {
-    radio.checked = radio.value === initial.theme;
-    radio.addEventListener("change", () => {
-      current = { ...current, theme: radio.value as Theme };
-      onChange(current);
-    });
-  }
+  /** The radios named `name`, one per option, bound to `key`. */
+  const choice = (name: string, key: ChoiceSetting): void => {
+    const radios = pane.querySelectorAll<HTMLInputElement>(`input[name="${name}"]`);
+    for (const radio of radios) {
+      radio.checked = radio.value === initial[key];
+      radio.addEventListener("change", () => {
+        current = { ...current, [key]: radio.value };
+        onChange(current);
+      });
+    }
+  };
 
   /** A slider and the readout beside it, sized to `range` and bound to `key`. */
   const slider = (
@@ -48,6 +55,8 @@ export const settingsPanel = (
     });
   };
 
+  choice("theme", "theme");
+  choice("arrow-bow-width", "arrowBowWidth");
   slider("arrow-curvature", "arrowCurvature", CURVATURE);
   slider("rotation-period", "rotationPeriod", ROTATION_PERIOD);
 };

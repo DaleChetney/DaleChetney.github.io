@@ -1,9 +1,14 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
 import { decodePermutation, permutationOrbits } from "@shared/mathUtils/groups/permutations";
-import { actionArrows } from "./arrow";
+import { actionArrows, type BowWidth } from "./arrow";
 import { HOLD_DELAY } from "./holdToDrag";
-import { moveDiagram, renderPermutationDiagram, type DiagramView } from "./permutationDiagram";
+import {
+  moveDiagram,
+  renderPermutationDiagram,
+  type Diagram,
+  type DiagramView,
+} from "./permutationDiagram";
 import { layoutOrbits } from "./ringLayout";
 
 const generators = [129, 16, 840].map((code) => decodePermutation(code, 7));
@@ -117,6 +122,40 @@ describe("renderPermutationDiagram curvature", () => {
     const usual = paths(render([0]));
     expect(paths(render([0], { curvature: 1 }))).toEqual(usual);
     expect(paths(render([0], { curvature: -1 }))).not.toEqual(usual);
+  });
+});
+
+describe("renderPermutationDiagram bow width", () => {
+  // Two points far enough apart that the constant width's cap on the bow bites.
+  const wide = (x: number): Diagram => ({
+    points: [
+      { point: 1, x: 0, y: 0 },
+      { point: 2, x, y: 0 },
+    ],
+    rings: [],
+    width: 1200,
+    height: 200,
+  });
+  const swap = [[2, 1]];
+  const draw = (at: Diagram, bowWidth?: BowWidth): SVGSVGElement =>
+    renderPermutationDiagram(at, actionArrows(at.points, swap), colorOf, {
+      picked: null,
+      onPick: () => {},
+      bowWidth,
+    });
+  const paths = (root: SVGSVGElement): string[] =>
+    Array.from(root.querySelectorAll(".edges path")).map((path) => path.getAttribute("d") ?? "");
+
+  it("bows the arrows by the view's bow width", () => {
+    const usual = paths(draw(wide(600)));
+    expect(paths(draw(wide(600), "constant"))).toEqual(usual);
+    expect(paths(draw(wide(600), "relative"))).not.toEqual(usual);
+  });
+
+  it("bows the moved arrows by the bow width given", () => {
+    const root = draw(wide(600), "relative");
+    moveDiagram(root, wide(1000).points, 1, "relative");
+    expect(paths(root)).toEqual(paths(draw(wide(1000), "relative")));
   });
 });
 

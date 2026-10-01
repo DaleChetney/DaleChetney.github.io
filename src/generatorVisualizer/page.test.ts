@@ -718,6 +718,23 @@ describe("settings tab", () => {
     expect(arrowPaths()).toEqual(before);
   });
 
+  it("redraws the arrows as the bow width changes", () => {
+    groupRow(DEFAULT.label).click();
+    const bowWidth = (value: string): HTMLInputElement => {
+      const found = document.querySelector<HTMLInputElement>(
+        `input[name="arrow-bow-width"][value="${value}"]`,
+      );
+      if (found === null) throw new Error(`no bow width ${value}`);
+      return found;
+    };
+    expect(bowWidth("constant").checked).toBe(true);
+    const before = arrowPaths();
+    bowWidth("relative").click();
+    expect(arrowPaths()).toHaveLength(before.length);
+    bowWidth("constant").click();
+    expect(arrowPaths()).toEqual(before);
+  });
+
   it("keeps the curvature across a change of group", () => {
     slider().value = "0";
     slider().dispatchEvent(new Event("input"));

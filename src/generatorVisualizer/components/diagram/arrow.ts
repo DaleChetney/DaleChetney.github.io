@@ -63,8 +63,16 @@ const strokeWidths = (arrows: readonly ActionArrow[]): number[] => {
   });
 };
 
+/**
+ * How an arrow's bow grows with the length of its chord. "constant" caps it, so
+ * every arrow past a modest length bows by the same amount; "relative" lets it
+ * keep growing in proportion, so long arrows bow as visibly as short ones.
+ */
+export type BowWidth = "constant" | "relative";
+
 /** How far an arrow bows away from the straight chord at curvature 1, in user units. */
-const bowOffset = (distance: number): number => Math.min(distance * 0.18, 34) + 6;
+const bowOffset = (distance: number, width: BowWidth): number =>
+  (width === "constant" ? Math.min(distance * 0.18, 34) : distance * 0.18) + 6;
 
 const arrowheadId = (generator: number): string => `arrowhead-${generator}`;
 
@@ -73,13 +81,17 @@ const arrowheadId = (generator: number): string => `arrowhead-${generator}`;
  * side so that a 2-cycle's two arrows separate instead of overlapping, and both
  * ends are pulled back to the node boundary so the head is not hidden under it.
  * `curvature` scales the bow: 0 is the straight chord, and a negative value
- * bows to the other side.
+ * bows to the other side. `width` sets how the bow grows with the chord.
  */
-export const arrowPath = (arrow: Pick<ActionArrow, "from" | "to">, curvature: number): string => {
+export const arrowPath = (
+  arrow: Pick<ActionArrow, "from" | "to">,
+  curvature: number,
+  width: BowWidth = "constant",
+): string => {
   const dx = arrow.to.x - arrow.from.x;
   const dy = arrow.to.y - arrow.from.y;
   const distance = Math.hypot(dx, dy) || 1;
-  const offset = bowOffset(distance) * curvature;
+  const offset = bowOffset(distance, width) * curvature;
   const controlX = (arrow.from.x + arrow.to.x) / 2 - (dy / distance) * offset;
   const controlY = (arrow.from.y + arrow.to.y) / 2 + (dx / distance) * offset;
 
@@ -126,12 +138,14 @@ export const arrowheadDefs = (
 
 /**
  * The edge layer: every arrow as a curve, tagged with the action it stands for.
- * `curvature` is how far the arrows bow, as a multiple of the usual amount.
+ * `curvature` is how far the arrows bow, as a multiple of the usual amount, and
+ * `width` how that bow grows with an arrow's length.
  */
 export const renderArrows = (
   arrows: readonly ActionArrow[],
   colorOf: (generator: number) => string,
   curvature = 1,
+  width: BowWidth = "constant",
 ): SVGGElement => {
   const edges = svg("g", { class: "edges", fill: "none" });
   const widths = strokeWidths(arrows);
@@ -142,7 +156,7 @@ export const renderArrows = (
     const arrow = arrows[index];
     edges.append(
       svg("path", {
-        d: arrowPath(arrow, curvature),
+        d: arrowPath(arrow, curvature, width),
         stroke: colorOf(arrow.generator),
         "stroke-width": widths[index],
         "marker-end": `url(#${arrowheadId(arrow.generator)})`,
