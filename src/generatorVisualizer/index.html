@@ -22,7 +22,7 @@
 
       body {
         --left: 240px;
-        --right: 300px;
+        --right: 240px;
         margin: 0;
         height: 100vh;
         display: grid;
@@ -383,6 +383,42 @@
         opacity: 0.55;
       }
 
+      .pager {
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+        margin: 0 0 0.25rem;
+        font-size: 0.75rem;
+      }
+
+      .pager-range {
+        font-variant-numeric: tabular-nums;
+        opacity: 0.65;
+        min-width: 6.5em;
+        text-align: center;
+      }
+
+      .pager-step {
+        font: inherit;
+        font-size: 1rem;
+        line-height: 1;
+        color: inherit;
+        background: none;
+        border: 1px solid var(--edge);
+        border-radius: 0.35rem;
+        padding: 0.1rem 0.5rem;
+        cursor: pointer;
+      }
+
+      .pager-step:hover:not(:disabled) {
+        background: var(--panel);
+      }
+
+      .pager-step:disabled {
+        opacity: 0.35;
+        cursor: default;
+      }
+
       .conjugate h4 {
         font-size: 0.68rem;
         text-transform: uppercase;
@@ -400,7 +436,7 @@
       }
 
       .element code {
-        font-size: 0.78rem;
+        font-size: 0.95rem;
       }
 
       .swatch {
