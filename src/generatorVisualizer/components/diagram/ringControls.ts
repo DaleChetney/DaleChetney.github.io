@@ -1,7 +1,10 @@
 import { el } from "@shared/dom";
 import { svg } from "../../svg";
 
-/** One orbit, how it is split into concentric rings now, and whether its nodes are locked. */
+/**
+ * One orbit, how it is split into concentric rings now, whether a node sits at
+ * its center, and whether its nodes are locked.
+ */
 export interface RingSplit {
   /** The orbit's index, left to right. */
   orbit: number;
@@ -9,8 +12,12 @@ export interface RingSplit {
   size: number;
   /** Concentric rings it is drawn as. */
   rings: number;
-  /** Every ring count it can be drawn as, ascending. */
+  /** Every ring count it can be drawn as, ascending, with its center as it is. */
   counts: readonly number[];
+  /** Whether one of its nodes sits at its center, the rest ringed around it. */
+  centered: boolean;
+  /** Whether it has nodes enough to ring the rest around one at its center. */
+  centerable: boolean;
   /** Whether its rings are turning. */
   playing: boolean;
   /** Whether its nodes are held to its rings, rather than free to be dragged anywhere. */
@@ -24,6 +31,8 @@ export interface RingControlsView {
   onTogglePlay: (orbit: number) => void;
   /** An orbit's nodes were asked to be unlocked, or locked again. */
   onToggleLock: (orbit: number) => void;
+  /** A node was asked to be put at an orbit's center, or back on its rings. */
+  onToggleCenter: (orbit: number) => void;
 }
 
 /** A padlock, its shackle closed or swung open, drawn in the text color. */
@@ -41,10 +50,41 @@ const padlock = (locked: boolean): SVGSVGElement => {
   return icon;
 };
 
+/** A bullseye while a node sits at the center, an empty circle while none does. */
+const bullseye = (centered: boolean): SVGSVGElement => {
+  const icon = svg("svg", { viewBox: "0 0 16 16", width: 16, height: 16, "aria-hidden": "true" });
+  icon.append(
+    svg("circle", {
+      cx: 8,
+      cy: 8,
+      r: 6,
+      fill: "none",
+      stroke: "currentColor",
+      "stroke-width": 1.6,
+    }),
+  );
+  if (centered) icon.append(svg("circle", { cx: 8, cy: 8, r: 2.5, fill: "currentColor" }));
+  return icon;
+};
+
+/** Name a control for a screen reader, and give it the same name as a tooltip. */
+const label = (node: HTMLElement, text: string): void => {
+  node.setAttribute("aria-label", text);
+  node.title = text;
+};
+
+/** What the count stands for: how many rings, of how many nodes, around what. */
+const describeSplit = ({ size, rings, centered }: RingSplit): string => {
+  const perRing = (size - (centered ? 1 : 0)) / rings;
+  const split = `${String(rings)} ${rings === 1 ? "ring" : "rings"} of ${String(perRing)}`;
+  return centered ? `${split}, around a center node` : split;
+};
+
 /**
  * A stepper per orbit, all in one box: a lock that frees its nodes to be
- * dragged anywhere, a play/pause button that sets its rings turning, the ring
- * count, and the buttons that change the count. A lone orbit needs no name;
+ * dragged anywhere, a play/pause button that sets its rings turning, a button
+ * that puts one node at its center, the ring count, and the buttons that change
+ * the count. Every one of them names itself in a tooltip. A lone orbit needs no name;
  * beside others it is named by its size. An unlocked orbit has no rings to
  * turn, so it cannot be played.
  */
@@ -62,13 +102,13 @@ export const renderRingControls = (
     const named = (label: string): string => (name === null ? label : `${label}: ${name}`);
     const at = split.counts.indexOf(split.rings);
 
-    const button = (step: 1 | -1, symbol: string, label: string, enabled: boolean) => {
+    const button = (step: 1 | -1, symbol: string, text: string, enabled: boolean) => {
       const node = el("button", { className: "ring-step", type: "button", disabled: !enabled }, [
         symbol,
       ]);
       node.dataset.orbit = String(split.orbit);
       node.dataset.step = String(step);
-      node.setAttribute("aria-label", named(label));
+      label(node, named(text));
       node.addEventListener("click", () => {
         view.onStep(split.orbit, step);
       });
@@ -77,7 +117,7 @@ export const renderRingControls = (
 
     const lock = el("button", { className: "ring-lock", type: "button" }, [padlock(split.locked)]);
     lock.dataset.orbit = String(split.orbit);
-    lock.setAttribute("aria-label", named(split.locked ? "Unlock nodes" : "Lock nodes"));
+    label(lock, named(split.locked ? "Unlock nodes" : "Lock nodes"));
     lock.setAttribute("aria-pressed", String(!split.locked));
     lock.addEventListener("click", () => {
       view.onToggleLock(split.orbit);
@@ -88,16 +128,32 @@ export const renderRingControls = (
       split.playing ? "❚❚" : "▶︎",
     ]);
     play.dataset.orbit = String(split.orbit);
-    play.setAttribute("aria-label", named(split.playing ? "Pause rotation" : "Play rotation"));
+    label(play, named(split.playing ? "Pause rotation" : "Play rotation"));
     play.setAttribute("aria-pressed", String(split.playing));
     play.addEventListener("click", () => {
       view.onTogglePlay(split.orbit);
     });
 
+    const center = el(
+      "button",
+      { className: "ring-center", type: "button", disabled: !split.centerable },
+      [bullseye(split.centered)],
+    );
+    center.dataset.orbit = String(split.orbit);
+    label(center, named(split.centered ? "Remove center node" : "Add center node"));
+    center.setAttribute("aria-pressed", String(split.centered));
+    center.addEventListener("click", () => {
+      view.onToggleCenter(split.orbit);
+    });
+
+    const count = el("output", { className: "ring-count" }, [String(split.rings)]);
+    count.title = describeSplit(split);
+
     const stepper = el("div", { className: "ring-stepper" }, [
       lock,
       play,
-      el("output", { className: "ring-count" }, [String(split.rings)]),
+      center,
+      count,
       el("span", { className: "ring-steps" }, [
         button(1, "▲", "More rings", at < split.counts.length - 1),
         button(-1, "▼", "Fewer rings", at > 0),

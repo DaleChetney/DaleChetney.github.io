@@ -235,3 +235,46 @@ describe("Scene lock", () => {
     expect(scene.isLocked(0)).toBe(false);
   });
 });
+
+describe("Scene center", () => {
+  it("drops to the most rings that still divide when the center is taken and given back", () => {
+    const scene = twelve();
+    scene.stepRings(0, 1);
+    scene.stepRings(0, 1);
+    expect(scene.ringSplits()[0].rings).toBe(3);
+    scene.toggleCenter(0);
+    expect(scene.ringSplits()[0]).toMatchObject({ rings: 1, counts: [1], centered: true });
+    scene.toggleCenter(0);
+    expect(scene.ringSplits()[0]).toMatchObject({
+      rings: 1,
+      counts: [1, 2, 3, 4],
+      centered: false,
+    });
+  });
+
+  it("draws the centered node at the orbit's center, where it does not turn", () => {
+    const scene = twelve();
+    scene.toggleCenter(0);
+    const [ringed, center] = scene.diagram.rings;
+    expect(ringed.points).toHaveLength(11);
+    expect(center.radius).toBe(0);
+    const before = positions(scene);
+    scene.turnRing(0, center.ring, 0.25);
+    expect(positions(scene)).toEqual(before);
+    scene.togglePlay(0);
+    scene.turnBy(0.1);
+    expect(moved(before, positions(scene))).not.toContain(center.points[0]);
+  });
+
+  it("will not center an orbit too small to ring the rest", () => {
+    const group = byLabel(catalogue).get("12.1");
+    const representation = group?.representations[0];
+    if (group === undefined || representation === undefined) throw new Error("no 12.1");
+    const scene = new Scene(group, representation, { width: 640, fill: false });
+    scene.toggleCenter(0);
+    expect(scene.ringSplits().map(({ centered, centerable }) => [centered, centerable])).toEqual([
+      [false, false],
+      [false, true],
+    ]);
+  });
+});

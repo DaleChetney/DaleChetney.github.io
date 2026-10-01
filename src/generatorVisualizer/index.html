@@ -484,7 +484,8 @@
 
       .ring-step,
       .ring-lock,
-      .ring-play {
+      .ring-play,
+      .ring-center {
         flex: 1;
         font: inherit;
         font-size: 0.9rem;
@@ -497,11 +498,13 @@
       }
 
       .ring-lock,
-      .ring-play {
+      .ring-play,
+      .ring-center {
         border-right: 1px solid var(--edge);
       }
 
-      .ring-lock svg {
+      .ring-lock svg,
+      .ring-center svg {
         display: block;
       }
 
@@ -511,7 +514,8 @@
 
       .ring-step:hover:not(:disabled),
       .ring-lock:hover,
-      .ring-play:hover:not(:disabled) {
+      .ring-play:hover:not(:disabled),
+      .ring-center:hover:not(:disabled) {
         background: var(--panel);
       }
 
@@ -521,7 +525,8 @@
       }
 
       .ring-step:disabled,
-      .ring-play:disabled {
+      .ring-play:disabled,
+      .ring-center:disabled {
         opacity: 0.35;
         cursor: default;
       }
