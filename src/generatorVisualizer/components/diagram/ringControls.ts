@@ -1,6 +1,7 @@
 import { el } from "@shared/dom";
+import { svg } from "../../svg";
 
-/** One orbit that can be split into concentric rings, and how it is split now. */
+/** One orbit, how it is split into concentric rings now, and whether its nodes are locked. */
 export interface RingSplit {
   /** The orbit's index, left to right. */
   orbit: number;
@@ -12,6 +13,8 @@ export interface RingSplit {
   counts: readonly number[];
   /** Whether its rings are turning. */
   playing: boolean;
+  /** Whether its nodes are held to its rings, rather than free to be dragged anywhere. */
+  locked: boolean;
 }
 
 export interface RingControlsView {
@@ -19,14 +22,31 @@ export interface RingControlsView {
   onStep: (orbit: number, step: 1 | -1) => void;
   /** An orbit's rings were asked to start turning, or to stop. */
   onTogglePlay: (orbit: number) => void;
+  /** An orbit's nodes were asked to be unlocked, or locked again. */
+  onToggleLock: (orbit: number) => void;
 }
 
+/** A padlock, its shackle closed or swung open, drawn in the text color. */
+const padlock = (locked: boolean): SVGSVGElement => {
+  const icon = svg("svg", { viewBox: "0 0 16 16", width: 16, height: 16, "aria-hidden": "true" });
+  icon.append(
+    svg("path", {
+      d: locked ? "M5 7V5a3 3 0 0 1 6 0v2" : "M5 7V5a3 3 0 0 1 6 0",
+      fill: "none",
+      stroke: "currentColor",
+      "stroke-width": 1.6,
+    }),
+    svg("rect", { x: 3, y: 7, width: 10, height: 7, rx: 1.2, fill: "currentColor" }),
+  );
+  return icon;
+};
+
 /**
- * A stepper per splittable orbit, all in one box: a play/pause button that
- * sets its rings turning, the ring count, and the buttons that change the
- * count. A lone orbit needs no name; beside others it is named by its size. An
- * orbit that cannot be split has nothing to offer and gets no stepper, and one
- * drawn as a single ring has nothing to turn against, so it cannot be played.
+ * A stepper per orbit, all in one box: a lock that frees its nodes to be
+ * dragged anywhere, a play/pause button that sets its rings turning, the ring
+ * count, and the buttons that change the count. A lone orbit needs no name;
+ * beside others it is named by its size. An unlocked orbit has no rings to
+ * turn, so it cannot be played.
  */
 export const renderRingControls = (
   splits: readonly RingSplit[],
@@ -55,12 +75,18 @@ export const renderRingControls = (
       return node;
     };
 
+    const lock = el("button", { className: "ring-lock", type: "button" }, [padlock(split.locked)]);
+    lock.dataset.orbit = String(split.orbit);
+    lock.setAttribute("aria-label", named(split.locked ? "Unlock nodes" : "Lock nodes"));
+    lock.setAttribute("aria-pressed", String(!split.locked));
+    lock.addEventListener("click", () => {
+      view.onToggleLock(split.orbit);
+    });
+
     // The text presentation selector keeps the glyph from being drawn as an emoji.
-    const play = el(
-      "button",
-      { className: "ring-play", type: "button", disabled: split.rings === 1 },
-      [split.playing ? "❚❚" : "▶︎"],
-    );
+    const play = el("button", { className: "ring-play", type: "button", disabled: !split.locked }, [
+      split.playing ? "❚❚" : "▶︎",
+    ]);
     play.dataset.orbit = String(split.orbit);
     play.setAttribute("aria-label", named(split.playing ? "Pause rotation" : "Play rotation"));
     play.setAttribute("aria-pressed", String(split.playing));
@@ -69,6 +95,7 @@ export const renderRingControls = (
     });
 
     const stepper = el("div", { className: "ring-stepper" }, [
+      lock,
       play,
       el("output", { className: "ring-count" }, [String(split.rings)]),
       el("span", { className: "ring-steps" }, [

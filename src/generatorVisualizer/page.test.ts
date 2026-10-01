@@ -514,10 +514,13 @@ describe("groups page", () => {
       document.querySelector<HTMLElement>(`.representation[data-representation="${id}"]`)?.click();
     };
 
-    it("offers no stepper when no orbit can be split: C_3:C_4's 3 + 4", () => {
+    it("offers a stepper that cannot step on orbits that cannot be split: C_3:C_4's 3 + 4", () => {
       groupRow(DEFAULT.label).click();
-      expect(controls()).toEqual([]);
-      expect(document.querySelector("#ring-controls h2")).toBeNull();
+      expect(controls()).toEqual(["Orbit of 3: 1", "Orbit of 4: 1"]);
+      for (const orbit of [0, 1]) {
+        expect(step(orbit, 1).disabled).toBe(true);
+        expect(step(orbit, -1).disabled).toBe(true);
+      }
     });
 
     it("splits a 12-point orbit into 2, 3 and 4 rings, and no further", () => {
@@ -804,14 +807,18 @@ describe("turning the rings", () => {
     document.querySelector<HTMLElement>('.representation[data-representation="12T5"]')?.click();
   });
 
-  it("will not play an orbit drawn as a single ring", () => {
-    expect(play().disabled).toBe(true);
-    step(0, 1);
+  it("plays an orbit drawn as a single ring", () => {
     expect(play().disabled).toBe(false);
+    const before = placed();
+    playFor(0.5);
+    expect(placed()).not.toEqual(before);
+    step(0, 1);
   });
 
-  it("sits the play button at the left of the orbit's stepper", () => {
-    expect(document.querySelector(".ring-stepper")?.firstElementChild).toBe(play());
+  it("sits the play button next to the lock, at the left of the orbit's stepper", () => {
+    const stepper = document.querySelector(".ring-stepper");
+    expect(stepper?.firstElementChild?.className).toBe("ring-lock");
+    expect(stepper?.children[1]).toBe(play());
   });
 
   it("offers play while still, and pause while turning, keeping the focus", () => {
@@ -871,15 +878,15 @@ describe("turning the rings", () => {
     expect(paths()).toHaveLength(before.length);
   });
 
-  it("stops an orbit brought down to a single ring", () => {
+  it("keeps playing an orbit brought down to a single ring", () => {
     play().click();
     advance(0.1);
     step(0, -1);
-    expect(play().disabled).toBe(true);
-    expect(play().getAttribute("aria-label")).toBe("Play rotation");
+    expect(play().getAttribute("aria-label")).toBe("Pause rotation");
     const before = placed();
-    advance(1);
-    expect(placed()).toEqual(before);
+    advance(0.5);
+    expect(placed()).not.toEqual(before);
+    play().click();
   });
 
   it("turns only the orbit played: C_4.Q_8's 8 + 8", () => {
@@ -983,6 +990,24 @@ describe("dragging a ring", () => {
   const play = (): void => {
     document.querySelector<HTMLButtonElement>('.ring-play[data-orbit="0"]')?.click();
   };
+  const lockButton = (): HTMLButtonElement => {
+    const found = document.querySelector<HTMLButtonElement>('.ring-lock[data-orbit="0"]');
+    if (found === null) throw new Error("no lock button on orbit 0");
+    return found;
+  };
+  const playButton = (): HTMLButtonElement => {
+    const found = document.querySelector<HTMLButtonElement>('.ring-play[data-orbit="0"]');
+    if (found === null) throw new Error("no play button on orbit 0");
+    return found;
+  };
+  /** Every node's place, by its point. */
+  const places = (): Map<number, { x: number; y: number }> =>
+    new Map(
+      Array.from(svg().querySelectorAll<SVGGElement>(".node"), (group) => {
+        const point = Number(group.dataset.point);
+        return [point, at(point)];
+      }),
+    );
 
   beforeAll(() => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
@@ -1045,5 +1070,42 @@ describe("dragging a ring", () => {
     frames(0.5);
     expect(angleOf(inner[0])).not.toBeCloseTo(innerBefore);
     play();
+  });
+
+  it("drags a node of an unlocked orbit on its own, and puts it back on its ring when locked", () => {
+    lockButton().click();
+    const before = places();
+    const start = at(1);
+    const held = hold(1);
+    pointer(held, "pointermove", start.x + 20, start.y + 10);
+    pointer(held, "pointermove", start.x + 40, start.y + 25);
+    release(held);
+    expect(at(1).x).toBeCloseTo(start.x + 40);
+    expect(at(1).y).toBeCloseTo(start.y + 25);
+    expect([...places()].filter(([point]) => point !== 1)).toEqual(
+      [...before].filter(([point]) => point !== 1),
+    );
+    expect(svg().querySelector(".node.picked")).toBeNull();
+
+    lockButton().click();
+    const relocked = places();
+    // Splitting the orbit afresh lays its rings out unturned, which is where locking puts them.
+    stepRings(1);
+    stepRings(-1);
+    expect(places()).toEqual(relocked);
+  });
+
+  it("stops the orbit and disables play while unlocked, and offers play again once locked", () => {
+    play();
+    frames(0.05);
+    lockButton().click();
+    expect(lockButton().getAttribute("aria-label")).toBe("Lock nodes");
+    expect(playButton().disabled).toBe(true);
+    expect(playButton().getAttribute("aria-label")).toBe("Play rotation");
+    const before = places();
+    frames(0.5);
+    expect(places()).toEqual(before);
+    lockButton().click();
+    expect(playButton().disabled).toBe(false);
   });
 });

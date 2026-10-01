@@ -2,6 +2,7 @@ import { byLabel, fetchCatalogue, type CatalogueGroup } from "./catalogue";
 import { qs } from "@shared/dom";
 import { CenterPanel, diagramPointAt, stageWidth } from "./centerPanel";
 import type { PlacedRing } from "./components/diagram/permutationDiagram";
+import { NodeDrag } from "./components/diagram/nodeDrag";
 import { RingDrag } from "./components/diagram/ringDrag";
 import { collapsiblePanel } from "./collapsiblePanel";
 import { LeftPanel } from "./leftPanel";
@@ -51,18 +52,30 @@ const centerPanel = new CenterPanel({
     scene.togglePlay(orbit);
     render();
   },
+  onToggleLock: (orbit) => {
+    scene.toggleLock(orbit);
+    render();
+  },
+  // A node of an unlocked orbit is dragged on its own; any other turns its ring.
   onDragStart: (point, clientX, clientY) => {
-    const ring = scene.grabRing(point);
     const at = diagramPointAt(clientX, clientY);
-    if (ring === undefined || at === null) return;
-    drag = { ring, tracker: new RingDrag({ x: ring.cx, y: ring.cy }, at) };
+    const orbit = scene.ringOf(point)?.orbit;
+    if (at === null || orbit === undefined) return;
+    if (!scene.isLocked(orbit)) {
+      const node = scene.pointAt(point);
+      if (node !== undefined) drag = { point, tracker: new NodeDrag(node, at) };
+      return;
+    }
+    const ring = scene.grabRing(point);
+    if (ring !== undefined) drag = { ring, tracker: new RingDrag({ x: ring.cx, y: ring.cy }, at) };
   },
   // A drag moves the diagram already drawn, like a frame of play: a redraw would
   // replace the node that has the pointer captured and end the drag.
   onDragMove: (clientX, clientY) => {
     const at = diagramPointAt(clientX, clientY);
     if (drag === null || at === null) return;
-    scene.turnRing(drag.ring.orbit, drag.ring.ring, drag.tracker.moveTo(at));
+    if ("point" in drag) scene.movePoint(drag.point, drag.tracker.moveTo(at));
+    else scene.turnRing(drag.ring.orbit, drag.ring.ring, drag.tracker.moveTo(at));
     centerPanel.turn(scene, settings);
   },
   onDragEnd: () => {
@@ -70,8 +83,9 @@ const centerPanel = new CenterPanel({
     scene.letGoRing();
   },
 });
-/** The drag in progress and the ring it has hold of; null while there is none. */
-let drag: { ring: PlacedRing; tracker: RingDrag } | null = null;
+/** The drag in progress and the ring or node it has hold of; null while there is none. */
+let drag: { ring: PlacedRing; tracker: RingDrag } | { point: number; tracker: NodeDrag } | null =
+  null;
 // Each frame turns the orbits that are playing, and moves the diagram already
 // drawn rather than drawing it again.
 const rotation = new Rotation((seconds) => {

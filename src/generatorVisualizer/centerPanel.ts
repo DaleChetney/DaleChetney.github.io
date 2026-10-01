@@ -33,11 +33,13 @@ const latticeFocus = (active: Element): string | null => {
 
 /**
  * Ring steppers by the orbit and direction they step, which a redraw keeps;
- * play buttons by their orbit alone.
+ * lock and play buttons by their orbit alone.
  */
 const ringFocus = (active: Element): string | null => {
-  const play = active.closest(".ring-play[data-orbit]")?.getAttribute("data-orbit");
-  if (play != null) return `.ring-play[data-orbit="${play}"]`;
+  for (const kind of ["ring-lock", "ring-play"]) {
+    const orbit = active.closest(`.${kind}[data-orbit]`)?.getAttribute("data-orbit");
+    if (orbit != null) return `.${kind}[data-orbit="${orbit}"]`;
+  }
   const button = active.closest(".ring-step[data-orbit][data-step]");
   if (button === null) return null;
   const orbit = button.getAttribute("data-orbit") ?? "";
@@ -62,7 +64,12 @@ export interface CenterPanelHandlers {
   onStepRings: (orbit: number, step: 1 | -1) => void;
   /** An orbit's rings were asked to start turning, or to stop. */
   onTogglePlay: (orbit: number) => void;
-  /** A node was held long enough to drag its ring round, the pointer at these client coordinates. */
+  /** An orbit's nodes were asked to be unlocked, or locked again. */
+  onToggleLock: (orbit: number) => void;
+  /**
+   * A node was held long enough to drag — its ring round, or in an unlocked
+   * orbit the node itself — the pointer at these client coordinates.
+   */
   onDragStart: (point: number, clientX: number, clientY: number) => void;
   /** The pointer moved during a drag. */
   onDragMove: (clientX: number, clientY: number) => void;
@@ -148,13 +155,14 @@ export class CenterPanel {
     });
   }
 
-  /** A stepper, with its play button, for each orbit that can be split into concentric rings. */
+  /** A stepper, with its lock and play buttons, for each orbit. */
   #showRingControls(scene: Scene): void {
     preservingFocus(ringFocus, () => {
       qs("#ring-controls").replaceChildren(
         renderRingControls(scene.ringSplits(), scene.orbitCount, {
           onStep: this.#handlers.onStepRings,
           onTogglePlay: this.#handlers.onTogglePlay,
+          onToggleLock: this.#handlers.onToggleLock,
         }),
       );
     });

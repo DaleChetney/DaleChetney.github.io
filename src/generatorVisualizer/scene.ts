@@ -19,7 +19,9 @@ import {
 } from "@shared/mathUtils/groups/subgroups";
 import type { BoundedLattice } from "fp-ts/BoundedLattice";
 import type { CatalogueGroup, CatalogueRepresentation, CatalogueSubgroupClass } from "./catalogue";
+import { NODE_RADIUS, type PlacedPoint } from "./components/diagram/node";
 import type { Diagram, PlacedRing } from "./components/diagram/permutationDiagram";
+import type { DiagramPoint } from "./components/diagram/ringDrag";
 import type { RingSplit } from "./components/diagram/ringControls";
 import {
   diagramWidthShare,
@@ -103,6 +105,14 @@ export class Scene {
   readonly #turns: number[][];
   /** The orbits whose rings are turning. */
   readonly #playing = new Set<number>();
+  /** The orbits whose nodes have been unlocked, to be dragged anywhere. */
+  readonly #unlocked = new Set<number>();
+  /**
+   * Where a node of an unlocked orbit has been dragged to, kept relative to
+   * its orbit's centre so it moves with the orbit when the diagram is laid
+   * out again. A node not yet dragged sits where its ring puts it.
+   */
+  readonly #freed = new Map<number, DiagramPoint>();
   /** The ring a drag has hold of, which playing passes by; null while none is held. */
   #held: PlacedRing | null = null;
   /** A point picked to be swapped, waiting on the second; null while none is. */
@@ -191,7 +201,33 @@ export class Scene {
    */
   relayout(targetWidth: number): void {
     this.#targetWidth = targetWidth;
-    this.#diagram = layoutDiagram(this.#arrangement, targetWidth, this.#rings, this.#turns);
+    this.#diagram = this.#placeFreed(
+      layoutDiagram(this.#arrangement, targetWidth, this.#rings, this.#turns),
+    );
+  }
+
+  /**
+   * Move every dragged node of an unlocked orbit to where it was dropped,
+   * kept on the canvas: a diagram laid out narrower than when it was dropped
+   * would otherwise leave it out of sight.
+   */
+  #placeFreed(diagram: Diagram): Diagram {
+    if (this.#freed.size === 0) return diagram;
+    const clamp = (value: number, size: number): number =>
+      Math.min(Math.max(value, NODE_RADIUS), size - NODE_RADIUS);
+    const points = diagram.points.map((placed): PlacedPoint => {
+      const ring = diagram.rings.find((r) => r.points.includes(placed.point));
+      const offset = this.#freed.get(placed.point);
+      if (ring === undefined || offset === undefined || !this.#unlocked.has(ring.orbit)) {
+        return placed;
+      }
+      return {
+        point: placed.point,
+        x: clamp(ring.cx + offset.x, diagram.width),
+        y: clamp(ring.cy + offset.y, diagram.height),
+      };
+    });
+    return { ...diagram, points };
   }
 
   /** Whether any orbit's rings are turning. */
@@ -200,12 +236,56 @@ export class Scene {
   }
 
   /**
-   * Start an orbit's rings turning, or stop them. Only an orbit split into
-   * rings can turn: a single ring has no other to turn against.
+   * Start an orbit's rings turning, or stop them. An unlocked orbit's nodes
+   * are wherever they were dragged, so it has no rings to turn.
    */
   togglePlay(orbit: number): void {
     if (this.#playing.has(orbit)) this.#playing.delete(orbit);
-    else if (this.#rings[orbit] > 1) this.#playing.add(orbit);
+    else if (!this.#unlocked.has(orbit)) this.#playing.add(orbit);
+  }
+
+  /** Whether an orbit's nodes are held to its rings, rather than free to be dragged anywhere. */
+  isLocked(orbit: number): boolean {
+    return !this.#unlocked.has(orbit);
+  }
+
+  /**
+   * Unlock an orbit, so its nodes can be dragged anywhere, or lock it again.
+   * Unlocking stops it turning. Locking sends every node back to where its
+   * ring puts it unturned, as splitting the orbit afresh would.
+   */
+  toggleLock(orbit: number): void {
+    if (this.#unlocked.has(orbit)) {
+      this.#unlocked.delete(orbit);
+      this.#resetOrbit(orbit);
+    } else {
+      this.#unlocked.add(orbit);
+      this.#playing.delete(orbit);
+    }
+    this.relayout(this.#targetWidth);
+  }
+
+  /**
+   * Put a node of an unlocked orbit at this place in the diagram. A node of a
+   * locked orbit stays on its ring, and so does one not drawn.
+   */
+  movePoint(point: number, to: DiagramPoint): void {
+    const ring = this.ringOf(point);
+    if (ring === undefined || !this.#unlocked.has(ring.orbit)) return;
+    this.#freed.set(point, { x: to.x - ring.cx, y: to.y - ring.cy });
+    this.relayout(this.#targetWidth);
+  }
+
+  /** Where a point is drawn now, or nothing for a point not drawn. */
+  pointAt(point: number): DiagramPoint | undefined {
+    const placed = this.#diagram.points.find((p) => p.point === point);
+    return placed === undefined ? undefined : { x: placed.x, y: placed.y };
+  }
+
+  /** Every ring of an orbit back to unturned, and every node of it back on its ring. */
+  #resetOrbit(orbit: number): void {
+    this.#turns[orbit] = Array.from({ length: this.#rings[orbit] }, () => 0);
+    for (const point of this.#arrangement[orbit]) this.#freed.delete(point);
   }
 
   /**
@@ -261,33 +341,26 @@ export class Scene {
     return this.#arrangement.length;
   }
 
-  /** The orbits that can be split into concentric rings, and how each is split now. */
+  /** Every orbit, how it is split into concentric rings now, and how else it could be. */
   ringSplits(): RingSplit[] {
-    return this.#arrangement.flatMap((slots, orbit) => {
-      const counts = ringCounts(slots.length);
-      return counts.length > 1
-        ? [
-            {
-              orbit,
-              size: slots.length,
-              rings: this.#rings[orbit],
-              counts,
-              playing: this.#playing.has(orbit),
-            },
-          ]
-        : [];
-    });
+    return this.#arrangement.map((slots, orbit) => ({
+      orbit,
+      size: slots.length,
+      rings: this.#rings[orbit],
+      counts: ringCounts(slots.length),
+      playing: this.#playing.has(orbit),
+      locked: this.isLocked(orbit),
+    }));
   }
 
   /**
    * Split an orbit into the next number of rings up or down that divides it.
-   * The rings are new, so each starts from where it would lie unturned; brought
-   * down to a single ring, the orbit stops turning.
+   * The rings are new, so each starts from where it would lie unturned, and
+   * any node dragged off them is put back on.
    */
   stepRings(orbit: number, step: 1 | -1): void {
     this.#rings[orbit] = stepRings(this.#arrangement[orbit].length, this.#rings[orbit], step);
-    this.#turns[orbit] = Array.from({ length: this.#rings[orbit] }, () => 0);
-    if (this.#rings[orbit] === 1) this.#playing.delete(orbit);
+    this.#resetOrbit(orbit);
     this.relayout(this.#targetWidth);
   }
 
@@ -301,7 +374,8 @@ export class Scene {
   /**
    * A node was clicked. The first click picks a point; a second on the same
    * point lets it go; a second on another swaps the two points' slots, which
-   * may lie on different rings — a slot is a position, not a membership.
+   * may lie on different rings — a slot is a position, not a membership. A
+   * node dragged off its ring is a slot too, so the two trade those places.
    */
   pickPoint(point: number): void {
     if (this.#picked === null) {
@@ -327,6 +401,11 @@ export class Scene {
     const [ringB, slotB] = slotOf(b);
     this.#arrangement[ringA][slotA] = b;
     this.#arrangement[ringB][slotB] = a;
+    const [freedA, freedB] = [this.#freed.get(a), this.#freed.get(b)];
+    this.#freed.delete(a);
+    this.#freed.delete(b);
+    if (freedA !== undefined) this.#freed.set(b, freedA);
+    if (freedB !== undefined) this.#freed.set(a, freedB);
   }
 
   // --- what is chosen in it --------------------------------------------------

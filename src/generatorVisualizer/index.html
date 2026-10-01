@@ -480,6 +480,7 @@
       }
 
       .ring-step,
+      .ring-lock,
       .ring-play {
         flex: 1;
         font: inherit;
@@ -492,8 +493,13 @@
         cursor: pointer;
       }
 
+      .ring-lock,
       .ring-play {
         border-right: 1px solid var(--edge);
+      }
+
+      .ring-lock svg {
+        display: block;
       }
 
       .ring-step + .ring-step {
@@ -501,7 +507,13 @@
       }
 
       .ring-step:hover:not(:disabled),
+      .ring-lock:hover,
       .ring-play:hover:not(:disabled) {
+        background: var(--panel);
+      }
+
+      /* Unlocked stands out, since it is the one that changes what a drag does. */
+      .ring-lock[aria-pressed="true"] {
         background: var(--panel);
       }
 
