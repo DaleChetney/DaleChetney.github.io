@@ -83,6 +83,12 @@ describe("holdToDrag", () => {
     expect(gesture.swallowClick()).toBe(false);
   });
 
+  it("keeps a touch that moves from scrolling the page, which would cancel the drag", () => {
+    const move = new Event("touchmove", { bubbles: true, cancelable: true });
+    target.dispatchEvent(move);
+    expect(move.defaultPrevented).toBe(true);
+  });
+
   it("ignores a press of any button but the main one", () => {
     pointer(target, "pointerdown", 0, 0, 2);
     vi.advanceTimersByTime(HOLD_DELAY);

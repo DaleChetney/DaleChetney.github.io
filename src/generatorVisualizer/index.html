@@ -325,7 +325,9 @@
 
       /*
         A node held down turns its ring, so a press on one must not scroll the
-        page under a finger or select the label under a mouse.
+        page under a finger or select the label under a mouse. Chrome and
+        Safari ignore touch-action inside an SVG; holdToDrag cancels the scroll
+        for them.
       */
       .diagram .node {
         cursor: pointer;
