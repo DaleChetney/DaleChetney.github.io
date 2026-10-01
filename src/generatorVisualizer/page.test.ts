@@ -3,7 +3,11 @@ import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { HOLD_DELAY } from "./components/diagram/holdToDrag";
+import { DEFAULT_TARGET_WIDTH } from "./components/diagram/ringLayout";
 import { DEFAULT_SETTINGS } from "./settings";
+
+/** Whether the page is on a narrow screen; jsdom has no matchMedia, so the tests decide. */
+let narrow = false;
 
 // main.ts reaches into index.html by id and throws if one is missing, which no
 // type check can see. Running it against the real markup pins the two together,
@@ -19,6 +23,7 @@ beforeAll(async () => {
   const catalogue: unknown = JSON.parse(
     readFileSync(resolve(import.meta.dirname, "../../public/groups.json"), "utf8"),
   );
+  vi.stubGlobal("matchMedia", (query: string) => ({ matches: narrow, media: query }));
   vi.stubGlobal(
     "fetch",
     vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve(catalogue) })),
@@ -572,6 +577,23 @@ describe("groups page", () => {
       // Leave the page on the group the tests after this one expect.
       groupRow("8.3").click();
     });
+  });
+
+  it("lays the diagram out to the whole panel on a narrow screen", () => {
+    const width = (): number =>
+      Number(document.querySelector("#diagram svg")?.getAttribute("width"));
+    window.dispatchEvent(new Event("resize"));
+    const wide = width();
+    narrow = true;
+    try {
+      window.dispatchEvent(new Event("resize"));
+      // jsdom measures no panel, so the stage is the fallback width.
+      expect(width()).toBeCloseTo(DEFAULT_TARGET_WIDTH);
+      expect(width()).toBeGreaterThan(wide);
+    } finally {
+      narrow = false;
+      window.dispatchEvent(new Event("resize"));
+    }
   });
 
   it("folds each side panel down on its toggle", () => {

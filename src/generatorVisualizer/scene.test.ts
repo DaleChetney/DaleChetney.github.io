@@ -13,7 +13,7 @@ const twelve = (): Scene => {
   const group = byLabel(catalogue).get("12.1");
   const representation = group?.representations.find((rep) => rep.id === "12T5");
   if (group === undefined || representation === undefined) throw new Error("no 12T5");
-  return new Scene(group, representation, 640);
+  return new Scene(group, representation, { width: 640, fill: false });
 };
 
 /** Where the scene places each point. */
@@ -57,13 +57,21 @@ describe("Scene rings", () => {
     expect(moved(before, positions(scene))).toHaveLength(12);
   });
 
+  it("takes a share of the stage, or the whole of it when told to fill it", () => {
+    const scene = twelve();
+    const share = scene.diagram.width;
+    scene.relayout({ width: 640, fill: true });
+    expect(scene.diagram.width).toBeGreaterThan(share);
+    expect(scene.diagram.width).toBeCloseTo(640);
+  });
+
   it("keeps a ring's turn through a resize", () => {
     const scene = twelve();
     scene.turnRing(0, 0, 0.25);
-    scene.relayout(900);
+    scene.relayout({ width: 900, fill: false });
     const turned = positions(scene);
     const fresh = twelve();
-    fresh.relayout(900);
+    fresh.relayout({ width: 900, fill: false });
     expect(moved(positions(fresh), turned)).toHaveLength(12);
   });
 
@@ -137,7 +145,7 @@ describe("Scene lock", () => {
     const group = byLabel(catalogue).get("12.1");
     const representation = group?.representations[0];
     if (group === undefined || representation === undefined) throw new Error("no 12.1");
-    const scene = new Scene(group, representation, 640);
+    const scene = new Scene(group, representation, { width: 640, fill: false });
     expect(scene.ringSplits().map(({ size, counts }) => [size, counts])).toEqual([
       [3, [1]],
       [4, [1]],
@@ -189,7 +197,7 @@ describe("Scene lock", () => {
     const scene = unlocked();
     const centre = (): { cx: number; cy: number } => scene.diagram.rings[0];
     scene.movePoint(1, { x: centre().cx + 30, y: centre().cy - 20 });
-    scene.relayout(900);
+    scene.relayout({ width: 900, fill: false });
     expect(scene.pointAt(1)?.x).toBeCloseTo(centre().cx + 30);
     expect(scene.pointAt(1)?.y).toBeCloseTo(centre().cy - 20);
   });

@@ -38,13 +38,30 @@ const ELEMENT_LIMIT = 12;
 /** Room left between one class's element ranks and the next's. */
 const RANKS_PER_CLASS = 1000;
 
-/** Lay the rings out to the share of the panel this many of them have earned. */
+/** What the diagram is laid out against. */
+export interface Stage {
+  /** The width of the panel the diagram sits in. */
+  width: number;
+  /**
+   * Whether to fill that width whatever the diagram holds. Otherwise it takes
+   * the share its orbits have earned, as a wide screen has room to leave.
+   */
+  fill: boolean;
+}
+
+/** Lay the rings out to the stage, or to the share of it this many of them have earned. */
 const layoutDiagram = (
   orbits: readonly (readonly number[])[],
-  targetWidth: number,
+  stage: Stage,
   rings: readonly number[],
   turns: readonly (readonly number[])[],
-): Diagram => layoutOrbits(orbits, targetWidth * diagramWidthShare(orbits.length), rings, turns);
+): Diagram =>
+  layoutOrbits(
+    orbits,
+    stage.fill ? stage.width : stage.width * diagramWidthShare(orbits.length),
+    rings,
+    turns,
+  );
 
 /** A class's conjugate subgroups, and their identities for membership tests. */
 interface ConjugacyClass {
@@ -83,8 +100,8 @@ export class Scene {
   readonly latticeDiagram: LatticeDiagram;
 
   #diagram: Diagram;
-  /** The stage width the diagram was last laid out against. */
-  #targetWidth: number;
+  /** The stage the diagram was last laid out against. */
+  #stage: Stage;
   /**
    * The slots the diagram is laid out from: one ring per orbit, a point per
    * slot. Starts as the orbits themselves and changes only when the reader
@@ -136,7 +153,7 @@ export class Scene {
   /** The join of the chosen elements' subgroups, recomputed when the selection changes. */
   #generated: Subgroup;
 
-  constructor(group: CatalogueGroup, representation: CatalogueRepresentation, targetWidth: number) {
+  constructor(group: CatalogueGroup, representation: CatalogueRepresentation, stage: Stage) {
     const { generators, degree } = representation;
     const classes = group.subgroups.classes;
     const orbits = permutationOrbits(generators, degree);
@@ -149,8 +166,8 @@ export class Scene {
     this.latticeDiagram = layoutLattice(classes, group.order, group.displayName);
     this.#rings = orbits.map(() => 1);
     this.#turns = orbits.map(() => [0]);
-    this.#diagram = layoutDiagram(orbits, targetWidth, this.#rings, this.#turns);
-    this.#targetWidth = targetWidth;
+    this.#diagram = layoutDiagram(orbits, stage, this.#rings, this.#turns);
+    this.#stage = stage;
     this.#arrangement = orbits;
     this.#classes = classes;
     this.#poset = classPoset(classes.map((c) => c.covers));
@@ -196,13 +213,13 @@ export class Scene {
   }
 
   /**
-   * Lay the diagram out again for a stage of this width. The nodes keep their
-   * size and the points spread, so this is a new layout rather than a scale.
+   * Lay the diagram out again for this stage. The nodes keep their size and
+   * the points spread, so this is a new layout rather than a scale.
    */
-  relayout(targetWidth: number): void {
-    this.#targetWidth = targetWidth;
+  relayout(stage: Stage): void {
+    this.#stage = stage;
     this.#diagram = this.#placeFreed(
-      layoutDiagram(this.#arrangement, targetWidth, this.#rings, this.#turns),
+      layoutDiagram(this.#arrangement, stage, this.#rings, this.#turns),
     );
   }
 
@@ -262,7 +279,7 @@ export class Scene {
       this.#unlocked.add(orbit);
       this.#playing.delete(orbit);
     }
-    this.relayout(this.#targetWidth);
+    this.relayout(this.#stage);
   }
 
   /**
@@ -273,7 +290,7 @@ export class Scene {
     const ring = this.ringOf(point);
     if (ring === undefined || !this.#unlocked.has(ring.orbit)) return;
     this.#freed.set(point, { x: to.x - ring.cx, y: to.y - ring.cy });
-    this.relayout(this.#targetWidth);
+    this.relayout(this.#stage);
   }
 
   /** Where a point is drawn now, or nothing for a point not drawn. */
@@ -300,7 +317,7 @@ export class Scene {
         this.#isHeld(orbit, ring) ? turned : turned + turns * rates[ring],
       );
     }
-    this.relayout(this.#targetWidth);
+    this.relayout(this.#stage);
   }
 
   /**
@@ -333,7 +350,7 @@ export class Scene {
    */
   turnRing(orbit: number, ring: number, turns: number): void {
     this.#turns[orbit][ring] += turns;
-    this.relayout(this.#targetWidth);
+    this.relayout(this.#stage);
   }
 
   /** How many orbits the diagram draws, split or not. */
@@ -361,7 +378,7 @@ export class Scene {
   stepRings(orbit: number, step: 1 | -1): void {
     this.#rings[orbit] = stepRings(this.#arrangement[orbit].length, this.#rings[orbit], step);
     this.#resetOrbit(orbit);
-    this.relayout(this.#targetWidth);
+    this.relayout(this.#stage);
   }
 
   // --- rearranging it --------------------------------------------------------
@@ -386,7 +403,7 @@ export class Scene {
     this.#picked = null;
     if (other === point) return;
     this.#swapSlots(other, point);
-    this.relayout(this.#targetWidth);
+    this.relayout(this.#stage);
   }
 
   #swapSlots(a: number, b: number): void {
