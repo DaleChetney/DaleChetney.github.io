@@ -16,18 +16,34 @@ describe("settings", () => {
 
   it("starts from the defaults when nothing is stored", () => {
     expect(loadSettings()).toEqual(DEFAULT_SETTINGS);
-    expect(DEFAULT_SETTINGS).toEqual({ theme: "system", arrowCurvature: 1, rotationPeriod: 6 });
+    expect(DEFAULT_SETTINGS).toEqual({
+      theme: "system",
+      arrowCurvature: 1,
+      arrowBowWidth: "constant",
+      rotationPeriod: 6,
+    });
   });
 
   it("round-trips what was saved", () => {
-    saveSettings({ theme: "dark", arrowCurvature: -0.5, rotationPeriod: 7.5 });
-    expect(loadSettings()).toEqual({ theme: "dark", arrowCurvature: -0.5, rotationPeriod: 7.5 });
+    const saved = {
+      theme: "dark",
+      arrowCurvature: -0.5,
+      arrowBowWidth: "relative",
+      rotationPeriod: 7.5,
+    } as const;
+    saveSettings(saved);
+    expect(loadSettings()).toEqual(saved);
   });
 
   it("falls back per field on a stored value it does not recognise", () => {
     localStorage.setItem(
       KEY,
-      JSON.stringify({ theme: "sepia", arrowCurvature: "wide", rotationPeriod: "slow" }),
+      JSON.stringify({
+        theme: "sepia",
+        arrowCurvature: "wide",
+        arrowBowWidth: "elastic",
+        rotationPeriod: "slow",
+      }),
     );
     expect(loadSettings()).toEqual(DEFAULT_SETTINGS);
   });

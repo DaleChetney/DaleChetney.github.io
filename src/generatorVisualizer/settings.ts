@@ -1,10 +1,13 @@
 import { load, save } from "@shared/storage";
+import type { BowWidth } from "./components/diagram/arrow";
 
 const STORAGE_KEY = "generatorVisualizer.settings";
 
 export type Theme = "light" | "dark" | "system";
 
 const THEMES: readonly Theme[] = ["light", "dark", "system"];
+
+const BOW_WIDTHS: readonly BowWidth[] = ["constant", "relative"];
 
 /** What the reader has chosen about how the page looks, independent of any group. */
 export interface Settings {
@@ -14,6 +17,11 @@ export interface Settings {
    * chord; negative bows them the other way round.
    */
   arrowCurvature: number;
+  /**
+   * How the bow grows with an arrow's length: "constant" caps it, "relative"
+   * keeps it in proportion to the chord.
+   */
+  arrowBowWidth: BowWidth;
   /** Seconds the innermost ring takes to turn once while the rings are playing. */
   rotationPeriod: number;
 }
@@ -27,10 +35,13 @@ export const ROTATION_PERIOD = { min: 1, max: 20, step: 0.5 } as const;
 export const DEFAULT_SETTINGS: Settings = {
   theme: "system",
   arrowCurvature: 1,
+  arrowBowWidth: "constant",
   rotationPeriod: 6,
 };
 
 const isTheme = (value: unknown): value is Theme => THEMES.includes(value as Theme);
+
+const isBowWidth = (value: unknown): value is BowWidth => BOW_WIDTHS.includes(value as BowWidth);
 
 /** A stored number kept inside its slider's range, or the default if it is not a number. */
 const inRange = (value: unknown, range: { min: number; max: number }, fallback: number): number =>
@@ -47,6 +58,9 @@ export const loadSettings = (): Settings => {
   return {
     theme: isTheme(fields.theme) ? fields.theme : DEFAULT_SETTINGS.theme,
     arrowCurvature: inRange(fields.arrowCurvature, CURVATURE, DEFAULT_SETTINGS.arrowCurvature),
+    arrowBowWidth: isBowWidth(fields.arrowBowWidth)
+      ? fields.arrowBowWidth
+      : DEFAULT_SETTINGS.arrowBowWidth,
     rotationPeriod: inRange(
       fields.rotationPeriod,
       ROTATION_PERIOD,
