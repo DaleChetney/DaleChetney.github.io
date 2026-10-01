@@ -32,24 +32,41 @@ export const ringRates = (rings: number): number[] =>
 export const DEFAULT_TARGET_WIDTH = 640;
 
 /**
+ * Whether an orbit of `size` points can put one of them at its center: only if
+ * the rest still make a ring.
+ */
+export const canCenter = (size: number): boolean => size - 1 >= MIN_RING_SIZE;
+
+/**
  * The numbers of concentric rings an orbit of `size` points can be split into,
  * ascending: the divisors of `size` up to {@link MAX_RINGS} that leave every
- * ring at least three nodes. One ring is always among them.
+ * ring at least three nodes. One ring is always among them. With a node at
+ * the `center`, it is the rest that are split, so an orbit of 7 makes 2 rings of 3.
  */
-export const ringCounts = (size: number): number[] =>
-  Array.from({ length: MAX_RINGS }, (_, i) => i + 1).filter(
-    (rings) => rings === 1 || (size % rings === 0 && size / rings >= MIN_RING_SIZE),
+export const ringCounts = (size: number, center = false): number[] => {
+  const ringed = center && canCenter(size) ? size - 1 : size;
+  return Array.from({ length: MAX_RINGS }, (_, i) => i + 1).filter(
+    (rings) => rings === 1 || (ringed % rings === 0 && ringed / rings >= MIN_RING_SIZE),
   );
+};
 
 /**
  * The ring count one step up or down from `current` for an orbit of `size`,
  * skipping the counts that do not divide it; `current` again at either end.
  */
-export const stepRings = (size: number, current: number, step: 1 | -1): number => {
-  const counts = ringCounts(size);
+export const stepRings = (size: number, current: number, step: 1 | -1, center = false): number => {
+  const counts = ringCounts(size, center);
   const next = counts[counts.indexOf(current) + step] as number | undefined;
   return next ?? current;
 };
+
+/**
+ * The most rings, no more than `current`, an orbit of `size` can be split
+ * into with or without a node at its `center`: what a count falls back to
+ * when the center is taken or given back.
+ */
+export const fitRings = (size: number, current: number, center: boolean): number =>
+  Math.max(...ringCounts(size, center).filter((rings) => rings <= current));
 
 /**
  * The share of the panel the diagram should fill: 40% for a single ring, and
@@ -73,6 +90,13 @@ const ringRadius = (size: number, spacing: number): number =>
 /** Width a ring of this radius occupies, never less than a single node. */
 const ringSpan = (radius: number): number => Math.max(radius * 2, NODE_RADIUS * 2);
 
+/**
+ * Whether a ring of `size` nodes around a center node sits further out than
+ * its size alone would put it: a radial gap from the center, where its arc
+ * would leave it nearer. Taken where the gap and the arc are equal.
+ */
+const isHeldOut = (size: number): boolean => size / (2 * Math.PI) < 1;
+
 /** How far apart neighbours sit around a ring, and how far apart its concentric rings sit. */
 interface Spacing {
   arc: number;
@@ -89,21 +113,29 @@ interface Spacing {
  * do; only once the arc is too tight for that is the gap held at its floor and
  * the arc solved for alone. Nodes and arrows keep their own size whatever comes
  * out: widening the diagram spreads the points apart rather than magnifying them.
+ *
+ * A node at the center counts as a ring of no radius, so the innermost ring is
+ * kept a radial gap from it. A ring too small to reach that far on its own is
+ * held there instead, and adds a radial gap, not its size, to the sum.
  */
 const nodeSpacing = (
-  orbits: readonly (readonly number[])[],
+  ringed: readonly number[],
   rings: readonly number[],
+  centers: readonly boolean[],
   targetWidth: number | undefined,
 ): Spacing => {
+  const held = ringed.map((size, i) => centers[i] && isHeldOut(size / rings[i]));
   const perimeter =
-    orbits.reduce((total, orbit, i) => total + orbit.length / rings[i], 0) / Math.PI;
-  const nested = rings.reduce((total, count) => total + 2 * (count - 1), 0);
+    ringed.reduce((total, size, i) => total + (held[i] ? 0 : size / rings[i]), 0) / Math.PI;
+  const nested = rings.reduce((total, count, i) => total + 2 * (count - (held[i] ? 0 : 1)), 0);
   const floor = { arc: MIN_NODE_SPACING, radial: MIN_CONCENTRIC_GAP };
-  if (targetWidth === undefined || perimeter === 0) return floor;
-  const available = targetWidth - RING_GAP * Math.max(orbits.length - 1, 0) - MARGIN * 2;
+  if (targetWidth === undefined || perimeter + nested === 0) return floor;
+  const available = targetWidth - RING_GAP * Math.max(ringed.length - 1, 0) - MARGIN * 2;
 
   const even = available / (perimeter + nested);
   if (even >= MIN_CONCENTRIC_GAP) return { arc: even, radial: even };
+  // With every ring held out from its center, the radial floor alone sets the width.
+  if (perimeter === 0) return floor;
   const arc = (available - nested * MIN_CONCENTRIC_GAP) / perimeter;
   return { arc: Math.max(MIN_NODE_SPACING, arc), radial: MIN_CONCENTRIC_GAP };
 };
@@ -126,24 +158,33 @@ const nodeSpacing = (
  * whole turns, the outermost ring first. Each ring turns on its own, and one
  * with no turn given sits where it started.
  *
+ * `centered[i]` puts the last slot of orbit `i` at its center and rings the
+ * rest, where the rest are enough to make a ring.
+ *
  * Every ring is reported alongside the points, with its centre and the points
- * on it, so whatever turns a ring can tell which nodes go with it.
+ * on it, so whatever turns a ring can tell which nodes go with it. A node at
+ * the center is reported as one more ring, innermost, of no radius.
  */
 export const layoutOrbits = (
   orbits: readonly (readonly number[])[],
   targetWidth?: number,
   rings: readonly number[] = [],
   turns: readonly (readonly number[])[] = [],
+  centered: readonly boolean[] = [],
 ): Diagram => {
+  const centers = orbits.map((orbit, i) => (centered[i] ?? false) && canCenter(orbit.length));
+  const ringed = orbits.map((orbit, i) => orbit.length - (centers[i] ? 1 : 0));
   const counts = orbits.map((orbit, i) =>
-    ringCounts(orbit.length).includes(rings[i] ?? 1) ? (rings[i] ?? 1) : 1,
+    ringCounts(orbit.length, centers[i]).includes(rings[i] ?? 1) ? (rings[i] ?? 1) : 1,
   );
-  const spacing = nodeSpacing(orbits, counts, targetWidth);
-  // The innermost ring is sized as a lone ring of its size would be; the rest nest outside it.
-  const outerRadii = orbits.map(
-    (orbit, i) =>
-      ringRadius(orbit.length / counts[i], spacing.arc) + spacing.radial * (counts[i] - 1),
-  );
+  const spacing = nodeSpacing(ringed, counts, centers, targetWidth);
+  // The innermost ring is sized as a lone ring of its size would be, kept a
+  // radial gap clear of any center node; the rest nest outside it.
+  const outerRadii = ringed.map((size, i) => {
+    const lone = ringRadius(size / counts[i], spacing.arc);
+    const innermost = centers[i] ? Math.max(lone, spacing.radial) : lone;
+    return innermost + spacing.radial * (counts[i] - 1);
+  });
 
   const width =
     outerRadii.reduce((total, radius) => total + ringSpan(radius), 0) +
@@ -156,7 +197,7 @@ export const layoutOrbits = (
   let cursor = MARGIN;
   orbits.forEach((orbit, orbitIndex) => {
     const outer = outerRadii[orbitIndex];
-    const perRing = orbit.length / counts[orbitIndex];
+    const perRing = ringed[orbitIndex] / counts[orbitIndex];
     const cx = cursor + ringSpan(outer) / 2;
     const cy = height / 2;
     cursor += ringSpan(outer) + RING_GAP;
@@ -170,6 +211,18 @@ export const layoutOrbits = (
         points.push({ point, x: cx + radius * Math.cos(angle), y: cy + radius * Math.sin(angle) });
       });
       placedRings.push({ orbit: orbitIndex, ring, cx, cy, radius, points: slots });
+    }
+    if (centers[orbitIndex]) {
+      const center = orbit.slice(ringed[orbitIndex]);
+      points.push({ point: center[0], x: cx, y: cy });
+      placedRings.push({
+        orbit: orbitIndex,
+        ring: counts[orbitIndex],
+        cx,
+        cy,
+        radius: 0,
+        points: center,
+      });
     }
   });
 

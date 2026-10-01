@@ -24,7 +24,9 @@ import type { Diagram, PlacedRing } from "./components/diagram/permutationDiagra
 import type { DiagramPoint } from "./components/diagram/ringDrag";
 import type { RingSplit } from "./components/diagram/ringControls";
 import {
+  canCenter,
   diagramWidthShare,
+  fitRings,
   layoutOrbits,
   ringCounts,
   ringRates,
@@ -55,12 +57,14 @@ const layoutDiagram = (
   stage: Stage,
   rings: readonly number[],
   turns: readonly (readonly number[])[],
+  centered: readonly boolean[],
 ): Diagram =>
   layoutOrbits(
     orbits,
     stage.fill ? stage.width : stage.width * diagramWidthShare(orbits.length),
     rings,
     turns,
+    centered,
   );
 
 /** A class's conjugate subgroups, and their identities for membership tests. */
@@ -120,6 +124,8 @@ export class Scene {
    * turned on its own as well as by playing its orbit.
    */
   readonly #turns: number[][];
+  /** Whether each orbit puts its last slot at its center, ringing the rest. */
+  readonly #centered: boolean[];
   /** The orbits whose rings are turning. */
   readonly #playing = new Set<number>();
   /** The orbits whose nodes have been unlocked, to be dragged anywhere. */
@@ -166,7 +172,8 @@ export class Scene {
     this.latticeDiagram = layoutLattice(classes, group.order, group.displayName);
     this.#rings = orbits.map(() => 1);
     this.#turns = orbits.map(() => [0]);
-    this.#diagram = layoutDiagram(orbits, stage, this.#rings, this.#turns);
+    this.#centered = orbits.map(() => false);
+    this.#diagram = layoutDiagram(orbits, stage, this.#rings, this.#turns, this.#centered);
     this.#stage = stage;
     this.#arrangement = orbits;
     this.#classes = classes;
@@ -219,7 +226,7 @@ export class Scene {
   relayout(stage: Stage): void {
     this.#stage = stage;
     this.#diagram = this.#placeFreed(
-      layoutDiagram(this.#arrangement, stage, this.#rings, this.#turns),
+      layoutDiagram(this.#arrangement, stage, this.#rings, this.#turns, this.#centered),
     );
   }
 
@@ -346,9 +353,10 @@ export class Scene {
 
   /**
    * Turn one ring of an orbit on by this many turns, clockwise, leaving the
-   * orbit's other rings where they are.
+   * orbit's other rings where they are. A node at the center has nowhere to turn.
    */
   turnRing(orbit: number, ring: number, turns: number): void {
+    if (ring >= this.#rings[orbit]) return;
     this.#turns[orbit][ring] += turns;
     this.relayout(this.#stage);
   }
@@ -364,7 +372,9 @@ export class Scene {
       orbit,
       size: slots.length,
       rings: this.#rings[orbit],
-      counts: ringCounts(slots.length),
+      counts: ringCounts(slots.length, this.#centered[orbit]),
+      centered: this.#centered[orbit],
+      centerable: canCenter(slots.length),
       playing: this.#playing.has(orbit),
       locked: this.isLocked(orbit),
     }));
@@ -376,7 +386,26 @@ export class Scene {
    * any node dragged off them is put back on.
    */
   stepRings(orbit: number, step: 1 | -1): void {
-    this.#rings[orbit] = stepRings(this.#arrangement[orbit].length, this.#rings[orbit], step);
+    this.#rings[orbit] = stepRings(
+      this.#arrangement[orbit].length,
+      this.#rings[orbit],
+      step,
+      this.#centered[orbit],
+    );
+    this.#resetOrbit(orbit);
+    this.relayout(this.#stage);
+  }
+
+  /**
+   * Put a node of an orbit at its center, ringing the rest, or put it back on
+   * the rings. The count falls to the most rings that still divide what is
+   * ringed; the rings are new, as stepping makes them.
+   */
+  toggleCenter(orbit: number): void {
+    const size = this.#arrangement[orbit].length;
+    if (!canCenter(size)) return;
+    this.#centered[orbit] = !this.#centered[orbit];
+    this.#rings[orbit] = fitRings(size, this.#rings[orbit], this.#centered[orbit]);
     this.#resetOrbit(orbit);
     this.relayout(this.#stage);
   }

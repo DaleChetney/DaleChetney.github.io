@@ -56,6 +56,10 @@ const centerPanel = new CenterPanel({
     scene.toggleLock(orbit);
     render();
   },
+  onToggleCenter: (orbit) => {
+    scene.toggleCenter(orbit);
+    render();
+  },
   // A node of an unlocked orbit is dragged on its own; any other turns its ring.
   onDragStart: (point, clientX, clientY) => {
     const at = diagramPointAt(clientX, clientY);

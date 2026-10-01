@@ -7,6 +7,8 @@ import {
   ringRates,
   ringCounts,
   stepRings,
+  canCenter,
+  fitRings,
 } from "./ringLayout";
 
 const distinct = <T>(values: readonly T[]): number => new Set(values).size;
@@ -353,5 +355,65 @@ describe("layoutOrbits split into concentric rings", () => {
 
   it("draws a count that does not divide the orbit as one ring", () => {
     expect(layoutOrbits([ring(1, 8)], 900, [4])).toEqual(layoutOrbits([ring(1, 8)], 900));
+  });
+});
+
+describe("a center node", () => {
+  it("splits what is left once one node takes the center", () => {
+    expect(ringCounts(7)).toEqual([1]);
+    expect(ringCounts(7, true)).toEqual([1, 2]);
+    expect(ringCounts(13, true)).toEqual([1, 2, 3, 4]);
+    expect(ringCounts(12, true)).toEqual([1]);
+    expect(stepRings(7, 1, 1, true)).toBe(2);
+  });
+
+  it("is offered only when the rest still make a ring", () => {
+    expect(canCenter(3)).toBe(false);
+    expect(canCenter(4)).toBe(true);
+    expect(ringCounts(3, true)).toEqual(ringCounts(3));
+  });
+
+  it("falls back to the most rings that still divide, no more than before", () => {
+    expect(fitRings(12, 3, true)).toBe(1);
+    expect(fitRings(13, 4, true)).toBe(4);
+    expect(fitRings(13, 3, false)).toBe(1);
+    expect(fitRings(16, 5, true)).toBe(5);
+    expect(fitRings(16, 5, false)).toBe(4);
+  });
+
+  it("puts the last slot at the center and rings the rest", () => {
+    const diagram = layoutOrbits([ring(1, 7)], 600, [2], [], [true]);
+    const center = diagram.rings[0];
+    const seven = diagram.points.find((p) => p.point === 7);
+    expect(seven?.x).toBeCloseTo(center.cx);
+    expect(seven?.y).toBeCloseTo(center.cy);
+    expect(diagram.rings.map((r) => r.points)).toEqual([[1, 2, 3], [4, 5, 6], [7]]);
+    expect(diagram.rings[2]).toMatchObject({ ring: 2, radius: 0 });
+    expect(closestPair(diagram)).toBeGreaterThan(NODE_RADIUS * 2);
+  });
+
+  it("keeps the innermost ring as far from the center as the rings are from each other", () => {
+    for (const target of [300, 600, 1400]) {
+      const diagram = layoutOrbits([ring(1, 7)], target, [2], [], [true]);
+      const [outer, inner] = diagram.rings;
+      expect(inner.radius, `at ${String(target)}`).toBeCloseTo(outer.radius - inner.radius);
+    }
+  });
+
+  it("still spreads to about the width asked for", () => {
+    for (const [size, rings] of [
+      [7, 2],
+      [13, 3],
+      [41, 2],
+    ]) {
+      const diagram = layoutOrbits([ring(1, size)], 900, [rings], [], [true]);
+      expect(diagram.width, `${String(size)} as ${String(rings)}`).toBeCloseTo(900, 0);
+    }
+  });
+
+  it("is ignored on an orbit too small to ring the rest", () => {
+    expect(layoutOrbits([ring(1, 3)], 600, [1], [], [true])).toEqual(
+      layoutOrbits([ring(1, 3)], 600),
+    );
   });
 });

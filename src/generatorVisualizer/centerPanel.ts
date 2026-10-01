@@ -43,10 +43,10 @@ const latticeFocus = (active: Element): string | null => {
 
 /**
  * Ring steppers by the orbit and direction they step, which a redraw keeps;
- * lock and play buttons by their orbit alone.
+ * lock, play and center buttons by their orbit alone.
  */
 const ringFocus = (active: Element): string | null => {
-  for (const kind of ["ring-lock", "ring-play"]) {
+  for (const kind of ["ring-lock", "ring-play", "ring-center"]) {
     const orbit = active.closest(`.${kind}[data-orbit]`)?.getAttribute("data-orbit");
     if (orbit != null) return `.${kind}[data-orbit="${orbit}"]`;
   }
@@ -76,6 +76,8 @@ export interface CenterPanelHandlers {
   onTogglePlay: (orbit: number) => void;
   /** An orbit's nodes were asked to be unlocked, or locked again. */
   onToggleLock: (orbit: number) => void;
+  /** A node was asked to be put at an orbit's center, or back on its rings. */
+  onToggleCenter: (orbit: number) => void;
   /**
    * A node was held long enough to drag — its ring round, or in an unlocked
    * orbit the node itself — the pointer at these client coordinates.
@@ -165,7 +167,7 @@ export class CenterPanel {
     });
   }
 
-  /** A stepper, with its lock and play buttons, for each orbit. */
+  /** A stepper, with its lock, play and center buttons, for each orbit. */
   #showRingControls(scene: Scene): void {
     preservingFocus(ringFocus, () => {
       qs("#ring-controls").replaceChildren(
@@ -173,6 +175,7 @@ export class CenterPanel {
           onStep: this.#handlers.onStepRings,
           onTogglePlay: this.#handlers.onTogglePlay,
           onToggleLock: this.#handlers.onToggleLock,
+          onToggleCenter: this.#handlers.onToggleCenter,
         }),
       );
     });
