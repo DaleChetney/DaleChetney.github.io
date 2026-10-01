@@ -1,6 +1,6 @@
 import { byLabel, fetchCatalogue, type CatalogueGroup } from "./catalogue";
 import { qs } from "@shared/dom";
-import { CenterPanel, diagramPointAt, stageWidth } from "./centerPanel";
+import { CenterPanel, diagramPointAt, stage } from "./centerPanel";
 import type { PlacedRing } from "./components/diagram/permutationDiagram";
 import { NodeDrag } from "./components/diagram/nodeDrag";
 import { RingDrag } from "./components/diagram/ringDrag";
@@ -113,7 +113,7 @@ function render(): void {
 
 /** A scene on a group's first representation, opened so the diagram is never bare. */
 function sceneFor(group: CatalogueGroup): Scene {
-  const next = new Scene(group, group.representations[0], stageWidth());
+  const next = new Scene(group, group.representations[0], stage());
   next.open(null);
   return next;
 }
@@ -129,7 +129,7 @@ function selectRepresentation(id: string): void {
   const representation =
     scene.group.representations.find((rep) => rep.id === id) ?? scene.group.representations[0];
   if (representation.id === scene.representation.id) return;
-  const next = new Scene(scene.group, representation, stageWidth());
+  const next = new Scene(scene.group, representation, stage());
   next.open(scene.carrySelectionTo(next));
   scene = next;
   render();
@@ -138,7 +138,7 @@ function selectRepresentation(id: string): void {
 // The diagram is laid out to a measured width, so a resized window wants a new
 // layout rather than a scaled one — the nodes should keep their size.
 window.addEventListener("resize", () => {
-  scene.relayout(stageWidth());
+  scene.relayout(stage());
   render();
 });
 

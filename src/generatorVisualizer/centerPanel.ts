@@ -6,15 +6,25 @@ import { toDiagram, type DiagramPoint } from "./components/diagram/ringDrag";
 import { DEFAULT_TARGET_WIDTH } from "./components/diagram/ringLayout";
 import { renderLattice } from "./components/lattice";
 import { renderRepresentationRow } from "./components/representation-row";
-import type { Scene } from "./scene";
+import type { Scene, Stage } from "./scene";
 import type { Settings } from "./settings";
 
 /**
- * The width to lay a diagram out against: the stage is measured rather than
- * assumed, so the rings spread to the window the page is actually in. A stage
- * that has not been laid out yet reports zero, hence the fallback.
+ * A screen this narrow is a phone's: the diagram fills the panel, and the
+ * stylesheet's rule under the same query stacks and trims what is below it.
  */
-export const stageWidth = (): number => qs("#diagram").clientWidth || DEFAULT_TARGET_WIDTH;
+export const NARROW_SCREEN = "(max-width: 700px)";
+
+/**
+ * What to lay a diagram out against: the stage is measured rather than
+ * assumed, so the rings spread to the window the page is actually in, and on a
+ * narrow screen they fill it. A stage that has not been laid out yet reports
+ * zero width, hence the fallback.
+ */
+export const stage = (): Stage => ({
+  width: qs("#diagram").clientWidth || DEFAULT_TARGET_WIDTH,
+  fill: window.matchMedia(NARROW_SCREEN).matches,
+});
 
 /**
  * Where a pointer at these client coordinates sits in the drawn diagram's own
