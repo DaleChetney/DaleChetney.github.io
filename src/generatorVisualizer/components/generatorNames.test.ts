@@ -10,7 +10,6 @@ const cycle = (...points: number[]): Permutation => permutationFromCycles([point
 
 const choices = (spec: readonly (readonly [Permutation, number])[]) => ({
   elements: spec.map(([permutation, conjugate]) => ({ permutation, conjugate })),
-  total: spec.length,
 });
 
 const named = (names: Map<string, string>, permutation: Permutation) =>

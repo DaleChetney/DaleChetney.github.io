@@ -10,8 +10,6 @@ export interface GeneratorElement {
 
 export interface GeneratorChoices {
   elements: GeneratorElement[];
-  /** How many there were before `limit` was applied. */
-  total: number;
 }
 
 /**
@@ -23,12 +21,11 @@ export interface GeneratorChoices {
  * either does alone.
  *
  * Ordered by conjugate, then by the element's one-line form, so the listing is
- * stable; `limit` caps how many are returned, not how many are counted.
+ * stable.
  */
 export const generatorElements = (
   order: number,
   conjugates: readonly Subgroup[],
-  limit: number,
 ): GeneratorChoices => {
   const elements: GeneratorElement[] = [];
   conjugates.forEach((conjugate, index) => {
@@ -39,5 +36,5 @@ export const generatorElements = (
       elements.push({ permutation, conjugate: index });
     }
   });
-  return { elements: elements.slice(0, limit), total: elements.length };
+  return { elements };
 };

@@ -11,15 +11,13 @@ const byOrder = (order: number) => {
   if (found === undefined) throw new Error(`no class of order ${order}`);
   return found;
 };
-const choicesOf = (order: number, limit: number) =>
-  generatorElements(order, byOrder(order).conjugates, limit);
+const choicesOf = (order: number) => generatorElements(order, byOrder(order).conjugates);
 
 describe("generatorElements", () => {
-  const choices = choicesOf(4, 12);
+  const choices = choicesOf(4);
 
   it("lists every element of full order across all conjugates", () => {
     // C_4 has three conjugates with two generators each: six order-4 elements.
-    expect(choices.total).toBe(6);
     expect(choices.elements).toHaveLength(6);
     for (const { permutation } of choices.elements) {
       expect(permutationOrder(permutation)).toBe(4);
@@ -43,14 +41,8 @@ describe("generatorElements", () => {
     expect(new Set(keys).size).toBe(keys.length);
   });
 
-  it("caps the listing without changing the total", () => {
-    const capped = choicesOf(4, 4);
-    expect(capped.elements).toHaveLength(4);
-    expect(capped.total).toBe(6);
-  });
-
   it("is stable across calls", () => {
-    expect(choicesOf(4, 12).elements).toEqual(choices.elements);
+    expect(choicesOf(4).elements).toEqual(choices.elements);
   });
 
   it("separates the conjugates that generate the whole group together", () => {
@@ -66,7 +58,7 @@ describe("generatorElements", () => {
   });
 
   it("gives a single generator for a class with one conjugate", () => {
-    expect(choicesOf(2, 12).total).toBe(1);
-    expect(choicesOf(3, 12).total).toBe(2);
+    expect(choicesOf(2).elements).toHaveLength(1);
+    expect(choicesOf(3).elements).toHaveLength(2);
   });
 });

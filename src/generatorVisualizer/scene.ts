@@ -35,10 +35,11 @@ import {
 import { layoutLattice, type LatticeDiagram } from "./components/lattice";
 import type { StoredSelection } from "./lastView";
 
-/** How many generators a subgroup section will offer. */
-const ELEMENT_LIMIT = 12;
-
-/** Room left between one class's element ranks and the next's. */
+/**
+ * Room left between one class's element ranks and the next's. A class offers
+ * fewer generators than its group has elements, and the catalogue's
+ * `bounds.maxOrder` keeps every group well under this.
+ */
 const RANKS_PER_CLASS = 1000;
 
 /** What the diagram is laid out against. */
@@ -203,12 +204,11 @@ export class Scene {
   choicesFor(classIndex: number): GeneratorChoices {
     const known = this.#choices.get(classIndex);
     if (known !== undefined) return known;
-    if (!this.selectableClasses.includes(classIndex)) return { elements: [], total: 0 };
+    if (!this.selectableClasses.includes(classIndex)) return { elements: [] };
 
     const choices = generatorElements(
       this.#classes[classIndex].order,
       this.#conjugacyClass(classIndex).subgroups,
-      ELEMENT_LIMIT,
     );
     choices.elements.forEach((choice, position) => {
       const key = permutationKey(choice.permutation);

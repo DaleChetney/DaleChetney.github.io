@@ -3,23 +3,35 @@ import { describe, it, expect, vi } from "vitest";
 import type { GeneratorChoices } from "@shared/mathUtils/groups/generatorChoices";
 import { permutationKey } from "@shared/mathUtils/groups/permutations";
 import {
+  PAGE_SIZE,
   renderElementSections,
   type ElementSection,
   type ElementSelectionView,
 } from "./elements-panel";
 
-const choices = (
-  spec: readonly (readonly [number[], number])[],
-  total?: number,
-): GeneratorChoices => ({
+const choices = (spec: readonly (readonly [number[], number])[]): GeneratorChoices => ({
   elements: spec.map(([permutation, conjugate]) => ({ permutation, conjugate })),
-  total: total ?? spec.length,
 });
+
+/** The kth power of the 31-cycle (1 2 … 31). */
+const power31 = (k: number) => Array.from({ length: 31 }, (_, i) => ((i + k) % 31) + 1);
+
+/** C₃₁, whose 30 generators are the powers 1 to 30 of that cycle. */
+const c31: Partial<ElementSection> = {
+  label: "C₃₁",
+  letter: "c",
+  conjugateCount: 1,
+  choices: choices(Array.from({ length: 30 }, (_, k) => [power31(k + 1), 0] as const)),
+};
+
+const namesIn = (root: HTMLElement) =>
+  [...root.querySelectorAll(".element code")].map((code) => code.textContent);
 
 const section = (over: Partial<ElementSection> = {}): ElementSection => ({
   classIndex: 3,
   label: "₃C₄",
   letter: "b",
+  page: 0,
   conjugateCount: 3,
   choices: choices([
     [[1, 3, 2, 5, 6, 7, 4], 0],
@@ -33,6 +45,7 @@ const view = (over: Partial<ElementSelectionView> = {}): ElementSelectionView =>
   isSelected: () => false,
   colorOf: () => "#c1436d",
   onToggle: () => {},
+  onPage: () => {},
   ...over,
 });
 
@@ -75,18 +88,47 @@ describe("renderElementSections", () => {
     expect(root.querySelector(".muted")?.textContent).toContain("3 generators");
   });
 
-  it("says so when the listing was capped", () => {
-    const root = renderElementSections(
-      [section({ choices: choices([[[1, 3, 2, 5, 6, 7, 4], 0]], 40) })],
-      view(),
-    );
-    expect(root.querySelector(".muted")?.textContent).toContain("1 of 40");
+  it("needs no pager when every generator fits on one page", () => {
+    const root = renderElementSections([section()], view());
+    expect(root.querySelector(".pager")).toBeNull();
+  });
+
+  it("lists one page of generators at a time, and says which", () => {
+    const root = renderElementSections([section({ ...c31, page: 1 })], view());
+    expect(root.querySelector(".muted")?.textContent).toContain("30 generators");
+    expect(root.querySelector(".pager-range")?.textContent).toBe("13–24 of 30");
+    const names = namesIn(root);
+    expect(names).toHaveLength(PAGE_SIZE);
+    expect(names[0]).toBe("c¹³");
+  });
+
+  it("lists what is left on the last page, and cannot step past it", () => {
+    const root = renderElementSections([section({ ...c31, page: 2 })], view());
+    expect(root.querySelector(".pager-range")?.textContent).toBe("25–30 of 30");
+    expect(namesIn(root)).toHaveLength(6);
+    expect(root.querySelector<HTMLButtonElement>('[data-step="next"]')?.disabled).toBe(true);
+    expect(root.querySelector<HTMLButtonElement>('[data-step="previous"]')?.disabled).toBe(false);
+  });
+
+  it("keeps a page that no longer exists in range", () => {
+    const root = renderElementSections([section({ ...c31, page: 9 })], view());
+    expect(root.querySelector(".pager-range")?.textContent).toBe("25–30 of 30");
+  });
+
+  it("asks for the page it steps to", () => {
+    const onPage = vi.fn();
+    const root = renderElementSections([section({ ...c31, page: 1 })], view({ onPage }));
+    root.querySelector<HTMLButtonElement>('[data-step="next"]')?.click();
+    root.querySelector<HTMLButtonElement>('[data-step="previous"]')?.click();
+    expect(onPage.mock.calls).toEqual([
+      [3, 2],
+      [3, 0],
+    ]);
   });
 
   it("names each element as a power of its conjugate's first", () => {
     const root = renderElementSections([section()], view());
-    const names = [...root.querySelectorAll(".element code")].map((code) => code.textContent);
-    expect(names).toEqual(["b₁", "b₁³", "b₂"]);
+    expect(namesIn(root)).toEqual(["b₁", "b₁³", "b₂"]);
   });
 
   it("keeps the cycle notation for a hover, and reflects the selection", () => {
