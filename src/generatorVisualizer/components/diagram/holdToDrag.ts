@@ -27,6 +27,12 @@ export interface HoldToDrag {
  * The pointer is captured once the drag starts, so it can wander off the
  * target and keep dragging. Until then the release is listened for on the
  * whole document, since a press can end anywhere.
+ *
+ * A touch that moves is a scroll to the browser, which takes the gesture over
+ * and cancels the pointer, ending the drag. CSS `touch-action` would say not
+ * to, but Chrome and Safari ignore it inside an SVG, so the first move is
+ * cancelled here instead, which keeps the scroll from starting. A tap that
+ * never moves is left its click.
  */
 export const holdToDrag = (target: Element, handlers: HoldToDragHandlers): HoldToDrag => {
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -63,6 +69,14 @@ export const holdToDrag = (target: Element, handlers: HoldToDragHandlers): HoldT
     document.addEventListener("pointerup", release);
     document.addEventListener("pointercancel", release);
   });
+
+  target.addEventListener(
+    "touchmove",
+    (event) => {
+      event.preventDefault();
+    },
+    { passive: false },
+  );
 
   target.addEventListener("pointermove", (event) => {
     const { clientX, clientY } = event as PointerEvent;
