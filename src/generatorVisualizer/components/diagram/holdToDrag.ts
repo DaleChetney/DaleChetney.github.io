@@ -1,5 +1,5 @@
 /** How long a press must be held before it becomes a drag, in milliseconds. */
-export const HOLD_DELAY = 100;
+export const HOLD_DELAY = 130;
 
 export interface HoldToDragHandlers {
   /** The press was held long enough: a drag begins where the pointer is now. */

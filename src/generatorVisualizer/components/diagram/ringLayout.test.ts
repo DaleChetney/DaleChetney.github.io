@@ -252,8 +252,8 @@ describe("layoutOrbits scaled to a target width", () => {
 });
 
 describe("ringCounts", () => {
-  it("offers the divisors that leave at least three nodes a ring", () => {
-    expect(ringCounts(8)).toEqual([1, 2]);
+  it("offers the divisors that leave at least two nodes a ring", () => {
+    expect(ringCounts(8)).toEqual([1, 2, 4]);
     expect(ringCounts(12)).toEqual([1, 2, 3, 4]);
     expect(ringCounts(9)).toEqual([1, 3]);
   });
@@ -265,7 +265,8 @@ describe("ringCounts", () => {
 
   it("offers only the one ring to a prime orbit, or one too small to split", () => {
     expect(ringCounts(7)).toEqual([1]);
-    expect(ringCounts(4)).toEqual([1]);
+    expect(ringCounts(4)).toEqual([1, 2]);
+    expect(ringCounts(2)).toEqual([1]);
     expect(ringCounts(1)).toEqual([1]);
   });
 });
@@ -354,23 +355,23 @@ describe("layoutOrbits split into concentric rings", () => {
   });
 
   it("draws a count that does not divide the orbit as one ring", () => {
-    expect(layoutOrbits([ring(1, 8)], 900, [4])).toEqual(layoutOrbits([ring(1, 8)], 900));
+    expect(layoutOrbits([ring(1, 9)], 900, [2])).toEqual(layoutOrbits([ring(1, 9)], 900));
   });
 });
 
 describe("a center node", () => {
   it("splits what is left once one node takes the center", () => {
     expect(ringCounts(7)).toEqual([1]);
-    expect(ringCounts(7, true)).toEqual([1, 2]);
+    expect(ringCounts(7, true)).toEqual([1, 2, 3]);
     expect(ringCounts(13, true)).toEqual([1, 2, 3, 4]);
     expect(ringCounts(12, true)).toEqual([1]);
     expect(stepRings(7, 1, 1, true)).toBe(2);
   });
 
   it("is offered only when the rest still make a ring", () => {
-    expect(canCenter(3)).toBe(false);
-    expect(canCenter(4)).toBe(true);
-    expect(ringCounts(3, true)).toEqual(ringCounts(3));
+    expect(canCenter(2)).toBe(false);
+    expect(canCenter(3)).toBe(true);
+    expect(ringCounts(2, true)).toEqual(ringCounts(2));
   });
 
   it("falls back to the most rings that still divide, no more than before", () => {
@@ -412,8 +413,8 @@ describe("a center node", () => {
   });
 
   it("is ignored on an orbit too small to ring the rest", () => {
-    expect(layoutOrbits([ring(1, 3)], 600, [1], [], [true])).toEqual(
-      layoutOrbits([ring(1, 3)], 600),
+    expect(layoutOrbits([ring(1, 2)], 600, [1], [], [true])).toEqual(
+      layoutOrbits([ring(1, 2)], 600),
     );
   });
 });
