@@ -525,13 +525,13 @@ describe("groups page", () => {
       document.querySelector<HTMLElement>(`.representation[data-representation="${id}"]`)?.click();
     };
 
-    it("offers a stepper that cannot step on orbits that cannot be split: C_3:C_4's 3 + 4", () => {
+    it("offers a stepper that cannot step on an orbit that cannot be split: C_3:C_4's 3 + 4", () => {
       groupRow(DEFAULT.label).click();
       expect(controls()).toEqual(["Orbit of 3: 1", "Orbit of 4: 1"]);
-      for (const orbit of [0, 1]) {
-        expect(step(orbit, 1).disabled).toBe(true);
-        expect(step(orbit, -1).disabled).toBe(true);
-      }
+      expect(step(0, 1).disabled).toBe(true);
+      expect(step(0, -1).disabled).toBe(true);
+      expect(step(1, 1).disabled).toBe(false);
+      expect(step(1, -1).disabled).toBe(true);
     });
 
     it("splits a 12-point orbit into 2, 3 and 4 rings, and no further", () => {

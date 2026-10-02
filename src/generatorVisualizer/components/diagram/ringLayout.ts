@@ -12,7 +12,7 @@ const MIN_CONCENTRIC_GAP = NODE_RADIUS * 2 + 18;
 export const MAX_RINGS = 5;
 
 /** The fewest nodes a ring may hold once an orbit is split: fewer is not a ring. */
-const MIN_RING_SIZE = 3;
+const MIN_RING_SIZE = 2;
 
 /**
  * How fast each concentric ring turns relative to the one just inside it:
@@ -40,8 +40,8 @@ export const canCenter = (size: number): boolean => size - 1 >= MIN_RING_SIZE;
 /**
  * The numbers of concentric rings an orbit of `size` points can be split into,
  * ascending: the divisors of `size` up to {@link MAX_RINGS} that leave every
- * ring at least three nodes. One ring is always among them. With a node at
- * the `center`, it is the rest that are split, so an orbit of 7 makes 2 rings of 3.
+ * ring at least two nodes. One ring is always among them. With a node at
+ * the `center`, it is the rest that are split, so an orbit of 7 makes 2 rings of 3, or 3 of 2.
  */
 export const ringCounts = (size: number, center = false): number[] => {
   const ringed = center && canCenter(size) ? size - 1 : size;

@@ -148,7 +148,7 @@ describe("Scene lock", () => {
     const scene = new Scene(group, representation, { width: 640, fill: false });
     expect(scene.ringSplits().map(({ size, counts }) => [size, counts])).toEqual([
       [3, [1]],
-      [4, [1]],
+      [4, [1, 2]],
     ]);
   });
 
@@ -267,14 +267,13 @@ describe("Scene center", () => {
   });
 
   it("will not center an orbit too small to ring the rest", () => {
-    const group = byLabel(catalogue).get("12.1");
+    const group = byLabel(catalogue).get("2.1");
     const representation = group?.representations[0];
-    if (group === undefined || representation === undefined) throw new Error("no 12.1");
+    if (group === undefined || representation === undefined) throw new Error("no 2.1");
     const scene = new Scene(group, representation, { width: 640, fill: false });
     scene.toggleCenter(0);
     expect(scene.ringSplits().map(({ centered, centerable }) => [centered, centerable])).toEqual([
       [false, false],
-      [false, true],
     ]);
   });
 });
