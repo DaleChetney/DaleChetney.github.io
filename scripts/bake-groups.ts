@@ -19,7 +19,7 @@ import type {
 import { matchSubgroupClasses } from "./matchSubgroupClasses.ts";
 
 /**
- * Turn the three LMFDB extracts named in `lmfdb-extract.sql` into the
+ * Turn the four LMFDB extracts named in `lmfdb-extract.sql` into the
  * catalogue the site ships. Run it by hand when the bounds change:
  *
  *     node scripts/bake-groups.ts <dir with the .jsonl extracts>
@@ -79,6 +79,16 @@ export interface SubgroupRow {
   subgroup_tex: string;
   /** Short labels of the classes immediately below. */
   contains: string[];
+}
+
+/** A row of the cyclic-group extract: Aut(Cₙ)'s generators for one n. */
+export interface CyclicAutRow {
+  order: number;
+  /**
+   * `aut_gens` as a Postgres array literal: the group's generator, then its
+   * image under each automorphism, as `{{1},{15},{3}}`.
+   */
+  aut_gens: string;
 }
 
 const BOUNDS: CatalogueBounds = {
@@ -255,6 +265,58 @@ export const classGeneratorsFor = (
   return result;
 };
 
+const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
+
+/** Walk each exponent in turn over the units reached so far, as the page does. */
+const unitsReached = (order: number, exponents: readonly number[]): number[] => {
+  let reached = [1 % order];
+  for (const m of exponents) {
+    const next: number[] = [];
+    for (const k of reached) {
+      let x = k;
+      do {
+        next.push(x);
+        x = (x * m) % order;
+      } while (x !== k && next.length <= order);
+    }
+    reached = next;
+  }
+  return reached;
+};
+
+/**
+ * Aut(Cₙ)'s generators as exponents, by n.
+ *
+ * LMFDB presents each of these cyclic groups on one generator, so an
+ * automorphism is the code its generator goes to, which is the exponent it
+ * raises the generator to. The page relies on the exponents being a basis of
+ * (ℤ/n)ˣ, which LMFDB does not promise, so the bake checks it.
+ */
+export const cyclicAutExponentsFor = (rows: readonly CyclicAutRow[]): Record<number, number[]> => {
+  const byOrder: Record<number, number[]> = {};
+  for (const { order, aut_gens } of rows) {
+    const images = aut_gens.startsWith("{{")
+      ? (aut_gens.match(/\{[^{}]*\}/g) ?? []).map((image) => parseGeneratorCodes(image))
+      : [];
+    if (images.some((codes) => codes.length !== 1)) {
+      fail(`C${String(order)} is not presented on a single generator`);
+    }
+    const exponents = images.slice(1).map(([code]) => Number(code));
+    const reached = unitsReached(order, exponents);
+    const units = Array.from({ length: order }, (_, k) => k).filter((k) => gcd(k, order) === 1);
+    if (
+      new Set(reached).size !== reached.length ||
+      (order > 1 && reached.length !== units.length)
+    ) {
+      fail(
+        `C${String(order)}'s automorphisms ${exponents.join(", ")} are not a basis of its units`,
+      );
+    }
+    byOrder[order] = exponents;
+  }
+  return byOrder;
+};
+
 const groupBy = <T>(rows: readonly T[], key: (row: T) => string): Map<string, T[]> => {
   const grouped = new Map<string, T[]>();
   for (const row of rows) grouped.set(key(row), [...(grouped.get(key(row)) ?? []), row]);
@@ -311,11 +373,13 @@ export const bakeCatalogue = (
   groups: readonly GroupRow[],
   transitive: readonly TransitiveRow[],
   subgroups: readonly SubgroupRow[],
+  cyclicAut: readonly CyclicAutRow[],
 ): Catalogue => {
   const transitiveByGroup = groupBy(transitive, (row) => row.abstract_label);
   const subgroupsByGroup = groupBy(subgroups, (row) => row.ambient);
   return {
     bounds: BOUNDS,
+    cyclicAutExponents: cyclicAutExponentsFor(cyclicAut),
     groups: groups.map((row) =>
       bakeGroup(row, transitiveByGroup.get(row.label) ?? [], subgroupsByGroup.get(row.label) ?? []),
     ),
@@ -339,6 +403,7 @@ const main = (): void => {
     readJsonl<GroupRow>(resolve(extractDir, "groups.jsonl")),
     readJsonl<TransitiveRow>(resolve(extractDir, "transitive.jsonl")),
     readJsonl<SubgroupRow>(resolve(extractDir, "subgroups.jsonl")),
+    readJsonl<CyclicAutRow>(resolve(extractDir, "cyclic-aut.jsonl")),
   );
   writeFileSync(outFile, `${JSON.stringify(catalogue)}\n`);
   const representations = catalogue.groups.reduce((n, g) => n + g.representations.length, 0);

@@ -1,10 +1,10 @@
 -- Extracts that `bake-groups.ts` turns into public/groups.json.
 --
--- Run all three against LMFDB's read-only mirror and save the results as JSON
--- Lines, named groups.jsonl, transitive.jsonl and subgroups.jsonl in one
--- directory. LMFDB's public API at www.lmfdb.org/api/ answers the same
--- questions but is rate limited behind a captcha well before 400 groups, so
--- this is a manual step rather than part of the build.
+-- Run all four against LMFDB's read-only mirror and save the results as JSON
+-- Lines, named groups.jsonl, transitive.jsonl, subgroups.jsonl and
+-- cyclic-aut.jsonl, in one directory. LMFDB's public API at www.lmfdb.org/api/
+-- answers the same questions but is rate limited behind a captcha well before
+-- 400 groups, so this is a manual step rather than part of the build.
 --
 -- The bounds below are the ones settled for the visualiser:
 --   * 2 <= order <= 360 (the trivial group has nothing to draw)
@@ -74,3 +74,16 @@ FROM gps_subgroup_data d
 JOIN gps_subgroup_search s ON s.label = d.label
 JOIN sel ON sel.label = d.ambient
 ORDER BY d.ambient, s.subgroup_order, d.short_label;
+
+-- cyclic-aut.jsonl
+--
+-- Aut(C_n)'s generators for every order a cyclic subgroup class has in the
+-- groups above. None of those classes has order over 32 today; the catalogue
+-- test "offers automorphisms for every order a cyclic subgroup class has" fails
+-- if a change of bounds lets one in, and this bound must then rise with it. Each
+-- entry is the image of the group's single generator, which for a cyclic group
+-- is the exponent the automorphism raises it to.
+SELECT "order"::int AS order, aut_gens::text AS aut_gens
+FROM gps_groups
+WHERE cyclic AND "order" <= 32
+ORDER BY "order";
