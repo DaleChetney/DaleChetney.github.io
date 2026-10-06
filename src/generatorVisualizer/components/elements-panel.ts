@@ -4,7 +4,11 @@ import {
   permutationKey,
   type Permutation,
 } from "@shared/mathUtils/groups/permutations";
-import { largestOrbitExponent, orbitsUnder } from "@shared/mathUtils/groups/autOrbits";
+import {
+  cyclicSubgroupExponents,
+  largestOrbitExponent,
+  orbitsUnder,
+} from "@shared/mathUtils/groups/autOrbits";
 import type { GeneratorChoices, GeneratorElement } from "@shared/mathUtils/groups/generatorChoices";
 import { generatorNames } from "./generatorNames";
 
@@ -83,21 +87,22 @@ const listing = (section: ElementSection): Listed[] => {
 };
 
 /**
- * A choice of which automorphism to arrange a conjugate's generators under.
- * Absent when there is nothing to choose: with fewer than two exponents the
- * arrangement is a single orbit, or a single generator, whichever is picked.
+ * A choice of which automorphism to arrange a conjugate's generators under:
+ * one for each cyclic subgroup of Aut(Cₙ), largest first. Absent for a
+ * conjugate of two generators or fewer, which only ever splits one way.
  */
 const orbitPicker = (
   section: ElementSection,
   conjugate: number,
   view: ElementSelectionView,
 ): HTMLElement[] => {
-  if (section.autExponents.length < 2) return [];
+  const generators = section.choices.elements.filter((choice) => choice.conjugate === conjugate);
+  if (generators.length <= 2) return [];
   const chosen = orbitExponent(section, conjugate);
   const select = el(
     "select",
     { className: "orbit-select" },
-    section.autExponents.map((m) =>
+    cyclicSubgroupExponents(section.order, section.autExponents).map((m) =>
       el("option", { value: String(m), selected: m === chosen }, [`cosets under ×${String(m)}`]),
     ),
   );
