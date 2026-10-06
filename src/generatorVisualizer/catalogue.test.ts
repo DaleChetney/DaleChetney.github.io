@@ -9,6 +9,8 @@ const catalogue = parseCatalogue(
 );
 const groups = byLabel(catalogue);
 
+const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
+
 /** A group the parser should accept, to be broken one field at a time. */
 const wellFormed = () => ({
   label: "2.1",
@@ -30,30 +32,44 @@ describe("parseCatalogue", () => {
     expect(() => parseCatalogue({ bounds: {} })).toThrow(TypeError);
   });
 
+  it("rejects a catalogue without the automorphisms of its cyclic subgroups", () => {
+    expect(() => parseCatalogue({ bounds: {}, groups: [wellFormed()] })).toThrow(/automorphisms/);
+  });
+
   it("accepts a well-formed group", () => {
-    expect(() => parseCatalogue({ bounds: {}, groups: [wellFormed()] })).not.toThrow();
+    expect(() =>
+      parseCatalogue({ bounds: {}, cyclicAutExponents: {}, groups: [wellFormed()] }),
+    ).not.toThrow();
   });
 
   it("rejects a group with nothing to draw", () => {
     const group = { ...wellFormed(), representations: [] };
-    expect(() => parseCatalogue({ bounds: {}, groups: [group] })).toThrow(/2\.1/);
+    expect(() => parseCatalogue({ bounds: {}, cyclicAutExponents: {}, groups: [group] })).toThrow(
+      /2\.1/,
+    );
   });
 
   it("rejects a group without its subgroup classes", () => {
     const group = { ...wellFormed(), subgroups: { all: 2 } };
-    expect(() => parseCatalogue({ bounds: {}, groups: [group] })).toThrow(/subgroup classes/);
+    expect(() => parseCatalogue({ bounds: {}, cyclicAutExponents: {}, groups: [group] })).toThrow(
+      /subgroup classes/,
+    );
   });
 
   it("rejects subgroup classes that do not end at the whole group", () => {
     const group = wellFormed();
     group.subgroups.classes.pop();
-    expect(() => parseCatalogue({ bounds: {}, groups: [group] })).toThrow(/whole group/);
+    expect(() => parseCatalogue({ bounds: {}, cyclicAutExponents: {}, groups: [group] })).toThrow(
+      /whole group/,
+    );
   });
 
   it("rejects a representation without generators for every class", () => {
     const group = wellFormed();
     group.representations[0].classGenerators.pop();
-    expect(() => parseCatalogue({ bounds: {}, groups: [group] })).toThrow(/every class/);
+    expect(() => parseCatalogue({ bounds: {}, cyclicAutExponents: {}, groups: [group] })).toThrow(
+      /every class/,
+    );
   });
 });
 
@@ -172,6 +188,40 @@ describe("the baked catalogue", () => {
           expect(elements, `${group.label} ${rep.id} ${c.id}`).toHaveLength(c.order);
         });
       }
+    }
+  });
+
+  it("offers automorphisms for every order a cyclic subgroup class has", () => {
+    for (const group of catalogue.groups) {
+      for (const c of group.subgroups.classes) {
+        if (c.cyclic)
+          expect(catalogue.cyclicAutExponents[c.order], `C${String(c.order)}`).toBeDefined();
+      }
+    }
+  });
+
+  // The generators panel walks each exponent in turn over the generators found
+  // so far, which reaches every unit exactly once only if they form a basis.
+  it("has automorphism exponents that reach every unit exactly once", () => {
+    for (const [n, exponents] of Object.entries(catalogue.cyclicAutExponents)) {
+      const order = Number(n);
+      let reached = [1 % order];
+      for (const m of exponents) {
+        const next: number[] = [];
+        for (const k of reached) {
+          let x = k;
+          do {
+            next.push(x);
+            x = (x * m) % order;
+          } while (x !== k);
+        }
+        reached = next;
+      }
+      const units = Array.from({ length: order }, (_, k) => k).filter((k) => gcd(k, order) === 1);
+      expect(
+        [...reached].sort((a, b) => a - b),
+        `C${n}`,
+      ).toEqual(order === 1 ? [0] : units);
     }
   });
 

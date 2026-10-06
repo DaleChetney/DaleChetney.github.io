@@ -90,6 +90,13 @@ export interface CatalogueBounds {
 
 export interface Catalogue {
   bounds: CatalogueBounds;
+  /**
+   * LMFDB's generators of Aut(Cₙ), by n, for every order a cyclic subgroup
+   * class has: each is the exponent m of the automorphism g ↦ gᵐ. They form a
+   * basis of (ℤ/n)ˣ, so walking each in turn over the generators already
+   * reached gives every generator of a cyclic subgroup exactly once.
+   */
+  cyclicAutExponents: Readonly<Record<number, readonly number[]>>;
   groups: readonly CatalogueGroup[];
 }
 
@@ -113,6 +120,9 @@ export const parseCatalogue = (value: unknown): Catalogue => {
   if (!isRecord(value)) return fail("not an object");
   if (!isRecord(value.bounds)) return fail("no bounds");
   if (!Array.isArray(value.groups)) return fail("no groups");
+  if (!isRecord(value.cyclicAutExponents)) {
+    return fail("no automorphisms of its cyclic subgroups");
+  }
 
   for (const group of value.groups) {
     if (!isRecord(group)) return fail("a group is not an object");

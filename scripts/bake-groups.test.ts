@@ -4,9 +4,11 @@ import {
   bakeCatalogue,
   chooseRepresentations,
   classGeneratorsFor,
+  cyclicAutExponentsFor,
   parseGeneratorCodes,
   representationsFor,
   subgroupClassesFor,
+  type CyclicAutRow,
   type GroupRow,
   type SubgroupRow,
   type TransitiveRow,
@@ -310,11 +312,33 @@ describe("classGeneratorsFor", () => {
   });
 });
 
+describe("cyclicAutExponentsFor", () => {
+  const row = (order: number, aut_gens: string): CyclicAutRow => ({ order, aut_gens });
+
+  it("reads each automorphism as the exponent it raises the generator to", () => {
+    expect(cyclicAutExponentsFor([row(16, "{{1},{15},{3}}")])).toEqual({ 16: [15, 3] });
+  });
+
+  it("gives the trivial and the two-element groups no automorphisms to offer", () => {
+    expect(cyclicAutExponentsFor([row(1, "{}"), row(2, "{{1}}")])).toEqual({ 1: [], 2: [] });
+  });
+
+  it("refuses exponents that do not split the units into a direct product", () => {
+    // 11 = 3³ mod 16, so ×3 and ×11 reach only four of the eight units.
+    expect(() => cyclicAutExponentsFor([row(16, "{{1},{3},{11}}")])).toThrow(/C16/);
+  });
+
+  it("refuses a cyclic group not presented on a single generator", () => {
+    expect(() => cyclicAutExponentsFor([row(6, "{{1,2},{5,2}}")])).toThrow(/C6/);
+  });
+});
+
 describe("bakeCatalogue", () => {
   const catalogue = bakeCatalogue(
     [groupRow(), a4Row()],
     [transitiveRow()],
     [...subgroupRows(), ...a4SubgroupRows()],
+    [{ order: 4, aut_gens: "{{1},{3}}" }],
   );
 
   it("renders the display names from the TeX ones", () => {
@@ -351,11 +375,12 @@ describe("bakeCatalogue", () => {
       maxDegree: 32,
       maxRepresentations: 4,
     });
+    expect(catalogue.cyclicAutExponents).toEqual({ 4: [3] });
   });
 
   it("refuses a group whose subgroup rows disagree with its class count", () => {
     expect(() =>
-      bakeCatalogue([groupRow({ number_subgroup_classes: 7 })], [], subgroupRows()),
+      bakeCatalogue([groupRow({ number_subgroup_classes: 7 })], [], subgroupRows(), []),
     ).toThrow(/12\.1.*6 subgroup rows.*7 classes/);
   });
 });
