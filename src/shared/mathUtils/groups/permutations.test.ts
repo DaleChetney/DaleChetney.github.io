@@ -9,6 +9,7 @@ import {
   permutationFromCycles,
   permutationOrbits,
   permutationOrder,
+  permutationPowers,
   type Permutation,
 } from "@shared/mathUtils/groups/permutations";
 
@@ -188,6 +189,30 @@ describe("permutationCycles", () => {
       [1, 2, 3],
       [4, 6, 5],
     ]);
+  });
+});
+
+describe("permutationPowers", () => {
+  it("steps each point the exponent's distance along its cycle", () => {
+    // (1 3 6 7 9) cubed sends 1 three steps on, to 7: (1 7 3 9 6).
+    const a = permutationFromCycles([[1, 3, 6, 7, 9]], 9);
+    expect(permutationPowers(a)(3)).toEqual(permutationFromCycles([[1, 7, 3, 9, 6]], 9));
+  });
+
+  it("agrees with composing the permutation with itself", () => {
+    const g = permutationFromCycles(
+      [
+        [1, 2, 3, 4],
+        [5, 6, 7],
+      ],
+      8,
+    );
+    const powerOf = permutationPowers(g);
+    let composed = identityPermutation(8);
+    for (let k = 0; k <= 13; k++) {
+      expect(powerOf(k), `g^${String(k)}`).toEqual(composed);
+      composed = composePermutations(composed, g);
+    }
   });
 });
 

@@ -18,7 +18,12 @@ import {
   type Subgroup,
 } from "@shared/mathUtils/groups/subgroups";
 import type { BoundedLattice } from "fp-ts/BoundedLattice";
-import type { CatalogueGroup, CatalogueRepresentation, CatalogueSubgroupClass } from "./catalogue";
+import type {
+  Catalogue,
+  CatalogueGroup,
+  CatalogueRepresentation,
+  CatalogueSubgroupClass,
+} from "./catalogue";
 import { NODE_RADIUS, type PlacedPoint } from "./components/diagram/node";
 import type { Diagram, PlacedRing } from "./components/diagram/permutationDiagram";
 import type { DiagramPoint } from "./components/diagram/ringDrag";
@@ -143,6 +148,7 @@ export class Scene {
   /** A point picked to be swapped, waiting on the second; null while none is. */
   #picked: number | null = null;
   readonly #classes: readonly CatalogueSubgroupClass[];
+  readonly #autExponents: Catalogue["cyclicAutExponents"];
   readonly #poset: ClassPoset;
   readonly #lattice: BoundedLattice<Subgroup>;
 
@@ -161,7 +167,12 @@ export class Scene {
   /** The join of the chosen elements' subgroups, recomputed when the selection changes. */
   #generated: Subgroup;
 
-  constructor(group: CatalogueGroup, representation: CatalogueRepresentation, stage: Stage) {
+  constructor(
+    group: CatalogueGroup,
+    representation: CatalogueRepresentation,
+    stage: Stage,
+    autExponents: Catalogue["cyclicAutExponents"],
+  ) {
     const { generators, degree } = representation;
     const classes = group.subgroups.classes;
     const orbits = permutationOrbits(generators, degree);
@@ -179,6 +190,7 @@ export class Scene {
     this.#stage = stage;
     this.#arrangement = orbits;
     this.#classes = classes;
+    this.#autExponents = autExponents;
     this.#poset = classPoset(classes.map((c) => c.covers));
     this.#lattice = subgroupBoundedLattice(subgroupOf(generators, degree), degree);
     this.#generated = this.#lattice.zero;
@@ -196,6 +208,14 @@ export class Scene {
   }
 
   /**
+   * The exponents of LMFDB's generators of Aut(Cₙ) for a cyclic class of order
+   * n, which its generators can be arranged into orbits by.
+   */
+  autExponentsFor(classIndex: number): readonly number[] {
+    return this.#autExponents[this.#classes[classIndex].order] ?? [];
+  }
+
+  /**
    * The generators a cyclic class offers, grouped by the conjugate each
    * generates. Computed the first time the class is asked about: the baked
    * generator closes into one representative, whose orbit under conjugation
@@ -209,6 +229,7 @@ export class Scene {
     const choices = generatorElements(
       this.#classes[classIndex].order,
       this.#conjugacyClass(classIndex).subgroups,
+      this.autExponentsFor(classIndex),
     );
     choices.elements.forEach((choice, position) => {
       const key = permutationKey(choice.permutation);

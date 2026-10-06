@@ -13,7 +13,12 @@ const twelve = (): Scene => {
   const group = byLabel(catalogue).get("12.1");
   const representation = group?.representations.find((rep) => rep.id === "12T5");
   if (group === undefined || representation === undefined) throw new Error("no 12T5");
-  return new Scene(group, representation, { width: 640, fill: false });
+  return new Scene(
+    group,
+    representation,
+    { width: 640, fill: false },
+    catalogue.cyclicAutExponents,
+  );
 };
 
 /** Where the scene places each point. */
@@ -145,7 +150,12 @@ describe("Scene lock", () => {
     const group = byLabel(catalogue).get("12.1");
     const representation = group?.representations[0];
     if (group === undefined || representation === undefined) throw new Error("no 12.1");
-    const scene = new Scene(group, representation, { width: 640, fill: false });
+    const scene = new Scene(
+      group,
+      representation,
+      { width: 640, fill: false },
+      catalogue.cyclicAutExponents,
+    );
     expect(scene.ringSplits().map(({ size, counts }) => [size, counts])).toEqual([
       [3, [1]],
       [4, [1, 2]],
@@ -270,7 +280,12 @@ describe("Scene center", () => {
     const group = byLabel(catalogue).get("2.1");
     const representation = group?.representations[0];
     if (group === undefined || representation === undefined) throw new Error("no 2.1");
-    const scene = new Scene(group, representation, { width: 640, fill: false });
+    const scene = new Scene(
+      group,
+      representation,
+      { width: 640, fill: false },
+      catalogue.cyclicAutExponents,
+    );
     scene.toggleCenter(0);
     expect(scene.ringSplits().map(({ centered, centerable }) => [centered, centerable])).toEqual([
       [false, false],

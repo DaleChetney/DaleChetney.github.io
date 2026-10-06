@@ -133,7 +133,7 @@ function render(): void {
 
 /** A scene on a group's first representation, opened so the diagram is never bare. */
 function sceneFor(group: CatalogueGroup): Scene {
-  const next = new Scene(group, group.representations[0], stage());
+  const next = new Scene(group, group.representations[0], stage(), catalogue.cyclicAutExponents);
   next.open(null);
   return next;
 }
@@ -156,7 +156,7 @@ function sceneOf(view: LastView): Scene | null {
   if (group === undefined) return null;
   const representation = group.representations.find((rep) => rep.id === view.representation);
   if (representation === undefined) return sceneFor(group);
-  const next = new Scene(group, representation, stage());
+  const next = new Scene(group, representation, stage(), catalogue.cyclicAutExponents);
   next.open(view.selection === null ? null : next.selectionFrom(view.selection));
   return next;
 }
@@ -172,7 +172,7 @@ function selectRepresentation(id: string): void {
   const representation =
     scene.group.representations.find((rep) => rep.id === id) ?? scene.group.representations[0];
   if (representation.id === scene.representation.id) return;
-  const next = new Scene(scene.group, representation, stage());
+  const next = new Scene(scene.group, representation, stage(), catalogue.cyclicAutExponents);
   next.open(scene.carrySelectionTo(next));
   scene = next;
   render();
