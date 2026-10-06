@@ -1154,3 +1154,37 @@ describe("dragging a ring", () => {
     expect(playButton().disabled).toBe(false);
   });
 });
+
+describe("arranging generators by orbit", () => {
+  const c16 = (): HTMLElement => {
+    groupRow("16.1").click();
+    if (!sectionLabels().includes("C₁₆")) latticeNode("C₁₆").dispatchEvent(new MouseEvent("click"));
+    return sectionFor("C₁₆");
+  };
+  const names = (section: HTMLElement): string[] =>
+    Array.from(section.querySelectorAll(".element code")).map((code) => code.textContent);
+  const picker = (): HTMLSelectElement => {
+    const found = sectionFor("C₁₆").querySelector<HTMLSelectElement>("select");
+    if (found === null) throw new Error("no orbit picker for C₁₆");
+    return found;
+  };
+
+  it("opens on the largest orbits, and rearranges under the one picked, keeping focus", () => {
+    const section = c16();
+    expect(picker().value).toBe("3");
+    // C₁₆ is the fourth of C₁₆'s cyclic classes, after C₂, C₄ and C₈, so it is d.
+    expect(names(section)).toEqual(["d", "d³", "d⁹", "d¹¹", "d¹⁵", "d¹³", "d⁷", "d⁵"]);
+
+    picker().focus();
+    picker().value = "15";
+    picker().dispatchEvent(new Event("change"));
+    expect(names(sectionFor("C₁₆"))).toEqual(["d", "d¹⁵", "d³", "d¹³", "d⁹", "d⁷", "d¹¹", "d⁵"]);
+    expect(document.activeElement).toBe(picker());
+  });
+
+  it("starts back on the largest orbits on a new group", () => {
+    groupRow("8.3").click();
+    c16();
+    expect(picker().value).toBe("3");
+  });
+});

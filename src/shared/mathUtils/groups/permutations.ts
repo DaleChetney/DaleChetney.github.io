@@ -117,6 +117,25 @@ export const permutationCycles = (perm: Permutation): number[][] => {
 };
 
 /**
+ * Powers of `perm`, each read straight off its cycles: `perm`ᵏ sends a point
+ * k steps further along its cycle. The cycles are found once, so each power
+ * costs one pass over the points, whatever the exponent, with no repeated
+ * composition.
+ */
+export const permutationPowers = (perm: Permutation): ((exponent: number) => Permutation) => {
+  const cycles = permutationCycles(perm);
+  return (exponent) => {
+    const power = Array.from({ length: perm.length }, (_, i) => i + 1);
+    for (const cycle of cycles) {
+      cycle.forEach((point, i) => {
+        power[point - 1] = cycle[(i + exponent) % cycle.length];
+      });
+    }
+    return power;
+  };
+};
+
+/**
  * A permutation from its cycles, the inverse of `permutationCycles`.
  *
  * `gps_transitive.gens` records generators this way rather than as codes, so a

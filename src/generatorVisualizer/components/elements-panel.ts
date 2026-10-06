@@ -4,6 +4,7 @@ import {
   permutationKey,
   type Permutation,
 } from "@shared/mathUtils/groups/permutations";
+import { largestOrbitExponent, orbitsUnder } from "@shared/mathUtils/groups/autOrbits";
 import type { GeneratorChoices, GeneratorElement } from "@shared/mathUtils/groups/generatorChoices";
 import { generatorNames } from "./generatorNames";
 
@@ -19,6 +20,15 @@ export interface ElementSection {
   letter: string;
   /** Number of conjugate subgroups in the class. */
   conjugateCount: number;
+  /** The order n of the cyclic subgroups in the class. */
+  order: number;
+  /** LMFDB's generators of Aut(Cₙ), as the exponents m of g ↦ gᵐ. */
+  autExponents: readonly number[];
+  /**
+   * The exponent each conjugate's generators are arranged in orbits under, by
+   * conjugate; a conjugate not in it is arranged under the largest-orbit one.
+   */
+  orbits: ReadonlyMap<number, number>;
   choices: GeneratorChoices;
   /** Which page of `PAGE_SIZE` generators to list, from 0; kept in range when drawn. */
   page: number;
@@ -31,7 +41,91 @@ export interface ElementSelectionView {
   onToggle: (key: string) => void;
   /** Turn a section to another page. */
   onPage: (classIndex: number, page: number) => void;
+  /** Arrange one conjugate's generators in orbits under another exponent. */
+  onOrbit: (classIndex: number, conjugate: number, exponent: number) => void;
 }
+
+/** A generator in the order it is listed, and whether it starts a new orbit. */
+interface Listed {
+  choice: GeneratorElement;
+  /** Its orbit's number, from 0, when it is the first of that orbit; else null. */
+  startsOrbit: number | null;
+}
+
+/** The exponent a conjugate's generators are arranged under, if there is any choice. */
+const orbitExponent = (section: ElementSection, conjugate: number): number | undefined =>
+  section.orbits.get(conjugate) ?? largestOrbitExponent(section.order, section.autExponents);
+
+/**
+ * Every generator of the class in listing order: conjugate by conjugate, each
+ * conjugate's arranged orbit by orbit. Only exponents are walked; each
+ * generator already carries its own, so the walk just looks them up.
+ */
+const listing = (section: ElementSection): Listed[] => {
+  const byConjugate = new Map<number, Map<number, GeneratorElement>>();
+  for (const choice of section.choices.elements) {
+    let byExponent = byConjugate.get(choice.conjugate);
+    if (byExponent === undefined) {
+      byExponent = new Map();
+      byConjugate.set(choice.conjugate, byExponent);
+    }
+    byExponent.set(choice.exponent, choice);
+  }
+  return [...byConjugate].flatMap(([conjugate, byExponent]) =>
+    orbitsUnder(section.order, section.autExponents, orbitExponent(section, conjugate)).flatMap(
+      (orbit, index) =>
+        orbit.flatMap((exponent, step) => {
+          const choice = byExponent.get(exponent);
+          return choice === undefined ? [] : [{ choice, startsOrbit: step === 0 ? index : null }];
+        }),
+    ),
+  );
+};
+
+/**
+ * A choice of which automorphism to arrange a conjugate's generators under.
+ * Absent when there is nothing to choose: with fewer than two exponents the
+ * arrangement is a single orbit, or a single generator, whichever is picked.
+ */
+const orbitPicker = (
+  section: ElementSection,
+  conjugate: number,
+  view: ElementSelectionView,
+): HTMLElement[] => {
+  if (section.autExponents.length < 2) return [];
+  const chosen = orbitExponent(section, conjugate);
+  const select = el(
+    "select",
+    { className: "orbit-select" },
+    section.autExponents.map((m) =>
+      el("option", { value: String(m), selected: m === chosen }, [`cosets under ×${String(m)}`]),
+    ),
+  );
+  select.setAttribute(
+    "aria-label",
+    section.conjugateCount > 1
+      ? `Arrange conjugate ${String(conjugate + 1)}'s generators by coset`
+      : "Arrange the generators by coset",
+  );
+  select.dataset.orbit = String(conjugate);
+  select.addEventListener("change", () => {
+    view.onOrbit(section.classIndex, conjugate, Number(select.value));
+  });
+  return [select];
+};
+
+/** The rows for some listed generators, with a break before each new orbit after the first. */
+const rows = (
+  listed: readonly Listed[],
+  names: Map<string, string>,
+  view: ElementSelectionView,
+): HTMLElement[] =>
+  listed.flatMap(({ choice, startsOrbit }) => [
+    ...(startsOrbit !== null && startsOrbit > 0
+      ? [el("div", { className: "orbit-break" }, [`coset ${String(startsOrbit + 1)}`])]
+      : []),
+    elementRow(choice.permutation, names, view),
+  ]);
 
 const elementRow = (
   permutation: Permutation,
@@ -62,16 +156,20 @@ const elementRow = (
 };
 
 const conjugateGroup = (
-  shown: readonly GeneratorElement[],
+  section: ElementSection,
+  shown: readonly Listed[],
   conjugate: number,
   names: Map<string, string>,
   view: ElementSelectionView,
 ): HTMLElement =>
   el("div", { className: "conjugate" }, [
-    el("h4", {}, [`Conjugate ${conjugate + 1}`]),
-    ...shown
-      .filter((choice) => choice.conjugate === conjugate)
-      .map((choice) => elementRow(choice.permutation, names, view)),
+    el("h4", {}, [`Conjugate ${String(conjugate + 1)}`]),
+    ...orbitPicker(section, conjugate, view),
+    ...rows(
+      shown.filter(({ choice }) => choice.conjugate === conjugate),
+      names,
+      view,
+    ),
   ]);
 
 /**
@@ -116,8 +214,6 @@ const pager = (
 
 const sectionBlock = (section: ElementSection, view: ElementSelectionView): HTMLElement => {
   const { elements } = section.choices;
-  // Named over the whole class, not the page, since a conjugate's first
-  // generator, which the rest are powers of, may be on an earlier page.
   const names = generatorNames(section.letter, section.choices, section.conjugateCount);
   const heading = el("h3", {}, [
     section.label,
@@ -128,16 +224,16 @@ const sectionBlock = (section: ElementSection, view: ElementSelectionView): HTML
 
   const pageCount = Math.max(1, Math.ceil(elements.length / PAGE_SIZE));
   const page = Math.min(Math.max(section.page, 0), pageCount - 1);
-  const shown = elements.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const shown = listing(section).slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   // Which conjugate an element generates decides what it adds to a selection, so
   // elements are grouped by it rather than listed as one undifferentiated set.
   const body =
     section.conjugateCount > 1
-      ? [...new Set(shown.map((choice) => choice.conjugate))].map((conjugate) =>
-          conjugateGroup(shown, conjugate, names, view),
+      ? [...new Set(shown.map(({ choice }) => choice.conjugate))].map((conjugate) =>
+          conjugateGroup(section, shown, conjugate, names, view),
         )
-      : shown.map((choice) => elementRow(choice.permutation, names, view));
+      : [...orbitPicker(section, 0, view), ...rows(shown, names, view)];
 
   const block = el("section", { className: "element-section" }, [
     heading,
