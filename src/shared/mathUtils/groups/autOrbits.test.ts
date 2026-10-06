@@ -1,11 +1,36 @@
 import { describe, it, expect } from "vitest";
-import { largestOrbitExponent, multiplicativeOrder, orbitsUnder } from "./autOrbits";
+import {
+  cyclicSubgroupExponents,
+  largestOrbitExponent,
+  multiplicativeOrder,
+  orbitsUnder,
+} from "./autOrbits";
 
 describe("multiplicativeOrder", () => {
   it("counts the steps ×m takes to come back to 1", () => {
     expect(multiplicativeOrder(3, 16)).toBe(4);
     expect(multiplicativeOrder(15, 16)).toBe(2);
     expect(multiplicativeOrder(3, 31)).toBe(30);
+  });
+});
+
+describe("cyclicSubgroupExponents", () => {
+  it("raises a single basis exponent to each proper divisor of its order", () => {
+    // 3 generates all 30 units mod 31; 3², 3³, 3⁵, 3⁶, 3¹⁰, 3¹⁵ the rest.
+    expect(cyclicSubgroupExponents(31, [3])).toEqual([3, 9, 27, 26, 16, 25, 30]);
+  });
+
+  it("combines basis exponents: singles first, then pairs, then all three", () => {
+    expect(cyclicSubgroupExponents(24, [17, 13, 19])).toEqual([17, 13, 19, 5, 11, 7, 23]);
+  });
+
+  it("puts larger subgroups first, keeping the walk's order among equals", () => {
+    // ⟨3⟩ and ⟨13⟩ have four elements; ⟨15⟩, ⟨9⟩ and ⟨7⟩ two.
+    expect(cyclicSubgroupExponents(16, [15, 3])).toEqual([3, 13, 15, 9, 7]);
+  });
+
+  it("offers nothing when there is no automorphism but the identity", () => {
+    expect(cyclicSubgroupExponents(2, [])).toEqual([]);
   });
 });
 

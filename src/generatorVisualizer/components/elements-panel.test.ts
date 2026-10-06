@@ -224,6 +224,7 @@ describe("renderElementSections", () => {
     expect([...selects[0].options].map((option) => option.textContent)).toEqual([
       "cosets under ×5",
       "cosets under ×3",
+      "cosets under ×7",
     ]);
     // Equal orbits, so LMFDB's first is the default.
     expect(selects[1].value).toBe("5");
@@ -232,9 +233,41 @@ describe("renderElementSections", () => {
     expect(onOrbit).toHaveBeenCalledWith(3, 1, 3);
   });
 
-  it("offers no choice when the generators make a single orbit", () => {
+  it("offers a choice for every cyclic subgroup of the automorphisms, even from one basis exponent", () => {
     const root = renderElementSections([section(c31)], view());
-    expect(root.querySelector("select")).toBeNull();
+    const select = root.querySelector<HTMLSelectElement>("select");
+    expect([...(select?.options ?? [])].map((option) => option.value)).toEqual([
+      "3",
+      "9",
+      "27",
+      "26",
+      "16",
+      "25",
+      "30",
+    ]);
+    expect(select?.value).toBe("3");
     expect(root.querySelector(".orbit-break")).toBeNull();
+  });
+
+  it("arranges by a product of basis exponents", () => {
+    // ⟨13⟩ = {1, 13, 9, 5}, and ×15 carries it to the other coset.
+    const root = renderElementSections([section({ ...c16, orbits: new Map([[0, 13]]) })], view());
+    expect(namesIn(root)).toEqual(["a", "a¹³", "a⁹", "a⁵", "a¹⁵", "a³", "a⁷", "a¹¹"]);
+  });
+
+  it("offers no choice for a conjugate of only two generators", () => {
+    const root = renderElementSections(
+      [
+        section({
+          label: "C₆",
+          order: 6,
+          autExponents: [5],
+          conjugateCount: 1,
+          choices: cyclic(6, [0]),
+        }),
+      ],
+      view(),
+    );
+    expect(root.querySelector("select")).toBeNull();
   });
 });
