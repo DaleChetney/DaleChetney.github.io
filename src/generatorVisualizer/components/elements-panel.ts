@@ -4,11 +4,7 @@ import {
   permutationKey,
   type Permutation,
 } from "@shared/mathUtils/groups/permutations";
-import {
-  largestOrbitExponent,
-  multiplicativeOrder,
-  orbitsUnder,
-} from "@shared/mathUtils/groups/autOrbits";
+import { largestOrbitExponent, orbitsUnder } from "@shared/mathUtils/groups/autOrbits";
 import type { GeneratorChoices, GeneratorElement } from "@shared/mathUtils/groups/generatorChoices";
 import { generatorNames } from "./generatorNames";
 
@@ -102,16 +98,14 @@ const orbitPicker = (
     "select",
     { className: "orbit-select" },
     section.autExponents.map((m) =>
-      el("option", { value: String(m), selected: m === chosen }, [
-        `orbits under ×${String(m)} (${String(multiplicativeOrder(m, section.order))} each)`,
-      ]),
+      el("option", { value: String(m), selected: m === chosen }, [`cosets under ×${String(m)}`]),
     ),
   );
   select.setAttribute(
     "aria-label",
     section.conjugateCount > 1
-      ? `Arrange conjugate ${String(conjugate + 1)}'s generators by orbit`
-      : "Arrange the generators by orbit",
+      ? `Arrange conjugate ${String(conjugate + 1)}'s generators by coset`
+      : "Arrange the generators by coset",
   );
   select.dataset.orbit = String(conjugate);
   select.addEventListener("change", () => {
@@ -128,7 +122,7 @@ const rows = (
 ): HTMLElement[] =>
   listed.flatMap(({ choice, startsOrbit }) => [
     ...(startsOrbit !== null && startsOrbit > 0
-      ? [el("div", { className: "orbit-break" }, [`orbit ${String(startsOrbit + 1)}`])]
+      ? [el("div", { className: "orbit-break" }, [`coset ${String(startsOrbit + 1)}`])]
       : []),
     elementRow(choice.permutation, names, view),
   ]);

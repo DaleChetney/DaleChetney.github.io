@@ -194,7 +194,7 @@ describe("renderElementSections", () => {
     const root = renderElementSections([section(c16)], view());
     expect(namesIn(root)).toEqual(["a", "a³", "a⁹", "a¹¹", "a¹⁵", "a¹³", "a⁷", "a⁵"]);
     const breaks = [...root.querySelectorAll(".orbit-break")];
-    expect(breaks.map((b) => b.textContent)).toEqual(["orbit 2"]);
+    expect(breaks.map((b) => b.textContent)).toEqual(["coset 2"]);
     expect(breaks[0].nextElementSibling?.querySelector("code")?.textContent).toBe("a¹⁵");
   });
 
@@ -222,8 +222,8 @@ describe("renderElementSections", () => {
     const selects = [...root.querySelectorAll<HTMLSelectElement>(".conjugate select")];
     expect(selects).toHaveLength(2);
     expect([...selects[0].options].map((option) => option.textContent)).toEqual([
-      "orbits under ×5 (2 each)",
-      "orbits under ×3 (2 each)",
+      "cosets under ×5",
+      "cosets under ×3",
     ]);
     // Equal orbits, so LMFDB's first is the default.
     expect(selects[1].value).toBe("5");
