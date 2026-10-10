@@ -1,4 +1,4 @@
-import { mount, preservingFocus, qs } from "@shared/dom";
+import { el, mount, preservingFocus, qs } from "@shared/dom";
 import { actionArrows } from "./components/diagram/arrow";
 import { moveDiagram, renderPermutationDiagram } from "./components/diagram/permutationDiagram";
 import { renderRingControls } from "./components/diagram/ringControls";
@@ -70,6 +70,10 @@ export interface CenterPanelHandlers {
   onPickPoint: (point: number) => void;
   /** Another representation of the same group was asked for. */
   onSelectRepresentation: (id: string) => void;
+  /** Whether the catalogue holds a group, so that Aut(G) can be followed to it. */
+  holdsGroup: (label: string) => boolean;
+  /** Another group was asked for, by following its automorphism group. */
+  onSelectGroup: (label: string) => void;
   /** An orbit was asked to split into more concentric rings, or fewer. */
   onStepRings: (orbit: number, step: 1 | -1) => void;
   /** An orbit's rings were asked to start turning, or to stop. */
@@ -126,9 +130,7 @@ export class CenterPanel {
 
   #showHeading(scene: Scene): void {
     qs("#group-name").textContent = scene.group.displayName;
-    // Every group in the catalogue has one, but LMFDB leaves the column nullable.
-    const aut = scene.group.autDisplayName;
-    qs("#group-aut").textContent = aut === null ? "" : `Aut(G) ≅ ${aut}`;
+    this.#showAut(scene);
     const label = qs<HTMLAnchorElement>("#group-label");
     label.textContent = scene.group.label;
     label.href = `https://www.lmfdb.org/Groups/Abstract/${scene.group.label}`;
@@ -140,6 +142,30 @@ export class CenterPanel {
         onSelect: this.#handlers.onSelectRepresentation,
       }),
     );
+  }
+
+  /**
+   * Aut(G)'s name, which opens that group when the catalogue holds it. A group
+   * that is its own automorphism group has nowhere to go, so it is not a link.
+   */
+  #showAut(scene: Scene): void {
+    const { autDisplayName: name, autLabel: label } = scene.group;
+    // Every group in the catalogue has one, but LMFDB leaves the column nullable.
+    if (name === null) {
+      qs("#group-aut").replaceChildren();
+      return;
+    }
+    if (label === null || label === scene.group.label || !this.#handlers.holdsGroup(label)) {
+      qs("#group-aut").replaceChildren(`Aut(G) ≅ ${name}`);
+      return;
+    }
+    const link = el("button", { className: "aut-link", type: "button", title: `Open ${label}` }, [
+      name,
+    ]);
+    link.addEventListener("click", () => {
+      this.#handlers.onSelectGroup(label);
+    });
+    qs("#group-aut").replaceChildren("Aut(G) ≅ ", link);
   }
 
   /**

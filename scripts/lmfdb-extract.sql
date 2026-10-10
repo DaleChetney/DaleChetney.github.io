@@ -29,7 +29,7 @@ SELECT g.label, g."order"::int AS order, g.tex_name, g.name,
        g.number_subgroup_classes,
        g.abelian, g.cyclic, g.nilpotent, g.solvable, g.simple,
        g.solvability_type, g.nilpotency_class, g.derived_length, g.rank,
-       g.aut_tex, g.aut_order::text AS aut_order,
+       g.aut_group, g.aut_tex, g.aut_order::text AS aut_order,
        g.representations->'Perm'->>'d' AS perm_degree,
        (g.representations->'Perm'->'gens')::text AS perm_gens
 FROM gps_groups g

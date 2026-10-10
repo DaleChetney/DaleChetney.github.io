@@ -52,6 +52,8 @@ export interface GroupRow {
   nilpotency_class: number;
   derived_length: number;
   rank: number;
+  /** Aut(G)'s own label, which need not be a group the catalogue holds. */
+  aut_group: string | null;
   aut_tex: string | null;
   /** As text: Aut(G) can outgrow a double even when G does not. */
   aut_order: string | null;
@@ -335,18 +337,21 @@ export const bakeGroup = (
       `${row.label}: ${String(classes.length)} subgroup rows, LMFDB counts ${String(row.number_subgroup_classes)} classes`,
     );
   }
+  // Largest first, so the one the page opens a group on is the most spread out.
   const representations = chooseRepresentations(
     representationsFor(row, transitive),
     BOUNDS.maxRepresentations,
-  ).map((rep) => ({
-    ...rep,
-    classGenerators: classGeneratorsFor(
-      rep.generators,
-      rep.degree,
-      classes,
-      `${row.label} ${rep.id}`,
-    ),
-  }));
+  )
+    .reverse()
+    .map((rep) => ({
+      ...rep,
+      classGenerators: classGeneratorsFor(
+        rep.generators,
+        rep.degree,
+        classes,
+        `${row.label} ${rep.id}`,
+      ),
+    }));
 
   return {
     label: row.label,
@@ -363,6 +368,7 @@ export const bakeGroup = (
     nilpotencyClass: row.nilpotency_class,
     derivedLength: row.derived_length,
     rank: row.rank,
+    autLabel: row.aut_group,
     autTexName: row.aut_tex,
     autDisplayName: row.aut_tex === null ? null : texToUnicode(row.aut_tex),
     autOrder: row.aut_order === null ? null : Number(row.aut_order),

@@ -63,6 +63,8 @@ export interface CatalogueGroup {
   /** Length of the derived series. Meaningless when the group is not solvable. */
   derivedLength: number;
   rank: number;
+  /** Aut(G)'s LMFDB label, whether or not the catalogue holds that group. */
+  autLabel: string | null;
   autTexName: string | null;
   autDisplayName: string | null;
   autOrder: number | null;
@@ -74,6 +76,7 @@ export interface CatalogueGroup {
     classes: readonly CatalogueSubgroupClass[];
   };
 
+  /** Largest degree first: the page opens a group on the first. */
   representations: readonly CatalogueRepresentation[];
 }
 

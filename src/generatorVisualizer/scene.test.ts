@@ -148,7 +148,7 @@ describe("Scene lock", () => {
 
   it("offers every orbit, including one that cannot be split", () => {
     const group = byLabel(catalogue).get("12.1");
-    const representation = group?.representations[0];
+    const representation = group?.representations.find((rep) => rep.id === "perm-7");
     if (group === undefined || representation === undefined) throw new Error("no 12.1");
     const scene = new Scene(
       group,
