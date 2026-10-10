@@ -1,18 +1,18 @@
-import { byLabel, fetchCatalogue, type CatalogueGroup } from "./catalogue";
+import { byLabel, fetchCatalogue, type CatalogueGroup } from "./groupCatalogue/catalogue";
 import { qs } from "@shared/dom";
-import { CenterPanel, diagramPointAt, NARROW_SCREEN, stage } from "./centerPanel";
+import { CenterPanel, diagramPointAt, NARROW_SCREEN, stage } from "./components/panels/centerPanel";
 import type { PlacedRing } from "./components/diagram/permutationDiagram";
-import { NodeDrag } from "./components/diagram/nodeDrag";
-import { RingDrag } from "./components/diagram/ringDrag";
-import { collapsiblePanel } from "./collapsiblePanel";
+import { NodeDrag } from "./interactions/nodeDrag";
+import { RingDrag } from "./interactions/ringDrag";
+import { collapsiblePanel } from "./components/panels/collapsiblePanel";
 import { loadLastView, saveLastView, type LastView } from "./lastView";
-import { LeftPanel } from "./leftPanel";
-import { RightPanel } from "./rightPanel";
-import { Rotation } from "./rotation";
+import { LeftPanel } from "./components/panels/leftPanel";
+import { RightPanel } from "./components/panels/rightPanel";
+import { Rotation } from "./interactions/rotation";
 import { Scene } from "./scene";
 import { applyTheme, loadSettings, saveSettings } from "./settings";
-import { settingsPanel } from "./settingsPanel";
-import { tabs } from "./tabs";
+import { settingsPanel } from "./components/panels/settingsPanel";
+import { tabs } from "./interactions/tabs";
 
 /**
  * What the page opens on the first time: C_3:C_4 on twelve points, its class

@@ -2,7 +2,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { decodePermutation, permutationOrbits } from "@shared/mathUtils/groups/permutations";
 import { actionArrows, type BowWidth } from "./arrow";
-import { HOLD_DELAY } from "./holdToDrag";
+import { HOLD_DELAY } from "../../interactions/holdToDrag";
 import {
   moveDiagram,
   renderPermutationDiagram,

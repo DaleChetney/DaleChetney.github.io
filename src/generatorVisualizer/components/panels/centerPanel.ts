@@ -1,13 +1,13 @@
 import { el, mount, preservingFocus, qs } from "@shared/dom";
-import { actionArrows } from "./components/diagram/arrow";
-import { moveDiagram, renderPermutationDiagram } from "./components/diagram/permutationDiagram";
-import { renderRingControls } from "./components/diagram/ringControls";
-import { toDiagram, type DiagramPoint } from "./components/diagram/ringDrag";
-import { DEFAULT_TARGET_WIDTH } from "./components/diagram/ringLayout";
-import { renderLattice } from "./components/lattice";
-import { renderRepresentationRow } from "./components/representation-row";
-import type { Scene, Stage } from "./scene";
-import type { Settings } from "./settings";
+import { actionArrows } from "../diagram/arrow";
+import { moveDiagram, renderPermutationDiagram } from "../diagram/permutationDiagram";
+import { renderRingControls } from "../diagram/ringControls";
+import { toDiagram, type DiagramPoint } from "../../interactions/ringDrag";
+import { DEFAULT_TARGET_WIDTH } from "../diagram/ringLayout";
+import { renderLattice } from "../lattice";
+import { renderRepresentationRow } from "../representationRow";
+import type { Scene, Stage } from "../../scene";
+import type { Settings } from "../../settings";
 
 /**
  * A screen this narrow is a phone's: the diagram fills the panel, and the

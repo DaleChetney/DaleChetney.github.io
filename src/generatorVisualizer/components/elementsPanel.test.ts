@@ -7,7 +7,7 @@ import {
   renderElementSections,
   type ElementSection,
   type ElementSelectionView,
-} from "./elements-panel";
+} from "./elementsPanel";
 
 const choices = (spec: readonly (readonly [number[], number, number])[]): GeneratorChoices => ({
   elements: spec.map(([permutation, conjugate, exponent]) => ({

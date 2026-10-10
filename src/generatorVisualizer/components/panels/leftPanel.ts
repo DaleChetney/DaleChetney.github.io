@@ -1,8 +1,12 @@
 import { mount, preservingFocus, qs } from "@shared/dom";
-import type { CatalogueGroup } from "./catalogue";
-import { categoryOptions, filterGroups, renderFilterOptions } from "./components/groupCategories";
-import { groupListCaption, renderGroupList } from "./components/group-list";
-import { GroupSorter, type GroupSort } from "./components/groupSorter";
+import type { CatalogueGroup } from "../../groupCatalogue/catalogue";
+import {
+  categoryOptions,
+  filterGroups,
+  renderFilterOptions,
+} from "../../groupCatalogue/groupCategories";
+import { groupListCaption, renderGroupList } from "../groupList";
+import { GroupSorter, type GroupSort } from "../../groupCatalogue/groupSorter";
 
 /** Group rows are identified by their label, which outlives a redraw. */
 const rowFocus = (active: Element): string | null => {

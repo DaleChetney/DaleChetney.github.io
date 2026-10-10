@@ -2,7 +2,7 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { HOLD_DELAY } from "./components/diagram/holdToDrag";
+import { HOLD_DELAY } from "./interactions/holdToDrag";
 import { DEFAULT_TARGET_WIDTH } from "./components/diagram/ringLayout";
 import { DEFAULT_SETTINGS } from "./settings";
 

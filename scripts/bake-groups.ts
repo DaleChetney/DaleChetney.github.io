@@ -15,7 +15,7 @@ import type {
   CatalogueGroup,
   CatalogueRepresentation,
   CatalogueSubgroupClass,
-} from "../src/generatorVisualizer/catalogue.ts";
+} from "../src/generatorVisualizer/groupCatalogue/catalogue.ts";
 import { matchSubgroupClasses } from "./matchSubgroupClasses.ts";
 
 /**

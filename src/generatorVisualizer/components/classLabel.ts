@@ -1,5 +1,5 @@
-import type { CatalogueSubgroupClass } from "../catalogue";
-import { subscript } from "./scriptDigits";
+import type { CatalogueSubgroupClass } from "../groupCatalogue/catalogue";
+import { subscript } from "@shared/scriptDigits";
 
 /**
  * A class's label: LMFDB's name for the subgroup, except that the whole group
