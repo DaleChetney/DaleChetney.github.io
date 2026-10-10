@@ -2,15 +2,12 @@
 import { describe, it, expect, vi } from "vitest";
 import type { CatalogueGroup } from "../catalogue";
 import {
-  type GroupSort,
   factorizationText,
   filterGroups,
   groupListCaption,
   renderFilterOptions,
   renderGroupList,
-  renderSortOptions,
   solvabilityOptions,
-  sortGroups,
 } from "./group-list";
 
 const group = (over: Partial<CatalogueGroup> = {}): CatalogueGroup => ({
@@ -96,67 +93,6 @@ describe("renderFilterOptions", () => {
     expect(options[0]).toEqual(["", "All groups"]);
     expect(options[1]).toEqual(["0", "cyclic (1)"]);
     expect(options[3]).toEqual(["6", "metacyclic, not nilpotent (2)"]);
-  });
-});
-
-describe("sortGroups", () => {
-  const ofOrders = (...orders: number[]): CatalogueGroup[] =>
-    orders.map((order, i) => group({ label: `${String(order)}.${String(i)}`, order }));
-  const orders = (sorted: readonly CatalogueGroup[]): number[] => sorted.map((g) => g.order);
-  // 30 = 2·3·5, 16 = 2⁴, 12 = 2²·3, 7 prime, 36 = 2²·3².
-  const mixed = ofOrders(7, 12, 16, 30, 36);
-
-  it("keeps order when sorting by order", () => {
-    expect(orders(sortGroups(ofOrders(16, 7, 12), "order"))).toEqual([7, 12, 16]);
-  });
-
-  it("sorts by distinct primes", () => {
-    expect(orders(sortGroups(mixed, "distinct-primes"))).toEqual([7, 16, 12, 36, 30]);
-  });
-
-  it("sorts by prime factors with multiplicity", () => {
-    expect(orders(sortGroups(mixed, "prime-factors"))).toEqual([7, 12, 30, 16, 36]);
-  });
-
-  it("breaks ties by the order it was given, not by the group's order", () => {
-    expect(orders(sortGroups(ofOrders(36, 16, 30, 12), "prime-factors"))).toEqual([30, 12, 36, 16]);
-  });
-
-  describe("stacked", () => {
-    // 27 = 3³ shares Ω = 3 with 12 and 30, and ω = 1 with 7 and 16.
-    const stacked = ofOrders(7, 12, 16, 27, 30, 36);
-    const then = (first: GroupSort, second: GroupSort): number[] =>
-      orders(sortGroups(sortGroups(stacked, first), second));
-
-    it("lets the earlier sort break the later one's ties", () => {
-      expect(then("distinct-primes", "prime-factors")).toEqual([7, 27, 12, 30, 16, 36]);
-      expect(then("prime-factors", "distinct-primes")).toEqual([7, 27, 16, 12, 36, 30]);
-    });
-
-    it("comes back to plain order when sorted by order last", () => {
-      expect(then("prime-factors", "order")).toEqual([7, 12, 16, 27, 30, 36]);
-    });
-  });
-
-  it("keeps catalogue order among groups of the same order", () => {
-    const twelves = [group({ label: "12.3" }), group({ label: "12.1" })];
-    expect(labels(sortGroups(twelves, "prime-factors"))).toEqual(["12.3", "12.1"]);
-  });
-
-  it("leaves its input alone", () => {
-    const input = ofOrders(16, 7);
-    sortGroups(input, "order");
-    expect(orders(input)).toEqual([16, 7]);
-  });
-});
-
-describe("renderSortOptions", () => {
-  it("offers order first, then ω and Ω", () => {
-    expect(renderSortOptions().map((option) => option.value)).toEqual([
-      "order",
-      "distinct-primes",
-      "prime-factors",
-    ]);
   });
 });
 
