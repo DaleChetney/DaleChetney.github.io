@@ -271,21 +271,22 @@ describe("groups page", () => {
     expect(groupRow(DEFAULT.label).classList.contains("selected")).toBe(true);
   });
 
-  it("offers a dropdown of the solvability types the catalogue has", () => {
+  it("offers a dropdown of the categories the catalogue has", () => {
     const options = Array.from(filter().options).map((option) => option.textContent);
     expect(options[0]).toBe("All groups");
-    expect(options).toContain("cyclic (31)");
-    expect(options).toContain("not solvable (11)");
+    expect(options[1]).toBe("simple and abelian (11)");
+    expect(options[2]).toBe("cyclic, not simple (20)");
+    expect(options).toContain("not solvable or simple (8)");
+    expect(options.at(-1)).toBe("simple, not abelian (3)");
     // Types 5 and 9 have no group of order 32 or less.
-    expect(options).toHaveLength(13);
+    expect(options).toHaveLength(15);
     expect(filter().value).toBe("");
   });
 
-  it("narrows the list to the chosen type, and puts it back", () => {
-    pickType("13");
-    expect(document.querySelectorAll(".group-row")).toHaveLength(11);
-    expect(groupRow("60.5")).not.toBeNull();
-    expect(document.querySelector("#group-count")?.textContent).toBe("11 of 402 groups");
+  it("narrows the list to the chosen category, and puts it back", () => {
+    pickType("15");
+    expect(rowLabels()).toEqual(["60.5", "168.42", "360.118"]);
+    expect(document.querySelector("#group-count")?.textContent).toBe("3 of 402 groups");
     pickType("");
     expect(document.querySelectorAll(".group-row")).toHaveLength(402);
   });

@@ -1,14 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
 import type { CatalogueGroup } from "../catalogue";
-import {
-  factorizationText,
-  filterGroups,
-  groupListCaption,
-  renderFilterOptions,
-  renderGroupList,
-  solvabilityOptions,
-} from "./group-list";
+import { factorizationText, groupListCaption, renderGroupList } from "./group-list";
 
 const group = (over: Partial<CatalogueGroup> = {}): CatalogueGroup => ({
   label: "12.1",
@@ -44,57 +37,35 @@ const groups = [
     nilpotencyClass: 2,
     solvabilityType: 3,
   }),
-  group({ label: "60.5", name: "A5", displayName: "A₅", order: 60, solvabilityType: 13 }),
+  group({
+    label: "60.5",
+    name: "A5",
+    displayName: "A₅",
+    order: 60,
+    solvable: false,
+    simple: true,
+    solvabilityType: 13,
+  }),
   group({ label: "12.2", name: "C12", displayName: "C₁₂", solvabilityType: 0 }),
   group({ label: "12.4", name: "D6", displayName: "D₆", solvabilityType: 6 }),
+  group({
+    label: "5.1",
+    name: "C5",
+    displayName: "C₅",
+    order: 5,
+    abelian: true,
+    simple: true,
+    solvabilityType: 0,
+  }),
+  group({
+    label: "120.34",
+    name: "S5",
+    displayName: "S₅",
+    order: 120,
+    solvable: false,
+    solvabilityType: 13,
+  }),
 ];
-
-const labels = (matches: readonly CatalogueGroup[]): string[] =>
-  matches.map((match) => match.label);
-
-describe("filterGroups", () => {
-  it("returns everything when no type is chosen", () => {
-    expect(filterGroups(groups, null)).toHaveLength(6);
-  });
-
-  it("keeps only the groups of the chosen solvability type", () => {
-    expect(labels(filterGroups(groups, 6))).toEqual(["12.1", "12.4"]);
-    expect(labels(filterGroups(groups, 13))).toEqual(["60.5"]);
-  });
-
-  it("finds nothing for a type no group has", () => {
-    expect(filterGroups(groups, 5)).toEqual([]);
-  });
-});
-
-describe("solvabilityOptions", () => {
-  it("lists the types present, in LMFDB's order, with their counts", () => {
-    expect(solvabilityOptions(groups)).toEqual([
-      { type: 0, name: "cyclic", count: 1 },
-      { type: 3, name: "nilpotent and metacyclic, not abelian", count: 1 },
-      { type: 6, name: "metacyclic, not nilpotent", count: 2 },
-      { type: 8, name: "metabelian and monomial, not supersolvable", count: 1 },
-      { type: 13, name: "not solvable", count: 1 },
-    ]);
-  });
-
-  it("is empty for an empty catalogue", () => {
-    expect(solvabilityOptions([])).toEqual([]);
-  });
-});
-
-describe("renderFilterOptions", () => {
-  it("offers everything first, then each type with its count", () => {
-    const options = renderFilterOptions(solvabilityOptions(groups)).map((option) => [
-      option.value,
-      option.textContent,
-    ]);
-    expect(options).toHaveLength(6);
-    expect(options[0]).toEqual(["", "All groups"]);
-    expect(options[1]).toEqual(["0", "cyclic (1)"]);
-    expect(options[3]).toEqual(["6", "metacyclic, not nilpotent (2)"]);
-  });
-});
 
 describe("factorizationText", () => {
   it.each([
@@ -129,7 +100,7 @@ describe("renderGroupList", () => {
 
   it("renders a row per group, tagged with its label", () => {
     const root = renderGroupList(groups, view);
-    expect(root.querySelectorAll(".group-row")).toHaveLength(6);
+    expect(root.querySelectorAll(".group-row")).toHaveLength(groups.length);
     expect(root.querySelector('[data-label="32.13"]')).not.toBeNull();
   });
 

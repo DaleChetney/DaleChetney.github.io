@@ -8,64 +8,6 @@ export interface GroupListView {
   onSelect: (label: string) => void;
 }
 
-/**
- * LMFDB's `solvability_type`, indexed by its code: where along the spectrum
- * from cyclic to non-solvable a group sits. Each group has exactly one.
- */
-export const SOLVABILITY_TYPES: readonly string[] = [
-  "cyclic",
-  "abelian and metacyclic, not cyclic",
-  "abelian, not metacyclic",
-  "nilpotent and metacyclic, not abelian",
-  "nilpotent and metabelian, not abelian or metacyclic",
-  "nilpotent, not metabelian",
-  "metacyclic, not nilpotent",
-  "metabelian and supersolvable, not nilpotent or metacyclic",
-  "metabelian and monomial, not supersolvable",
-  "metabelian, not monomial",
-  "supersolvable, not nilpotent or metabelian",
-  "monomial, not supersolvable or metabelian",
-  "solvable, not monomial or metabelian",
-  "not solvable",
-];
-
-export interface SolvabilityOption {
-  type: number;
-  name: string;
-  count: number;
-}
-
-/**
- * The solvability types some group in the catalogue has, in LMFDB's order,
- * each with how many. Types no group has are left out, so every option the
- * dropdown offers shows at least one row.
- */
-export const solvabilityOptions = (groups: readonly CatalogueGroup[]): SolvabilityOption[] => {
-  const counts = new Map<number, number>();
-  for (const group of groups) {
-    counts.set(group.solvabilityType, (counts.get(group.solvabilityType) ?? 0) + 1);
-  }
-  return SOLVABILITY_TYPES.flatMap((name, type) => {
-    const count = counts.get(type);
-    return count === undefined ? [] : [{ type, name, count }];
-  });
-};
-
-/** The dropdown's options: everything first, then one per solvability type. */
-export const renderFilterOptions = (options: readonly SolvabilityOption[]): HTMLOptionElement[] => [
-  el("option", { value: "" }, ["All groups"]),
-  ...options.map((option) =>
-    el("option", { value: String(option.type) }, [`${option.name} (${String(option.count)})`]),
-  ),
-];
-
-/** Groups of solvability type `type`, or all of them when `type` is `null`. */
-export const filterGroups = (
-  groups: readonly CatalogueGroup[],
-  type: number | null,
-): CatalogueGroup[] =>
-  type === null ? [...groups] : groups.filter((group) => group.solvabilityType === type);
-
 /** `2³·3²·5` for 360; a prime or 1 is just itself. */
 export const factorizationText = (n: number): string =>
   primeFactorization(n)
