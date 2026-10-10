@@ -1,12 +1,7 @@
 import { mount, preservingFocus, qs } from "@shared/dom";
 import type { CatalogueGroup } from "./catalogue";
-import {
-  categoryOptions,
-  filterGroups,
-  groupListCaption,
-  renderFilterOptions,
-  renderGroupList,
-} from "./components/group-list";
+import { categoryOptions, filterGroups, renderFilterOptions } from "./components/groupCategories";
+import { groupListCaption, renderGroupList } from "./components/group-list";
 import { GroupSorter, type GroupSort } from "./components/groupSorter";
 
 /** Group rows are identified by their label, which outlives a redraw. */
