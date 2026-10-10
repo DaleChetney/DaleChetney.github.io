@@ -1,7 +1,7 @@
 import { mount, preservingFocus, qs } from "@shared/dom";
 import { classLabel } from "../classLabel";
 import { classLetter } from "../generatorNames";
-import { renderElementSections, type ElementSection } from "../elements-panel";
+import { renderElementSections, type ElementSection } from "../elementsPanel";
 import type { Scene } from "../../scene";
 
 /**

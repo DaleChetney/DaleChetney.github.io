@@ -5,7 +5,7 @@ import { renderRingControls } from "../diagram/ringControls";
 import { toDiagram, type DiagramPoint } from "../../interactions/ringDrag";
 import { DEFAULT_TARGET_WIDTH } from "../diagram/ringLayout";
 import { renderLattice } from "../lattice";
-import { renderRepresentationRow } from "../representation-row";
+import { renderRepresentationRow } from "../representationRow";
 import type { Scene, Stage } from "../../scene";
 import type { Settings } from "../../settings";
 

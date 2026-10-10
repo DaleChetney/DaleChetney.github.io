@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
 import type { CatalogueRepresentation } from "../groupCatalogue/catalogue";
-import { renderRepresentationRow } from "./representation-row";
+import { renderRepresentationRow } from "./representationRow";
 
 const minimal: CatalogueRepresentation = {
   id: "perm-7",

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
 import type { CatalogueGroup } from "../groupCatalogue/catalogue";
-import { factorizationText, groupListCaption, renderGroupList } from "./group-list";
+import { factorizationText, groupListCaption, renderGroupList } from "./groupList";
 
 const group = (over: Partial<CatalogueGroup> = {}): CatalogueGroup => ({
   label: "12.1",

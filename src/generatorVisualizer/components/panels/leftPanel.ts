@@ -5,7 +5,7 @@ import {
   filterGroups,
   renderFilterOptions,
 } from "../../groupCatalogue/groupCategories";
-import { groupListCaption, renderGroupList } from "../group-list";
+import { groupListCaption, renderGroupList } from "../groupList";
 import { GroupSorter, type GroupSort } from "../../groupCatalogue/groupSorter";
 
 /** Group rows are identified by their label, which outlives a redraw. */
