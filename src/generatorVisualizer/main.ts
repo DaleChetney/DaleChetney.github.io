@@ -54,6 +54,8 @@ const centerPanel = new CenterPanel({
     render();
   },
   onSelectRepresentation: selectRepresentation,
+  holdsGroup: (label) => groups.has(label),
+  onSelectGroup: selectGroup,
   onStepRings: (orbit, step) => {
     scene.stepRings(orbit, step);
     render();
@@ -131,7 +133,7 @@ function render(): void {
   rightPanel.show(scene);
 }
 
-/** A scene on a group's first representation, opened so the diagram is never bare. */
+/** A scene on a group's first representation, its largest, opened so the diagram is never bare. */
 function sceneFor(group: CatalogueGroup): Scene {
   const next = new Scene(group, group.representations[0], stage(), catalogue.cyclicAutExponents);
   next.open(null);

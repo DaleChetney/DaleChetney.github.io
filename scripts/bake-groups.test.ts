@@ -32,6 +32,7 @@ const groupRow = (over: Partial<GroupRow> = {}): GroupRow => ({
   nilpotency_class: -1,
   derived_length: 2,
   rank: 2,
+  aut_group: "12.4",
   aut_tex: "D_6",
   aut_order: "12",
   perm_gens: "[129, 16, 840]",
@@ -349,7 +350,7 @@ describe("bakeCatalogue", () => {
   });
 
   it("gives a group only its own transitive representations", () => {
-    expect(catalogue.groups[0].representations.map((rep) => rep.id)).toEqual(["perm-7", "12T5"]);
+    expect(catalogue.groups[0].representations.map((rep) => rep.id)).toEqual(["12T5", "perm-7"]);
     expect(catalogue.groups[1].representations.map((rep) => rep.id)).toEqual(["perm-4"]);
   });
 
@@ -369,6 +370,7 @@ describe("bakeCatalogue", () => {
       nilpotencyClass: -1,
       derivedLength: 2,
       rank: 2,
+      autLabel: "12.4",
       subgroups: { all: 10 },
     });
     expect(catalogue.bounds).toEqual({

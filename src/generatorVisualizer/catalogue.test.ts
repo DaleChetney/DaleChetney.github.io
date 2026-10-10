@@ -131,11 +131,11 @@ describe("the baked catalogue", () => {
     }
   });
 
-  it("puts each group's representations in order of degree", () => {
+  it("puts each group's representations largest first", () => {
     for (const group of catalogue.groups) {
       const degrees = group.representations.map((rep) => rep.degree);
       expect(
-        [...degrees].sort((a, b) => a - b),
+        [...degrees].sort((a, b) => b - a),
         group.label,
       ).toEqual(degrees);
     }

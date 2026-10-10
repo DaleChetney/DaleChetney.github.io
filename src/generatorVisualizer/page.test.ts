@@ -336,13 +336,14 @@ describe("groups page", () => {
     pickSort("order");
   });
 
-  it("offers both of C_3:C_4's representations, the smallest first", () => {
+  it("offers both of C_3:C_4's representations, the largest first", () => {
     const row = Array.from(document.querySelectorAll("#representation-row .representation"));
     expect(row.map((button) => button.getAttribute("data-representation"))).toEqual([
-      "perm-7",
       "12T5",
+      "perm-7",
     ]);
-    expect(row[0].getAttribute("aria-pressed")).toBe("true");
+    // The group was reopened from the list above, and a group opens on its largest.
+    expect(row.map((button) => button.getAttribute("aria-pressed"))).toEqual(["true", "false"]);
   });
 
   it("redraws at the new degree when the representation changes", () => {
@@ -395,12 +396,32 @@ describe("groups page", () => {
     expect(document.querySelector("#group-name")?.textContent).toBe("D₄");
     expect(document.querySelector("#group-label")?.textContent).toBe("8.3");
     expect(document.querySelector("#group-aut")?.textContent).toBe("Aut(G) ≅ D₄");
-    expect(document.querySelectorAll("#diagram .node")).toHaveLength(4);
+    // On its largest representation, 8T4, rather than its smallest on 4 points.
+    expect(document.querySelectorAll("#diagram .node")).toHaveLength(8);
     expect(groupRow("8.3").classList.contains("selected")).toBe(true);
     expect(groupRow(DEFAULT.label).classList.contains("selected")).toBe(false);
     // A new group opens with one generator already drawn.
     expect(checkedCount()).toBe(1);
     expect(arrows().length).toBeGreaterThan(0);
+  });
+
+  it("follows Aut(G) to that group when the catalogue holds it", () => {
+    const autLink = (): HTMLButtonElement | null =>
+      document.querySelector<HTMLButtonElement>("#group-aut .aut-link");
+    groupRow(DEFAULT.label).click();
+    expect(autLink()?.textContent).toBe("D₆");
+    autLink()?.click();
+    expect(document.querySelector("#group-label")?.textContent).toBe("12.4");
+    expect(groupRow("12.4").classList.contains("selected")).toBe(true);
+    // D₆ is its own automorphism group, so there is nowhere to follow it to.
+    expect(document.querySelector("#group-aut")?.textContent).toBe("Aut(G) ≅ D₆");
+    expect(autLink()).toBeNull();
+    // Aut(C₄²) has order 96, beyond what the catalogue holds.
+    groupRow("16.2").click();
+    expect(document.querySelector("#group-aut")?.textContent).toBe("Aut(G) ≅ GL(2,ℤ/4)");
+    expect(autLink()).toBeNull();
+    // Leave the page on the group the tests after this one expect.
+    groupRow("8.3").click();
   });
 
   it("lays the diagram out again when the window resizes", () => {
@@ -534,6 +555,7 @@ describe("groups page", () => {
 
     it("offers a stepper that cannot step on an orbit that cannot be split: C_3:C_4's 3 + 4", () => {
       groupRow(DEFAULT.label).click();
+      pickRepresentation("perm-7");
       expect(controls()).toEqual(["Orbit of 3: 1", "Orbit of 4: 1"]);
       expect(step(0, 1).disabled).toBe(true);
       expect(step(0, -1).disabled).toBe(true);
@@ -584,6 +606,7 @@ describe("groups page", () => {
 
     it("gives each splittable orbit its own stepper: C_4.Q_8's 8 + 8", () => {
       groupRow("32.32").click();
+      pickRepresentation("perm-16");
       expect(controls()).toEqual(["Orbit of 8: 1", "Orbit of 8: 1"]);
       step(1, 1).click();
       expect(controls()).toEqual(["Orbit of 8: 1", "Orbit of 8: 2"]);
@@ -943,6 +966,7 @@ describe("turning the rings", () => {
 
   it("turns only the orbit played: C_4.Q_8's 8 + 8", () => {
     groupRow("32.32").click();
+    document.querySelector<HTMLElement>('.representation[data-representation="perm-16"]')?.click();
     step(0, 1);
     step(1, 1);
     const before = placed();

@@ -26,6 +26,7 @@ const group = (over: Partial<CatalogueGroup> = {}): CatalogueGroup => ({
   nilpotencyClass: -1,
   derivedLength: 2,
   rank: 2,
+  autLabel: "12.4",
   autTexName: "D_6",
   autDisplayName: "D₆",
   autOrder: 12,
