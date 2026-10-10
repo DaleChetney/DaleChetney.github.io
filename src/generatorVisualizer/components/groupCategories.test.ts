@@ -133,9 +133,9 @@ describe("categoryOptions", () => {
     expect(categoryOptions(groups)).toEqual([
       { code: ABELIAN_SIMPLE, name: "simple and abelian", count: 1 },
       { code: 0, name: "cyclic, not simple", count: 1 },
-      { code: 3, name: "nilpotent and metacyclic, not abelian", count: 1 },
+      { code: 3, name: "nilpotent and metacyclic", count: 1 },
       { code: 6, name: "metacyclic, not nilpotent", count: 2 },
-      { code: 8, name: "metabelian and monomial, not supersolvable", count: 1 },
+      { code: 8, name: "metabelian and monomial", count: 1 },
       { code: 13, name: "not solvable or simple", count: 1 },
       { code: NON_ABELIAN_SIMPLE, name: "simple, not abelian", count: 1 },
     ]);
