@@ -1,6 +1,6 @@
 import { el } from "@shared/dom";
 import { superscript } from "@shared/mathUtils/groups/tex";
-import { distinctPrimeCount, primeDivisorCount, primeFactorization } from "@shared/mathUtils/math";
+import { primeFactorization } from "@shared/mathUtils/math";
 import type { CatalogueGroup } from "../catalogue";
 
 export interface GroupListView {
@@ -65,39 +65,6 @@ export const filterGroups = (
   type: number | null,
 ): CatalogueGroup[] =>
   type === null ? [...groups] : groups.filter((group) => group.solvabilityType === type);
-
-/** How the list can be ordered. Ties keep whatever order the list was already in. */
-export type GroupSort = "order" | "distinct-primes" | "prime-factors";
-
-export const SORT_OPTIONS: readonly { value: GroupSort; name: string }[] = [
-  { value: "order", name: "Sort by order" },
-  { value: "distinct-primes", name: "Sort by distinct primes, ω" },
-  { value: "prime-factors", name: "Sort by prime factors, Ω" },
-];
-
-const SORT_KEYS: Readonly<Record<GroupSort, (order: number) => number>> = {
-  order: (order) => order,
-  "distinct-primes": distinctPrimeCount,
-  "prime-factors": primeDivisorCount,
-};
-
-export const renderSortOptions = (): HTMLOptionElement[] =>
-  SORT_OPTIONS.map((option) => el("option", { value: option.value }, [option.name]));
-
-/**
- * `groups` ordered by `sort`'s key on the group's order.
- * The sort is stable, so ties keep the order `groups` came in: sorting by ω and
- * then by Ω leaves ω breaking Ω's ties, the way a table's column headers do.
- * Groups of equal order tie on every key, so they keep the catalogue's label
- * order however many sorts are stacked.
- */
-export const sortGroups = (
-  groups: readonly CatalogueGroup[],
-  sort: GroupSort,
-): CatalogueGroup[] => {
-  const key = SORT_KEYS[sort];
-  return [...groups].sort((a, b) => key(a.order) - key(b.order));
-};
 
 /** `2³·3²·5` for 360; a prime or 1 is just itself. */
 export const factorizationText = (n: number): string =>
