@@ -9,6 +9,7 @@ export type GroupSort =
   | "prime-factors"
   | "label"
   | "rank"
+  | "length"
   | "automorphisms"
   | "subgroups"
   | "subgroup-classes"
@@ -31,12 +32,26 @@ const labels = new Intl.Collator("en", { numeric: true });
 /** The trivial group has no prime factor; 1 keeps it first, as every other order-based key does. */
 const smallestPrime = (n: number): number => primeFactorization(n)[0]?.[0] ?? 1;
 
+/**
+ * The length of the finest series the group has: rank when abelian, nilpotency
+ * class when nilpotent, derived length when solvable. A group with none sorts last.
+ */
+const seriesLength = (group: CatalogueGroup): number =>
+  group.abelian
+    ? group.rank
+    : group.nilpotent
+      ? group.nilpotencyClass
+      : group.solvable
+        ? group.derivedLength
+        : Infinity;
+
 const COMPARATORS: Readonly<Record<GroupSort, Comparator>> = {
   order: byKey((group) => group.order),
   "distinct-primes": byKey((group) => distinctPrimeCount(group.order)),
   "prime-factors": byKey((group) => primeDivisorCount(group.order)),
   label: (a, b) => labels.compare(a.label, b.label),
   rank: byKey((group) => group.rank),
+  length: byKey(seriesLength),
   automorphisms: byKey((group) => group.autOrder ?? Infinity),
   subgroups: byKey((group) => group.subgroups.all),
   "subgroup-classes": byKey((group) => group.subgroups.classes.length),
@@ -60,6 +75,7 @@ export class GroupSorter {
     { value: "prime-factors", name: "Sort by prime factors, Ω" },
     { value: "smallest-prime", name: "Sort by smallest prime factor" },
     { value: "rank", name: "Sort by rank" },
+    { value: "length", name: "Sort by length" },
     { value: "automorphisms", name: "Sort by automorphisms" },
     { value: "subgroups", name: "Sort by number of subgroups" },
     { value: "subgroup-classes", name: "Sort by subgroup classes" },

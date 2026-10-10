@@ -16,6 +16,7 @@ const group = (over: Partial<CatalogueGroup> = {}): CatalogueGroup => ({
   simple: false,
   solvabilityType: 6,
   nilpotencyClass: -1,
+  derivedLength: 2,
   rank: 2,
   autTexName: "D_6",
   autDisplayName: "D₆",
@@ -79,6 +80,23 @@ describe("GroupSorter", () => {
   it("sorts by rank", () => {
     const ranked = [3, 1, 2].map((rank) => group({ label: `r${String(rank)}`, rank }));
     expect(labels(sorted(ranked, "rank"))).toEqual(["r1", "r2", "r3"]);
+  });
+
+  it("sorts by length: rank, nilpotency class or derived length, whichever applies", () => {
+    const lengths = [
+      group({ label: "S5", solvable: false, derivedLength: 0 }),
+      group({ label: "derived-3", derivedLength: 3 }),
+      group({ label: "class-2", nilpotent: true, nilpotencyClass: 2, derivedLength: 2 }),
+      group({ label: "rank-1", abelian: true, nilpotent: true, nilpotencyClass: 1, rank: 1 }),
+      group({ label: "rank-3", abelian: true, nilpotent: true, nilpotencyClass: 1, rank: 3 }),
+    ];
+    expect(labels(sorted(lengths, "length"))).toEqual([
+      "rank-1",
+      "class-2",
+      "derived-3",
+      "rank-3",
+      "S5",
+    ]);
   });
 
   it("sorts by automorphism group order, unknown last", () => {
@@ -161,6 +179,7 @@ describe("GroupSorter", () => {
       "prime-factors",
       "smallest-prime",
       "rank",
+      "length",
       "automorphisms",
       "subgroups",
       "subgroup-classes",

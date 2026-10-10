@@ -15,13 +15,18 @@ export const factorizationText = (n: number): string =>
     .join("·") || String(n);
 
 /**
- * `12.1 · order 2²·3`, plus the nilpotency class when there is one.
+ * `12.1 · order 2²·3`, plus whichever of abelian, the nilpotency class or the
+ * derived length is the finest that applies. Non-solvable groups get none.
  */
 const groupMeta = (group: CatalogueGroup): string => {
   const parts = [group.label, `order ${factorizationText(group.order)}`];
   if (group.abelian) {
     parts.push(`abelian`);
-  } else if (group.nilpotent) parts.push(`nilpotency ${String(group.nilpotencyClass)}`);
+  } else if (group.nilpotent) {
+    parts.push(`nilpotency ${String(group.nilpotencyClass)}`);
+  } else if (group.solvable) {
+    parts.push(`derived length ${String(group.derivedLength)}`);
+  }
   return parts.join(" · ");
 };
 

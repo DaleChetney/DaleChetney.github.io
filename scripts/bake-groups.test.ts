@@ -30,6 +30,7 @@ const groupRow = (over: Partial<GroupRow> = {}): GroupRow => ({
   simple: false,
   solvability_type: 6,
   nilpotency_class: -1,
+  derived_length: 2,
   rank: 2,
   aut_tex: "D_6",
   aut_order: "12",
@@ -366,6 +367,7 @@ describe("bakeCatalogue", () => {
     expect(catalogue.groups[1]).toMatchObject({
       solvabilityType: 6,
       nilpotencyClass: -1,
+      derivedLength: 2,
       rank: 2,
       subgroups: { all: 10 },
     });
