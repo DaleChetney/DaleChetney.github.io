@@ -1,6 +1,6 @@
 import { el } from "@shared/dom";
 import { distinctPrimeCount, primeDivisorCount, primeFactorization } from "@shared/mathUtils/math";
-import type { CatalogueGroup } from "../catalogue";
+import type { CatalogueGroup } from "./catalogue";
 
 /** How the list can be ordered. Ties keep whatever order the list was already in. */
 export type GroupSort =

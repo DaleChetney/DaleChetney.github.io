@@ -1,6 +1,6 @@
 import { svg } from "../../svg";
 import { arrowheadDefs, arrowPath, renderArrows, type ActionArrow, type BowWidth } from "./arrow";
-import { holdToDrag } from "./holdToDrag";
+import { holdToDrag } from "../../interactions/holdToDrag";
 import { renderNode, type PlacedPoint } from "./node";
 
 /** One concentric ring of an orbit, as placed: where it turns about, and what is on it. */

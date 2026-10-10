@@ -1,7 +1,7 @@
 import { el } from "@shared/dom";
 import { superscript } from "@shared/mathUtils/groups/tex";
 import { primeFactorization } from "@shared/mathUtils/math";
-import type { CatalogueGroup } from "../catalogue";
+import type { CatalogueGroup } from "../groupCatalogue/catalogue";
 
 export interface GroupListView {
   selected: string | null;

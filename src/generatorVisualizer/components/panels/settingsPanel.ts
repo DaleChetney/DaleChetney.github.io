@@ -1,5 +1,5 @@
 import { qs } from "@shared/dom";
-import { CURVATURE, ROTATION_PERIOD, type Settings } from "./settings";
+import { CURVATURE, ROTATION_PERIOD, type Settings } from "../../settings";
 
 /** The settings chosen from a few named options, each with a radio group of its own. */
 type ChoiceSetting = "theme" | "arrowBowWidth";

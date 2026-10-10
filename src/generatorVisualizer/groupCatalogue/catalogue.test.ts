@@ -5,7 +5,7 @@ import { generatePermutationGroup, permutationOrbits } from "@shared/mathUtils/g
 import { byLabel, parseCatalogue } from "./catalogue";
 
 const catalogue = parseCatalogue(
-  JSON.parse(readFileSync(resolve(import.meta.dirname, "../../public/groups.json"), "utf8")),
+  JSON.parse(readFileSync(resolve(import.meta.dirname, "../../../public/groups.json"), "utf8")),
 );
 const groups = byLabel(catalogue);
 

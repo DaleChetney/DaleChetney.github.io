@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from "vitest";
-import type { CatalogueGroup } from "../catalogue";
+import type { CatalogueGroup } from "./catalogue";
 import {
   ABELIAN_SIMPLE,
   GROUP_CATEGORIES,

@@ -1,8 +1,8 @@
 import { mount, preservingFocus, qs } from "@shared/dom";
-import { classLabel } from "./components/classLabel";
-import { classLetter } from "./components/generatorNames";
-import { renderElementSections, type ElementSection } from "./components/elements-panel";
-import type { Scene } from "./scene";
+import { classLabel } from "../classLabel";
+import { classLetter } from "../generatorNames";
+import { renderElementSections, type ElementSection } from "../elements-panel";
+import type { Scene } from "../../scene";
 
 /**
  * Element rows are identified by the permutation they carry, page steps by

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
-import type { CatalogueSubgroupClass } from "../catalogue";
+import type { CatalogueSubgroupClass } from "../groupCatalogue/catalogue";
 import { layoutLattice, renderLattice } from "./lattice";
 
 /** C_3:C_4's six classes as the catalogue bakes them. */

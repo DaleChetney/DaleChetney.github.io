@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
-import { type Settings } from "./settings";
+import { type Settings } from "../../settings";
 import { settingsPanel } from "./settingsPanel";
 
 const fixture = (): HTMLElement => {

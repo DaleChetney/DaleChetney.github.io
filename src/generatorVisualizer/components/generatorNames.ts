@@ -1,6 +1,6 @@
 import { permutationKey } from "@shared/mathUtils/groups/permutations";
 import type { GeneratorChoices } from "@shared/mathUtils/groups/generatorChoices";
-import { subscript, superscript } from "./scriptDigits";
+import { subscript, superscript } from "@shared/scriptDigits";
 
 /**
  * The letter for the `index`th selectable class: `a` to `z`, then `aa`, `ab`,

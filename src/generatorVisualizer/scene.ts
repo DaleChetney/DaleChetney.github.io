@@ -23,10 +23,10 @@ import type {
   CatalogueGroup,
   CatalogueRepresentation,
   CatalogueSubgroupClass,
-} from "./catalogue";
+} from "./groupCatalogue/catalogue";
 import { NODE_RADIUS, type PlacedPoint } from "./components/diagram/node";
 import type { Diagram, PlacedRing } from "./components/diagram/permutationDiagram";
-import type { DiagramPoint } from "./components/diagram/ringDrag";
+import type { DiagramPoint } from "./interactions/ringDrag";
 import type { RingSplit } from "./components/diagram/ringControls";
 import {
   canCenter,

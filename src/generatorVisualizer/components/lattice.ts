@@ -1,5 +1,5 @@
 import { primeDivisorCount } from "@shared/mathUtils/math";
-import type { CatalogueSubgroupClass } from "../catalogue";
+import type { CatalogueSubgroupClass } from "../groupCatalogue/catalogue";
 import { classLabel } from "./classLabel";
 import { svg } from "../svg";
 

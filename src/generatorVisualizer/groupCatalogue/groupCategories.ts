@@ -1,5 +1,5 @@
 import { el } from "@shared/dom";
-import type { CatalogueGroup } from "../catalogue";
+import type { CatalogueGroup } from "./catalogue";
 
 /** The category of the simple groups LMFDB files under cyclic: those of prime order. */
 export const ABELIAN_SIMPLE = 14;

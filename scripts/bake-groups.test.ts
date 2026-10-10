@@ -13,7 +13,7 @@ import {
   type SubgroupRow,
   type TransitiveRow,
 } from "./bake-groups.ts";
-import type { CatalogueRepresentation } from "../src/generatorVisualizer/catalogue.ts";
+import type { CatalogueRepresentation } from "../src/generatorVisualizer/groupCatalogue/catalogue.ts";
 
 const groupRow = (over: Partial<GroupRow> = {}): GroupRow => ({
   label: "12.1",
