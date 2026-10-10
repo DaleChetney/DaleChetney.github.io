@@ -24,10 +24,10 @@ export const GROUP_CATEGORIES: readonly { code: number; name: string }[] = [
   { code: 6, name: "metacyclic, not nilpotent" },
   { code: 7, name: "metabelian and supersolvable" },
   { code: 8, name: "metabelian and monomial" },
-  { code: 9, name: "metabelian and solvable" },
+  { code: 9, name: "metabelian, not monomial" },
   { code: 10, name: "supersolvable, not metabelian" },
   { code: 11, name: "monomial, not metabelian" },
-  { code: 12, name: "solvable, not metabelian" },
+  { code: 12, name: "not monomial or metabelian" },
   { code: 13, name: "not solvable or simple" },
   { code: NON_ABELIAN_SIMPLE, name: "simple, not abelian" },
 ];
