@@ -24,6 +24,7 @@ const group = (over: Partial<CatalogueGroup> = {}): CatalogueGroup => ({
   simple: false,
   solvabilityType: 6,
   nilpotencyClass: -1,
+  derivedLength: 2,
   rank: 2,
   autTexName: "D_6",
   autDisplayName: "D₆",

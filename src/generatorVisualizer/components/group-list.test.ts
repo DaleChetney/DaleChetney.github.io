@@ -16,6 +16,7 @@ const group = (over: Partial<CatalogueGroup> = {}): CatalogueGroup => ({
   simple: false,
   solvabilityType: 6,
   nilpotencyClass: -1,
+  derivedLength: 2,
   rank: 2,
   autTexName: "D_6",
   autDisplayName: "D₆",
@@ -105,14 +106,26 @@ describe("renderGroupList", () => {
   });
 
   it("shows the label and order alongside the name, since names collide", () => {
-    const row = renderGroupList(groups, view).querySelector<HTMLElement>('[data-label="12.1"]');
-    expect(row?.querySelector(".group-name")?.textContent).toBe("C₃ ⋊ C₄");
-    expect(row?.querySelector(".group-meta")?.textContent).toBe("12.1 · order 2²·3");
+    const row = renderGroupList(groups, view).querySelector<HTMLElement>('[data-label="120.34"]');
+    expect(row?.querySelector(".group-name")?.textContent).toBe("S₅");
+    expect(row?.querySelector(".group-meta")?.textContent).toBe("120.34 · order 2³·3·5");
   });
 
   it("adds the nilpotency class when the group is nilpotent", () => {
     const row = renderGroupList(groups, view).querySelector<HTMLElement>('[data-label="32.13"]');
     expect(row?.querySelector(".group-meta")?.textContent).toBe("32.13 · order 2⁵ · nilpotency 2");
+  });
+
+  it("adds the derived length when the group is solvable but not nilpotent", () => {
+    const row = renderGroupList(groups, view).querySelector<HTMLElement>('[data-label="12.3"]');
+    expect(row?.querySelector(".group-meta")?.textContent).toBe(
+      "12.3 · order 2²·3 · derived length 2",
+    );
+  });
+
+  it("adds neither when the group is not solvable", () => {
+    const row = renderGroupList(groups, view).querySelector<HTMLElement>('[data-label="60.5"]');
+    expect(row?.querySelector(".group-meta")?.textContent).toBe("60.5 · order 2²·3·5");
   });
 
   it("marks the selected row", () => {

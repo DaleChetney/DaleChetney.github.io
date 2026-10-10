@@ -60,6 +60,8 @@ export interface CatalogueGroup {
   solvabilityType: number;
   /** `-1` when the group is not nilpotent, as LMFDB stores it. */
   nilpotencyClass: number;
+  /** Length of the derived series. Meaningless when the group is not solvable. */
+  derivedLength: number;
   rank: number;
   autTexName: string | null;
   autDisplayName: string | null;

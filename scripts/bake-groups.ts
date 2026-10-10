@@ -50,6 +50,7 @@ export interface GroupRow {
   simple: boolean;
   solvability_type: number;
   nilpotency_class: number;
+  derived_length: number;
   rank: number;
   aut_tex: string | null;
   /** As text: Aut(G) can outgrow a double even when G does not. */
@@ -360,6 +361,7 @@ export const bakeGroup = (
     simple: row.simple,
     solvabilityType: row.solvability_type,
     nilpotencyClass: row.nilpotency_class,
+    derivedLength: row.derived_length,
     rank: row.rank,
     autTexName: row.aut_tex,
     autDisplayName: row.aut_tex === null ? null : texToUnicode(row.aut_tex),

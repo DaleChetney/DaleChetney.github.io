@@ -291,8 +291,14 @@ describe("groups page", () => {
     expect(document.querySelectorAll(".group-row")).toHaveLength(402);
   });
 
-  it("shows a group's order factored, and whether it is abelian or its nilpotency class", () => {
-    expect(groupRow("12.1").querySelector(".group-meta")?.textContent).toBe("12.1 · order 2²·3");
+  it("shows a group's order factored, and whether it is abelian, its nilpotency class or its derived length", () => {
+    expect(groupRow("12.1").querySelector(".group-meta")?.textContent).toBe(
+      "12.1 · order 2²·3 · derived length 2",
+    );
+    expect(groupRow("24.12").querySelector(".group-meta")?.textContent).toBe(
+      "24.12 · order 2³·3 · derived length 3",
+    );
+    expect(groupRow("60.5").querySelector(".group-meta")?.textContent).toBe("60.5 · order 2²·3·5");
     expect(groupRow("16.2").querySelector(".group-meta")?.textContent).toBe(
       "16.2 · order 2⁴ · abelian",
     );
