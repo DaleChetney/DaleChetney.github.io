@@ -1,11 +1,11 @@
 import { mount, preservingFocus, qs } from "@shared/dom";
 import type { CatalogueGroup } from "./catalogue";
 import {
+  categoryOptions,
   filterGroups,
   groupListCaption,
   renderFilterOptions,
   renderGroupList,
-  solvabilityOptions,
 } from "./components/group-list";
 import { GroupSorter, type GroupSort } from "./components/groupSorter";
 
@@ -16,10 +16,10 @@ const rowFocus = (active: Element): string | null => {
 };
 
 /**
- * The left panel: the whole catalogue, filtered by solvability type and sorted
+ * The left panel: the whole catalogue, filtered by category and sorted
  * by whichever of `GroupSorter`'s keys was chosen last.
  *
- * It owns the chosen type and the list's current order, because nothing else on the page has any
+ * It owns the chosen category and the list's current order, because nothing else on the page has any
  * use for them, and re-renders itself whenever either dropdown changes.
  * Choosing a group is the one thing it reports outwards; it does not know what
  * happens next.
@@ -30,18 +30,18 @@ export class LeftPanel {
   /** The whole catalogue in its current order. */
   readonly #sorter: GroupSorter;
   readonly #onSelect: (label: string) => void;
-  /** LMFDB's solvability type code, or `null` for every group. */
-  #type: number | null = null;
+  /** A `GROUP_CATEGORIES` code, or `null` for every group. */
+  #category: number | null = null;
   #selected: string | null = null;
 
   constructor(groups: readonly CatalogueGroup[], onSelect: (label: string) => void) {
     this.#sorter = new GroupSorter(groups);
     this.#onSelect = onSelect;
     const filter = qs<HTMLSelectElement>("#group-filter");
-    filter.replaceChildren(...renderFilterOptions(solvabilityOptions(groups)));
+    filter.replaceChildren(...renderFilterOptions(categoryOptions(groups)));
     filter.addEventListener("change", (event) => {
       const value = (event.currentTarget as HTMLSelectElement).value;
-      this.#type = value === "" ? null : Number(value);
+      this.#category = value === "" ? null : Number(value);
       this.#draw();
     });
     const sort = qs<HTMLSelectElement>("#group-sort");
@@ -61,7 +61,7 @@ export class LeftPanel {
 
   #draw(): void {
     const groups = this.#sorter.groups;
-    const matches = filterGroups(groups, this.#type);
+    const matches = filterGroups(groups, this.#category);
     qs("#group-count").textContent = groupListCaption(matches.length, groups.length);
     preservingFocus(rowFocus, () => {
       mount(

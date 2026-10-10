@@ -8,63 +8,78 @@ export interface GroupListView {
   onSelect: (label: string) => void;
 }
 
+/** The category of the simple groups LMFDB files under cyclic: those of prime order. */
+export const ABELIAN_SIMPLE = 14;
+/** The category of the simple groups LMFDB files under non-solvable. */
+export const NON_ABELIAN_SIMPLE = 15;
+
 /**
- * LMFDB's `solvability_type`, indexed by its code: where along the spectrum
- * from cyclic to non-solvable a group sits. Each group has exactly one.
+ * The filter's categories, in the order the dropdown offers them. Codes 0–13
+ * are LMFDB's `solvability_type`: where along the spectrum from cyclic to
+ * non-solvable a group sits. The simple groups are taken out of the two ends
+ * into categories of their own, each placed beside the one it came out of.
+ * Each group is in exactly one.
  */
-export const SOLVABILITY_TYPES: readonly string[] = [
-  "cyclic",
-  "abelian and metacyclic, not cyclic",
-  "abelian, not metacyclic",
-  "nilpotent and metacyclic, not abelian",
-  "nilpotent and metabelian, not abelian or metacyclic",
-  "nilpotent, not metabelian",
-  "metacyclic, not nilpotent",
-  "metabelian and supersolvable, not nilpotent or metacyclic",
-  "metabelian and monomial, not supersolvable",
-  "metabelian, not monomial",
-  "supersolvable, not nilpotent or metabelian",
-  "monomial, not supersolvable or metabelian",
-  "solvable, not monomial or metabelian",
-  "not solvable",
+export const GROUP_CATEGORIES: readonly { code: number; name: string }[] = [
+  { code: ABELIAN_SIMPLE, name: "simple and abelian" },
+  { code: 0, name: "cyclic, not simple" },
+  { code: 1, name: "abelian and metacyclic, not cyclic" },
+  { code: 2, name: "abelian, not metacyclic" },
+  { code: 3, name: "nilpotent and metacyclic, not abelian" },
+  { code: 4, name: "nilpotent and metabelian, not abelian or metacyclic" },
+  { code: 5, name: "nilpotent, not metabelian" },
+  { code: 6, name: "metacyclic, not nilpotent" },
+  { code: 7, name: "metabelian and supersolvable, not nilpotent or metacyclic" },
+  { code: 8, name: "metabelian and monomial, not supersolvable" },
+  { code: 9, name: "metabelian, not monomial" },
+  { code: 10, name: "supersolvable, not nilpotent or metabelian" },
+  { code: 11, name: "monomial, not supersolvable or metabelian" },
+  { code: 12, name: "solvable, not monomial or metabelian" },
+  { code: 13, name: "not solvable or simple" },
+  { code: NON_ABELIAN_SIMPLE, name: "simple, not abelian" },
 ];
 
-export interface SolvabilityOption {
-  type: number;
+/** A simple group's own category; any other group's LMFDB solvability type. */
+export const groupCategory = (group: CatalogueGroup): number =>
+  group.simple ? (group.abelian ? ABELIAN_SIMPLE : NON_ABELIAN_SIMPLE) : group.solvabilityType;
+
+export interface CategoryOption {
+  code: number;
   name: string;
   count: number;
 }
 
 /**
- * The solvability types some group in the catalogue has, in LMFDB's order,
- * each with how many. Types no group has are left out, so every option the
- * dropdown offers shows at least one row.
+ * The categories some group in the catalogue is in, in the dropdown's order,
+ * each with how many. Categories no group is in are left out, so every option
+ * the dropdown offers shows at least one row.
  */
-export const solvabilityOptions = (groups: readonly CatalogueGroup[]): SolvabilityOption[] => {
+export const categoryOptions = (groups: readonly CatalogueGroup[]): CategoryOption[] => {
   const counts = new Map<number, number>();
   for (const group of groups) {
-    counts.set(group.solvabilityType, (counts.get(group.solvabilityType) ?? 0) + 1);
+    const code = groupCategory(group);
+    counts.set(code, (counts.get(code) ?? 0) + 1);
   }
-  return SOLVABILITY_TYPES.flatMap((name, type) => {
-    const count = counts.get(type);
-    return count === undefined ? [] : [{ type, name, count }];
+  return GROUP_CATEGORIES.flatMap(({ code, name }) => {
+    const count = counts.get(code);
+    return count === undefined ? [] : [{ code, name, count }];
   });
 };
 
-/** The dropdown's options: everything first, then one per solvability type. */
-export const renderFilterOptions = (options: readonly SolvabilityOption[]): HTMLOptionElement[] => [
+/** The dropdown's options: everything first, then one per category. */
+export const renderFilterOptions = (options: readonly CategoryOption[]): HTMLOptionElement[] => [
   el("option", { value: "" }, ["All groups"]),
   ...options.map((option) =>
-    el("option", { value: String(option.type) }, [`${option.name} (${String(option.count)})`]),
+    el("option", { value: String(option.code) }, [`${option.name} (${String(option.count)})`]),
   ),
 ];
 
-/** Groups of solvability type `type`, or all of them when `type` is `null`. */
+/** Groups in category `code`, or all of them when `code` is `null`. */
 export const filterGroups = (
   groups: readonly CatalogueGroup[],
-  type: number | null,
+  code: number | null,
 ): CatalogueGroup[] =>
-  type === null ? [...groups] : groups.filter((group) => group.solvabilityType === type);
+  code === null ? [...groups] : groups.filter((group) => groupCategory(group) === code);
 
 /** `2³·3²·5` for 360; a prime or 1 is just itself. */
 export const factorizationText = (n: number): string =>

@@ -44,11 +44,12 @@ export interface CatalogueGroup {
   order: number;
 
   /*
-   * `cyclic`, `solvable`, `simple` and the automorphism group's names are baked
+   * `cyclic`, `solvable` and the automorphism group's names are baked
    * but unread. LMFDB records these and the bake copies them through, but no
    * code on the page branches on any of them — so treat them as data available
    * to a future filter or badge, not as a description of anything the page
-   * currently does. `rank` and `autOrder` are read only as sort keys.
+   * currently does. `rank` and `autOrder` are read only as sort keys, and
+   * `simple` only to take the simple groups into filter categories of their own.
    */
   abelian: boolean;
   cyclic: boolean;
