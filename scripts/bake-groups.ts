@@ -17,6 +17,7 @@ import type {
   CatalogueSubgroupClass,
 } from "../src/generatorVisualizer/groupCatalogue/catalogue.ts";
 import { matchSubgroupClasses } from "./matchSubgroupClasses.ts";
+import { relabelAlongOpeningClass } from "./relabelPoints.ts";
 
 /**
  * Turn the four LMFDB extracts named in `lmfdb-extract.sql` into the
@@ -343,15 +344,20 @@ export const bakeGroup = (
     BOUNDS.maxRepresentations,
   )
     .reverse()
-    .map((rep) => ({
-      ...rep,
-      classGenerators: classGeneratorsFor(
-        rep.generators,
-        rep.degree,
+    .map((rep) =>
+      relabelAlongOpeningClass(
+        {
+          ...rep,
+          classGenerators: classGeneratorsFor(
+            rep.generators,
+            rep.degree,
+            classes,
+            `${row.label} ${rep.id}`,
+          ),
+        },
         classes,
-        `${row.label} ${rep.id}`,
       ),
-    }));
+    );
 
   return {
     label: row.label,
