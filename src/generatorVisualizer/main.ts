@@ -21,7 +21,7 @@ import { tabs } from "./interactions/tabs";
 const FIRST_VIEW: LastView = {
   group: "12.1",
   representation: "12T5",
-  selection: [[3, ["8,1,6,11,4,9,2,7,12,5,10,3", "12,5,10,3,8,1,6,11,4,9,2,7"]]],
+  selection: [[3, ["10,9,8,7,12,11,1,6,5,4,3,2", "12,11,10,9,8,7,3,2,1,6,5,4"]]],
 };
 
 const catalogue = await fetchCatalogue();

@@ -235,12 +235,14 @@ describe("the baked catalogue", () => {
     expect(baked?.order).toBe(12);
     expect(baked?.autDisplayName).toBe("D₆");
     expect(baked?.autOrder).toBe(12);
-    // The minimal faithful action has degree 7, splitting as 3 + 4.
+    // The minimal faithful action has degree 7, splitting as 3 + 4. These are
+    // LMFDB's generators, (2 3)(4 5 6 7), (4 6)(5 7) and (1 2 3), with the
+    // points renamed so that the C_6 the page opens on reads (1 2 3)(4 5)(6 7).
     const minimal = baked?.representations.find((rep) => rep.id === "perm-7");
     expect(minimal?.generators).toEqual([
-      [1, 3, 2, 5, 6, 7, 4], // (2 3)(4 5 6 7)
-      [1, 2, 3, 6, 7, 4, 5], // (4 6)(5 7)
-      [2, 3, 1, 4, 5, 6, 7], // (1 2 3)
+      [1, 3, 2, 6, 7, 5, 4], // (2 3)(4 6 5 7)
+      [1, 2, 3, 5, 4, 7, 6], // (4 5)(6 7)
+      [3, 1, 2, 4, 5, 6, 7], // (1 3 2)
     ]);
     // Six classes of subgroups, C_4 the only one with conjugates.
     expect(baked?.subgroups.classes.map((c) => [c.displayName, c.count])).toEqual([

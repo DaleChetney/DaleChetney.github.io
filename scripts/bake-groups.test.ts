@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { generatePermutationGroup } from "../src/shared/mathUtils/groups/permutations.ts";
+import {
+  generatePermutationGroup,
+  identityPermutation,
+} from "../src/shared/mathUtils/groups/permutations.ts";
 import {
   bakeCatalogue,
   chooseRepresentations,
@@ -14,6 +17,7 @@ import {
   type TransitiveRow,
 } from "./bake-groups.ts";
 import type { CatalogueRepresentation } from "../src/generatorVisualizer/groupCatalogue/catalogue.ts";
+import { cycleRelabeling } from "./relabelPoints.ts";
 
 const groupRow = (over: Partial<GroupRow> = {}): GroupRow => ({
   label: "12.1",
@@ -359,6 +363,21 @@ describe("bakeCatalogue", () => {
       for (const rep of group.representations) {
         expect(rep.classGenerators, `${group.label} ${rep.id}`).toHaveLength(
           group.subgroups.classes.length,
+        );
+      }
+    }
+  });
+
+  it("numbers each representation's points along the last cyclic class's generator", () => {
+    for (const group of catalogue.groups) {
+      const opening = group.subgroups.classes.reduce(
+        (last, c, i) => (c.cyclic && c.order > 1 ? i : last),
+        -1,
+      );
+      for (const rep of group.representations) {
+        const [generator] = rep.classGenerators[opening];
+        expect(cycleRelabeling(generator), `${group.label} ${rep.id}`).toEqual(
+          identityPermutation(rep.degree),
         );
       }
     }
