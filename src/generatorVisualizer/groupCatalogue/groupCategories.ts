@@ -14,22 +14,22 @@ export const NON_ABELIAN_SIMPLE = 15;
  * Each group is in exactly one.
  */
 export const GROUP_CATEGORIES: readonly { code: number; name: string }[] = [
-  { code: ABELIAN_SIMPLE, name: "simple and abelian" },
-  { code: 0, name: "cyclic, not simple" },
-  { code: 1, name: "abelian and metacyclic" },
-  { code: 2, name: "abelian, not metacyclic" },
-  { code: 3, name: "nilpotent and metacyclic" },
-  { code: 4, name: "nilpotent and metabelian" },
-  { code: 5, name: "nilpotent, not metabelian" },
-  { code: 6, name: "metacyclic, not nilpotent" },
-  { code: 7, name: "metabelian and supersolvable" },
-  { code: 8, name: "metabelian and monomial" },
-  { code: 9, name: "metabelian, not monomial" },
-  { code: 10, name: "supersolvable, not metabelian" },
-  { code: 11, name: "monomial, not metabelian" },
-  { code: 12, name: "not monomial or metabelian" },
-  { code: 13, name: "not solvable or simple" },
-  { code: NON_ABELIAN_SIMPLE, name: "simple, not abelian" },
+  { code: ABELIAN_SIMPLE, name: "cyclic simple" },
+  { code: 0, name: "cyclic" },
+  { code: 1, name: "metacyclic abelian" },
+  { code: 2, name: "abelian" },
+  { code: 3, name: "metacyclic nilpotent" },
+  { code: 4, name: "metabelian nilpotent" },
+  { code: 5, name: "nilpotent" },
+  { code: 6, name: "metacyclic supersolvable" },
+  { code: 7, name: "metabelian supersolvable" },
+  { code: 8, name: "metabelian monomial" },
+  { code: 9, name: "metabelian solvable" },
+  { code: 10, name: "supersolvable" },
+  { code: 11, name: "monomial" },
+  { code: 12, name: "solvable" },
+  { code: 13, name: "not solvable" },
+  { code: NON_ABELIAN_SIMPLE, name: "non-abelian simple" },
 ];
 
 /** A simple group's own category; any other group's LMFDB solvability type. */

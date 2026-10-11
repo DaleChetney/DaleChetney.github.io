@@ -274,10 +274,10 @@ describe("groups page", () => {
   it("offers a dropdown of the categories the catalogue has", () => {
     const options = Array.from(filter().options).map((option) => option.textContent);
     expect(options[0]).toBe("All groups");
-    expect(options[1]).toBe("simple and abelian (11)");
-    expect(options[2]).toBe("cyclic, not simple (20)");
-    expect(options).toContain("not solvable or simple (8)");
-    expect(options.at(-1)).toBe("simple, not abelian (3)");
+    expect(options[1]).toBe("cyclic simple (11)");
+    expect(options[2]).toBe("cyclic (20)");
+    expect(options).toContain("not solvable (8)");
+    expect(options.at(-1)).toBe("non-abelian simple (3)");
     // Types 5 and 9 have no group of order 32 or less.
     expect(options).toHaveLength(15);
     expect(filter().value).toBe("");
