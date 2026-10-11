@@ -1,11 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { generatorElements } from "@shared/mathUtils/groups/generatorChoices";
 import {
+  comparePermutations,
   composePermutations,
   decodePermutation,
   identityPermutation,
   permutationFromCycles,
-  permutationKey,
   permutationOrder,
   type Permutation,
 } from "@shared/mathUtils/groups/permutations";
@@ -80,9 +80,7 @@ describe("generatorElements", () => {
       expect(base.exponent).toBe(1);
       expect(other.exponent).toBe(3);
       expect(other.permutation).toEqual(power(base.permutation, 3));
-      expect(
-        permutationKey(base.permutation).localeCompare(permutationKey(other.permutation)),
-      ).toBe(-1);
+      expect(comparePermutations(base.permutation, other.permutation)).toBeLessThan(0);
     }
   });
 
@@ -95,6 +93,13 @@ describe("generatorElements", () => {
         power(elements[0].permutation, exponent),
       );
     }
+  });
+
+  it("compares one-line forms point by point as numbers, not as text", () => {
+    // As text, g¹¹ = (1 12 23 4 …) would come first: "12,…" sorts before "2,…".
+    const g = permutationFromCycles([Array.from({ length: 30 }, (_, i) => i + 1)], 30);
+    const { elements } = generatorElements(30, [subgroupOf([power(g, 11)], 30)], [11, 7]);
+    expect(elements[0].permutation).toEqual(g);
   });
 
   it("gives a single generator for a class with one conjugate", () => {

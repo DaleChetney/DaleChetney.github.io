@@ -1,6 +1,6 @@
 import { orbitsUnder, largestOrbitExponent } from "./autOrbits.ts";
 import {
-  permutationKey,
+  comparePermutations,
   permutationOrder,
   permutationPowers,
   type Permutation,
@@ -46,7 +46,7 @@ export const generatorElements = (
   conjugates.forEach((subgroup, conjugate) => {
     const base = subgroup.elements
       .filter((element) => permutationOrder(element) === order)
-      .reduce((a, b) => (permutationKey(b).localeCompare(permutationKey(a)) < 0 ? b : a));
+      .reduce((a, b) => (comparePermutations(b, a) < 0 ? b : a));
     const powerOf = permutationPowers(base);
     for (const exponent of exponents) {
       elements.push({ permutation: powerOf(exponent), conjugate, exponent });
