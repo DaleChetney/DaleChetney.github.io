@@ -86,6 +86,16 @@ const asInteger = (value: number | bigint | string): bigint | null => {
   }
 };
 
+/**
+ * Orders permutations of the same degree by their one-line forms, point by
+ * point as numbers: negative when `a` comes first. Not by
+ * {@link permutationKey}, whose text puts 12 before 2.
+ */
+export const comparePermutations = (a: Permutation, b: Permutation): number => {
+  const differ = a.findIndex((image, i) => image !== b[i]);
+  return differ === -1 ? 0 : a[differ] - b[differ];
+};
+
 /** Composition `a ∘ b`: apply `b` first, then `a`. */
 export const composePermutations = (a: Permutation, b: Permutation): Permutation =>
   b.map((point) => a[point - 1]);

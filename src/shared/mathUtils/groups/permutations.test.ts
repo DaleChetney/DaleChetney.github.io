@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  comparePermutations,
   composePermutations,
   decodePermutation,
   formatPermutation,
@@ -158,6 +159,23 @@ describe("decodePermutation against LMFDB", () => {
       4: 6,
       6: 2,
     });
+  });
+});
+
+describe("comparePermutations", () => {
+  it("orders by the first point the two send to different images", () => {
+    expect(comparePermutations([1, 3, 2], [2, 1, 3])).toBeLessThan(0);
+    expect(comparePermutations([2, 1, 3], [1, 3, 2])).toBeGreaterThan(0);
+  });
+
+  it("compares images as numbers, so 2 comes before 12", () => {
+    const sendsOneTo = (image: number): number[] =>
+      Array.from({ length: 12 }, (_, i) => (i === 0 ? image : i === image - 1 ? 1 : i + 1));
+    expect(comparePermutations(sendsOneTo(2), sendsOneTo(12))).toBeLessThan(0);
+  });
+
+  it("finds a permutation equal to itself", () => {
+    expect(comparePermutations([2, 3, 1], [2, 3, 1])).toBe(0);
   });
 });
 
