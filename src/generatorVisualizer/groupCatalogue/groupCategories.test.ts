@@ -133,13 +133,13 @@ describe("filterGroups", () => {
 describe("categoryOptions", () => {
   it("lists the categories present, in the dropdown's order, with their counts", () => {
     expect(categoryOptions(groups)).toEqual([
-      { code: ABELIAN_SIMPLE, name: "simple and abelian", count: 1 },
-      { code: 0, name: "cyclic, not simple", count: 1 },
-      { code: 3, name: "nilpotent and metacyclic", count: 1 },
-      { code: 6, name: "metacyclic, not nilpotent", count: 2 },
-      { code: 8, name: "metabelian and monomial", count: 1 },
-      { code: 13, name: "not solvable or simple", count: 1 },
-      { code: NON_ABELIAN_SIMPLE, name: "simple, not abelian", count: 1 },
+      { code: ABELIAN_SIMPLE, name: "cyclic simple", count: 1 },
+      { code: 0, name: "cyclic", count: 1 },
+      { code: 3, name: "metacyclic nilpotent", count: 1 },
+      { code: 6, name: "metacyclic supersolvable", count: 2 },
+      { code: 8, name: "metabelian monomial", count: 1 },
+      { code: 13, name: "not solvable", count: 1 },
+      { code: NON_ABELIAN_SIMPLE, name: "non-abelian simple", count: 1 },
     ]);
   });
 
@@ -156,8 +156,8 @@ describe("renderFilterOptions", () => {
     ]);
     expect(options).toHaveLength(8);
     expect(options[0]).toEqual(["", "All groups"]);
-    expect(options[1]).toEqual([String(ABELIAN_SIMPLE), "simple and abelian (1)"]);
-    expect(options[2]).toEqual(["0", "cyclic, not simple (1)"]);
-    expect(options[4]).toEqual(["6", "metacyclic, not nilpotent (2)"]);
+    expect(options[1]).toEqual([String(ABELIAN_SIMPLE), "cyclic simple (1)"]);
+    expect(options[2]).toEqual(["0", "cyclic (1)"]);
+    expect(options[4]).toEqual(["6", "metacyclic supersolvable (2)"]);
   });
 });
