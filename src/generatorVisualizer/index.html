@@ -491,9 +491,32 @@
         padding: 0.12rem 0;
       }
 
-      .element label,
-      .element input {
+      /*
+        The name is the toggle. It is a button, so it is drawn as text with a
+        background that answers the pointer, and a firmer one while drawn.
+      */
+      .element-toggle {
+        padding: 0.05rem 0.4rem;
+        border: none;
+        border-radius: 0.35rem;
+        background: transparent;
+        color: inherit;
+        font: inherit;
         cursor: pointer;
+      }
+
+      .element-toggle:hover,
+      .element-toggle:focus-visible {
+        background: color-mix(in srgb, currentColor 12%, transparent);
+      }
+
+      .element-toggle[aria-pressed="true"] {
+        background: color-mix(in srgb, currentColor 8%, transparent);
+      }
+
+      .element-toggle[aria-pressed="true"]:hover,
+      .element-toggle[aria-pressed="true"]:focus-visible {
+        background: color-mix(in srgb, currentColor 18%, transparent);
       }
 
       .element code {
@@ -519,7 +542,7 @@
         cursor: default;
       }
 
-      .element input:not(:checked) + .swatch {
+      .element[data-drawn="false"] .swatch {
         opacity: 0.25;
       }
 

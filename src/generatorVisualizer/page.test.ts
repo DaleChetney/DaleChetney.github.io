@@ -77,7 +77,8 @@ const generated = (): string[] =>
 /** How many covers lie inside the sublattice the current selection generates. */
 const generatedEdges = (): number =>
   document.querySelectorAll(".lattice-edges line.generated").length;
-const checkedCount = (): number => document.querySelectorAll(".element input:checked").length;
+const checkedCount = (): number =>
+  document.querySelectorAll('.element-toggle[aria-pressed="true"]').length;
 const groupRow = (label: string): HTMLElement => {
   const found = document.querySelector<HTMLElement>(`.group-row[data-label="${label}"]`);
   if (found === null) throw new Error(`no row for group ${label}`);
@@ -165,7 +166,7 @@ describe("groups page", () => {
   it("colors only the swatches of the elements being drawn", () => {
     const swatches = Array.from(sectionFor("C₆").querySelectorAll<HTMLElement>(".element")).map(
       (row) => ({
-        checked: row.querySelector<HTMLInputElement>("input")?.checked,
+        checked: row.dataset.drawn === "true",
         background: row.querySelector<HTMLElement>(".swatch")?.style.background?.toLowerCase(),
       }),
     );
@@ -199,7 +200,7 @@ describe("groups page", () => {
 
   it("completes the group from two C_4 generators in different conjugates", () => {
     const groups = sectionFor("₃C₄").querySelectorAll(".conjugate");
-    const second = groups[1].querySelector<HTMLInputElement>(".element input");
+    const second = groups[1].querySelector<HTMLButtonElement>(".element-toggle");
     second?.click();
     expect(checkedCount()).toBe(2);
     // Two order-4 elements generate C_3:C_4 exactly when their conjugates differ.
@@ -219,25 +220,26 @@ describe("groups page", () => {
 
   it("keeps the section open when its last element is cleared", () => {
     // Each click redraws the panel, so re-query rather than walking a snapshot.
-    const nextChecked = () =>
-      sectionFor("₃C₄").querySelector<HTMLInputElement>(".element input:checked");
-    for (let input = nextChecked(); input !== null; input = nextChecked()) {
-      input.click();
+    const nextDrawn = () =>
+      sectionFor("₃C₄").querySelector<HTMLButtonElement>('.element-toggle[aria-pressed="true"]');
+    for (let toggle = nextDrawn(); toggle !== null; toggle = nextDrawn()) {
+      toggle.click();
     }
     expect(sectionLabels()).toEqual(["₃C₄"]);
     expect(checkedCount()).toBe(0);
     expect(arrows()).toHaveLength(0);
   });
 
-  it("keeps focus on a checkbox across the redraw it triggers", () => {
+  it("keeps focus on an element's toggle across the redraw it triggers", () => {
     latticeNode("C₆").dispatchEvent(new MouseEvent("click"));
-    const input = sectionFor("C₆").querySelector<HTMLInputElement>(".element input");
-    input?.focus();
-    const key = input?.closest("[data-element]")?.getAttribute("data-element");
-    input?.click();
+    const toggle = sectionFor("C₆").querySelector<HTMLButtonElement>(".element-toggle");
+    toggle?.focus();
+    const key = toggle?.closest("[data-element]")?.getAttribute("data-element");
+    toggle?.click();
     expect(document.activeElement?.closest("[data-element]")?.getAttribute("data-element")).toBe(
       key,
     );
+    expect(document.activeElement?.classList.contains("element-toggle")).toBe(true);
     latticeNode("C₆").dispatchEvent(new MouseEvent("click"));
   });
 
@@ -373,7 +375,7 @@ describe("groups page", () => {
     latticeNode("₃C₄").dispatchEvent(new MouseEvent("click"));
     latticeNode("C₆").dispatchEvent(new MouseEvent("click"));
     const conjugates = sectionFor("₃C₄").querySelectorAll(".conjugate");
-    conjugates[1].querySelector<HTMLInputElement>(".element input")?.click();
+    conjugates[1].querySelector<HTMLButtonElement>(".element-toggle")?.click();
     expect(sectionLabels()).toEqual(["₃C₄"]);
     expect(checkedCount()).toBe(2);
     // Two order-4 elements from different conjugates generate the group.
@@ -668,7 +670,7 @@ describe("groups page", () => {
     groupRow(DEFAULT.label).click();
     latticeNode("C₆").dispatchEvent(new MouseEvent("click"));
     const inputs = () =>
-      Array.from(sectionFor("₃C₄").querySelectorAll<HTMLInputElement>(".element input"));
+      Array.from(sectionFor("₃C₄").querySelectorAll<HTMLButtonElement>(".element-toggle"));
     latticeNode("₃C₄").dispatchEvent(new MouseEvent("click"));
     expect(arrowColors()).toHaveLength(1);
 
@@ -1277,7 +1279,7 @@ describe("running a generator's permutation", () => {
     return found;
   };
   const drawnRow = (): HTMLElement => {
-    const found = rows().find((row) => row.querySelector("input")?.checked);
+    const found = rows().find((row) => row.dataset.drawn === "true");
     if (found === undefined) throw new Error("nothing drawn");
     return found;
   };
@@ -1307,14 +1309,14 @@ describe("running a generator's permutation", () => {
       pending = [];
     });
     groupRow(DEFAULT.label).click();
-    if (!rows().some((row) => row.querySelector("input")?.checked)) {
-      rows()[0].querySelector("input")?.click();
+    if (!rows().some((row) => row.dataset.drawn === "true")) {
+      rows()[0].querySelector<HTMLButtonElement>(".element-toggle")?.click();
     }
   });
 
   it("offers play only for a generator that is drawn", () => {
     for (const row of rows()) {
-      expect(playOf(row).disabled).toBe(!row.querySelector("input")?.checked);
+      expect(playOf(row).disabled).toBe(row.dataset.drawn !== "true");
     }
   });
 
@@ -1332,7 +1334,7 @@ describe("running a generator's permutation", () => {
     expect(halfway.get(moving)).not.toBe(after(before, permutation).get(moving));
     advance(0.5 / DEFAULT_SETTINGS.permutationSpeed + 0.05);
     expect(placed()).toEqual(after(before, permutation));
-    expect(drawnRow().querySelector("input")?.checked).toBe(true);
+    expect(drawnRow().dataset.drawn === "true").toBe(true);
   });
 
   it("stops the clock once the queue is empty", () => {

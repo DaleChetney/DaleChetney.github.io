@@ -12,7 +12,7 @@ import type { Scene } from "../../scene";
 const elementFocus = (active: Element): string | null => {
   const element = active.closest("[data-element]")?.getAttribute("data-element");
   if (element != null) {
-    const control = active.closest(".play") === null ? "input" : ".play";
+    const control = active.closest(".play") === null ? ".element-toggle" : ".play";
     return `[data-element="${element}"] ${control}`;
   }
   const section = active.closest("[data-class]")?.getAttribute("data-class");

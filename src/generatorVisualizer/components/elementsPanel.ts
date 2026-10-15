@@ -142,13 +142,7 @@ const elementRow = (
   view: ElementSelectionView,
 ): HTMLElement => {
   const key = permutationKey(permutation);
-  // The id ties the name's label to the checkbox, which the play button must stay out of.
-  const id = `element-${key.replaceAll(",", "-")}`;
-  const input = el("input", { type: "checkbox", id, checked: view.isSelected(key) });
-  input.addEventListener("change", () => {
-    view.onToggle(key);
-  });
-
+  const drawn = view.isSelected(key);
   // The full permutation is too long to list, so the row names the element as
   // a power of its conjugate's first generator and keeps the cycles for a hover.
   const cycles = formatPermutation(permutation);
@@ -168,12 +162,18 @@ const elementRow = (
     view.onPlay(key);
   });
 
-  const row = el("div", { className: "element", title: cycles }, [
-    input,
-    play,
-    el("label", { htmlFor: id }, [el("code", {}, [name])]),
+  // The name is what draws the element or stops drawing it, pressed while it is drawn.
+  const toggle = el("button", { type: "button", className: "element-toggle" }, [
+    el("code", {}, [name]),
   ]);
+  toggle.setAttribute("aria-pressed", String(drawn));
+  toggle.addEventListener("click", () => {
+    view.onToggle(key);
+  });
+
+  const row = el("div", { className: "element", title: cycles }, [play, toggle]);
   row.dataset.element = key;
+  row.dataset.drawn = String(drawn);
   row.addEventListener("pointerenter", () => {
     view.onHover?.(key);
   });
