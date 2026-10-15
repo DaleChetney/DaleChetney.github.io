@@ -148,6 +148,20 @@ describe("groups page", () => {
     expect(generating()).toEqual([]);
   });
 
+  it("singles out a drawn generator's arrows while its row is hovered", () => {
+    const [drawn, undrawn] = Array.from(sectionFor("C₆").querySelectorAll<HTMLElement>(".element"));
+    const edges = (): HTMLElement | null => document.querySelector("#diagram .edges");
+    drawn.dispatchEvent(new PointerEvent("pointerenter"));
+    expect(edges()?.dataset.focus).toBe("0");
+    expect(document.querySelectorAll("#diagram .edges .raised use").length).toBeGreaterThan(0);
+    drawn.dispatchEvent(new PointerEvent("pointerleave"));
+    expect(edges()?.dataset.focus).toBeUndefined();
+    // An element not being drawn has no arrows to single out.
+    undrawn.dispatchEvent(new PointerEvent("pointerenter"));
+    expect(edges()?.dataset.focus).toBeUndefined();
+    undrawn.dispatchEvent(new PointerEvent("pointerleave"));
+  });
+
   it("colors only the swatches of the elements being drawn", () => {
     const swatches = Array.from(sectionFor("C₆").querySelectorAll<HTMLElement>(".element")).map(
       (row) => ({

@@ -502,6 +502,12 @@ export class Scene {
     return this.#colors.get(key) ?? null;
   }
 
+  /** This element's place in the palette, or null when it is not being drawn. */
+  generatorOf(key: string): number | null {
+    const index = [...this.#colors.keys()].indexOf(key);
+    return index === -1 ? null : index;
+  }
+
   /** The color a palette entry's arrows take. */
   generatorColor(generator: number): string {
     return this.colorOf(permutationKey(this.palette[generator])) ?? "currentColor";

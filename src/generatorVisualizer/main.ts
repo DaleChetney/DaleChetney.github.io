@@ -108,10 +108,16 @@ const rotation = new Rotation((seconds) => {
   scene.turnBy(seconds / settings.rotationPeriod);
   centerPanel.turn(scene, settings);
 });
-const rightPanel = new RightPanel((key) => {
-  scene.toggleElement(key);
-  render();
-});
+const rightPanel = new RightPanel(
+  (key) => {
+    scene.toggleElement(key);
+    render();
+  },
+  // Hovering a generator's row singles out its arrows, as hovering one of them does.
+  (key) => {
+    centerPanel.focusGenerator(key === null ? null : scene.generatorOf(key));
+  },
+);
 
 let scene = startingScene();
 

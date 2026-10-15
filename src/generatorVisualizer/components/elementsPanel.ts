@@ -43,6 +43,8 @@ export interface ElementSelectionView {
   /** The color this element is drawn in, or null when it is not being drawn. */
   colorOf: (key: string) => string | null;
   onToggle: (key: string) => void;
+  /** The pointer came onto an element's row, or with null, left it. */
+  onHover?: (key: string | null) => void;
   /** Turn a section to another page. */
   onPage: (classIndex: number, page: number) => void;
   /** Arrange one conjugate's generators in orbits under another exponent. */
@@ -157,6 +159,12 @@ const elementRow = (
     el("code", {}, [names.get(key) ?? cycles]),
   ]);
   row.dataset.element = key;
+  row.addEventListener("pointerenter", () => {
+    view.onHover?.(key);
+  });
+  row.addEventListener("pointerleave", () => {
+    view.onHover?.(null);
+  });
   return row;
 };
 
