@@ -83,7 +83,7 @@ const midArrowheadId = (generator: number): string => `arrowhead-mid-${generator
  * alone, halfway between them. Close nodes leave too little room between their
  * circles for a stroke to read as more than a smudge under the head.
  */
-export const HEAD_ONLY_DISTANCE = 45;
+export const HEAD_ONLY_DISTANCE = 50;
 
 /**
  * How much of the curve, as a fraction of it, a head-only arrow's path keeps
