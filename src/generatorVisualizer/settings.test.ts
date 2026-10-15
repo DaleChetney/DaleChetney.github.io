@@ -20,6 +20,7 @@ describe("settings", () => {
       theme: "system",
       arrowCurvature: 1,
       arrowBowWidth: "constant",
+      arrowHead: "end",
       rotationPeriod: 6,
     });
   });
@@ -29,6 +30,7 @@ describe("settings", () => {
       theme: "dark",
       arrowCurvature: -0.5,
       arrowBowWidth: "relative",
+      arrowHead: "middle",
       rotationPeriod: 7.5,
     } as const;
     saveSettings(saved);
@@ -42,6 +44,7 @@ describe("settings", () => {
         theme: "sepia",
         arrowCurvature: "wide",
         arrowBowWidth: "elastic",
+        arrowHead: "start",
         rotationPeriod: "slow",
       }),
     );

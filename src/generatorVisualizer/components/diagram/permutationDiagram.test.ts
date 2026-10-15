@@ -89,12 +89,15 @@ describe("renderPermutationDiagram", () => {
     const root = render([0, 2]);
     const path = root.querySelector<SVGPathElement>('.edges path[data-generator="1"]');
     expect(path?.getAttribute("stroke")).toBe(colors[1]);
-    expect(path?.getAttribute("marker-end")).toBe("url(#arrowhead-1)");
-    expect(root.querySelector("#arrowhead-1")).not.toBeNull();
+    // Close nodes get the centered head instead, but still the generator's own.
+    const marker = /^url\(#(arrowhead-(?:mid-)?1)\)$/.exec(path?.getAttribute("marker-end") ?? "");
+    expect(marker).not.toBeNull();
+    expect(root.querySelector(`#${marker?.[1] ?? ""}`)).not.toBeNull();
   });
 
-  it("defines a marker only for the generators actually drawn", () => {
-    expect(render([1]).querySelectorAll("defs marker")).toHaveLength(1);
+  it("defines markers only for the generators actually drawn", () => {
+    // Two per generator: the end-of-stroke head and the centered one.
+    expect(render([1]).querySelectorAll("defs marker")).toHaveLength(2);
   });
 
   it("gives the arrowhead the same color as its edge", () => {

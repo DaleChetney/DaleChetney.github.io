@@ -1,7 +1,15 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from "vitest";
 import { decodePermutation, permutationOrbits } from "@shared/mathUtils/groups/permutations";
-import { actionArrows, renderArrows, type BowWidth } from "./arrow";
+import {
+  actionArrows,
+  arrowheadDefs,
+  HEAD_ONLY_DISTANCE,
+  renderArrows,
+  shapeArrow,
+  type ActionArrow,
+  type BowWidth,
+} from "./arrow";
 import { layoutOrbits } from "./ringLayout";
 
 const distinct = <T>(values: readonly T[]): number => new Set(values).size;
@@ -154,5 +162,121 @@ describe("renderArrows bow width", () => {
 
   it("bows a short arrow the same either way", () => {
     expect(bowAt(100, "relative")).toBe(bowAt(100, "constant"));
+  });
+});
+
+describe("renderArrows between close nodes", () => {
+  const colorOf = (): string => "#000";
+  const arrowOf = (length: number): ActionArrow => ({
+    generator: 0,
+    from: { point: 1, x: 0, y: 0 },
+    to: { point: 2, x: length, y: 0 },
+  });
+  const drawn = (length: number): SVGPathElement => {
+    const path = renderArrows([arrowOf(length)], colorOf).querySelector("path");
+    if (path === null) throw new Error("no arrow drawn");
+    return path;
+  };
+  /** The point a path's quadratic ends at. */
+  const endOf = (path: SVGPathElement): { x: number; y: number } => {
+    const numbers =
+      path
+        .getAttribute("d")
+        ?.match(/-?[\d.e-]+/g)
+        ?.map(Number) ?? [];
+    return { x: numbers[4], y: numbers[5] };
+  };
+
+  it("draws the stroke and the end-of-arrow head when the nodes are far apart", () => {
+    const path = drawn(HEAD_ONLY_DISTANCE * 2);
+    expect(path.getAttribute("stroke-opacity")).toBe("1");
+    expect(path.getAttribute("marker-end")).toBe("url(#arrowhead-0)");
+  });
+
+  it("hides the stroke and centers the head when the nodes are close", () => {
+    const path = drawn(HEAD_ONLY_DISTANCE / 2);
+    expect(path.getAttribute("stroke-opacity")).toBe("0");
+    expect(path.getAttribute("marker-end")).toBe("url(#arrowhead-mid-0)");
+  });
+
+  it("puts a head-only arrow halfway along the curve, on its bowed side", () => {
+    const length = HEAD_ONLY_DISTANCE / 2;
+    const end = endOf(drawn(length));
+    expect(end.x).toBeCloseTo(length / 2);
+    expect(end.y).toBeGreaterThan(0);
+  });
+
+  it("switches between the two as a drawn arrow's nodes move", () => {
+    const path = drawn(HEAD_ONLY_DISTANCE * 2);
+    shapeArrow(path, arrowOf(HEAD_ONLY_DISTANCE / 2));
+    expect(path.getAttribute("stroke-opacity")).toBe("0");
+    shapeArrow(path, arrowOf(HEAD_ONLY_DISTANCE * 2));
+    expect(path.getAttribute("stroke-opacity")).toBe("1");
+    expect(path.getAttribute("marker-end")).toBe("url(#arrowhead-0)");
+  });
+
+  it("defines a centered head for every generator drawn", () => {
+    const defs = arrowheadDefs([arrowOf(10)], colorOf);
+    expect(defs.querySelector("#arrowhead-mid-0")?.getAttribute("refX")).toBe("5");
+  });
+});
+
+describe("renderArrows with the head in the middle", () => {
+  const colorOf = (): string => "#000";
+  const arrowOf = (length: number): ActionArrow => ({
+    generator: 0,
+    from: { point: 1, x: 0, y: 0 },
+    to: { point: 2, x: length, y: 0 },
+  });
+  const drawn = (length: number, curvature = 1): SVGPathElement => {
+    const path = renderArrows(
+      [arrowOf(length)],
+      colorOf,
+      curvature,
+      "constant",
+      "middle",
+    ).querySelector("path");
+    if (path === null) throw new Error("no arrow drawn");
+    return path;
+  };
+  const numbersOf = (path: SVGPathElement): number[] =>
+    path
+      .getAttribute("d")
+      ?.match(/-?[\d.e-]+/g)
+      ?.map(Number) ?? [];
+
+  it("keeps the stroke, with the centered head on its middle vertex and none at the end", () => {
+    const path = drawn(HEAD_ONLY_DISTANCE * 4);
+    expect(path.getAttribute("stroke-opacity")).toBe("1");
+    expect(path.getAttribute("marker-mid")).toBe("url(#arrowhead-mid-0)");
+    expect(path.getAttribute("marker-end")).toBe("none");
+  });
+
+  it("splits the curve into two quadratics that meet halfway between the nodes", () => {
+    const d = drawn(HEAD_ONLY_DISTANCE * 4).getAttribute("d") ?? "";
+    expect(d.match(/Q/g)).toHaveLength(2);
+    const numbers = numbersOf(drawn(HEAD_ONLY_DISTANCE * 4));
+    expect(numbers[4]).toBeCloseTo(HEAD_ONLY_DISTANCE * 2);
+    expect(numbers[5]).toBeGreaterThan(0);
+  });
+
+  it("stops the stroke as short of the node it points to as of the one it leaves", () => {
+    const numbers = numbersOf(drawn(HEAD_ONLY_DISTANCE * 4, 0));
+    const [startX, , , , , , , , endX] = numbers;
+    expect(HEAD_ONLY_DISTANCE * 4 - endX).toBeCloseTo(startX);
+  });
+
+  it("still draws the head alone between close nodes", () => {
+    const path = drawn(HEAD_ONLY_DISTANCE / 2);
+    expect(path.getAttribute("stroke-opacity")).toBe("0");
+    expect(path.getAttribute("marker-mid")).toBe("none");
+    expect(path.getAttribute("marker-end")).toBe("url(#arrowhead-mid-0)");
+  });
+
+  it("moves the head back to the end when asked", () => {
+    const path = drawn(HEAD_ONLY_DISTANCE * 4);
+    shapeArrow(path, arrowOf(HEAD_ONLY_DISTANCE * 4), 1, "constant", "end");
+    expect(path.getAttribute("marker-mid")).toBe("none");
+    expect(path.getAttribute("marker-end")).toBe("url(#arrowhead-0)");
   });
 });
