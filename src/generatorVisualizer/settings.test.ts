@@ -6,7 +6,8 @@ import {
   CURVATURE,
   DEFAULT_SETTINGS,
   loadSettings,
-  ROTATION_PERIOD,
+  PERMUTATION_SPEED,
+  ROTATION_SPEED,
   saveSettings,
 } from "./settings";
 
@@ -23,7 +24,8 @@ describe("settings", () => {
       arrowWidth: 2.5,
       arrowBowWidth: "constant",
       arrowHead: "end",
-      rotationPeriod: 6,
+      rotationSpeed: 0.15,
+      permutationSpeed: 1,
     });
   });
 
@@ -34,7 +36,8 @@ describe("settings", () => {
       arrowWidth: 3.5,
       arrowBowWidth: "relative",
       arrowHead: "middle",
-      rotationPeriod: 7.5,
+      rotationSpeed: 0.5,
+      permutationSpeed: 2.5,
     } as const;
     saveSettings(saved);
     expect(loadSettings()).toEqual(saved);
@@ -49,7 +52,8 @@ describe("settings", () => {
         arrowWidth: "thick",
         arrowBowWidth: "elastic",
         arrowHead: "start",
-        rotationPeriod: "slow",
+        rotationSpeed: "slow",
+        permutationSpeed: "fast",
       }),
     );
     expect(loadSettings()).toEqual(DEFAULT_SETTINGS);
@@ -69,11 +73,23 @@ describe("settings", () => {
     expect(loadSettings().arrowWidth).toBe(ARROW_WIDTHS.min);
   });
 
-  it("keeps a stored rotation period within the slider's range", () => {
-    localStorage.setItem(KEY, JSON.stringify({ rotationPeriod: 999 }));
-    expect(loadSettings().rotationPeriod).toBe(ROTATION_PERIOD.max);
-    localStorage.setItem(KEY, JSON.stringify({ rotationPeriod: 0 }));
-    expect(loadSettings().rotationPeriod).toBe(ROTATION_PERIOD.min);
+  it("keeps a stored rotation and permutation speed within the sliders' ranges", () => {
+    localStorage.setItem(KEY, JSON.stringify({ rotationSpeed: 999, permutationSpeed: 999 }));
+    expect(loadSettings().rotationSpeed).toBe(ROTATION_SPEED.max);
+    expect(loadSettings().permutationSpeed).toBe(PERMUTATION_SPEED.max);
+    localStorage.setItem(KEY, JSON.stringify({ rotationSpeed: 0, permutationSpeed: 0 }));
+    expect(loadSettings().rotationSpeed).toBe(ROTATION_SPEED.min);
+    expect(loadSettings().permutationSpeed).toBe(PERMUTATION_SPEED.min);
+  });
+
+  it("does not read a period stored by an older version as a speed", () => {
+    localStorage.setItem(KEY, JSON.stringify({ rotationPeriod: 10 }));
+    expect(loadSettings().rotationSpeed).toBe(DEFAULT_SETTINGS.rotationSpeed);
+  });
+
+  it("offers the speeds the spec gives", () => {
+    expect(ROTATION_SPEED).toEqual({ min: 0.05, max: 1, step: 0.05 });
+    expect(PERMUTATION_SPEED).toEqual({ min: 0.5, max: 5, step: 0.25 });
   });
 
   it("offers curvature both ways round the chord", () => {

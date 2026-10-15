@@ -17,8 +17,10 @@ const fixture = (): HTMLElement => {
       <output for="arrow-curvature"></output>
       <input type="range" id="arrow-width" />
       <output for="arrow-width"></output>
-      <input type="range" id="rotation-period" />
-      <output for="rotation-period"></output>
+      <input type="range" id="rotation-speed" />
+      <output for="rotation-speed"></output>
+      <input type="range" id="permutation-speed" />
+      <output for="permutation-speed"></output>
     </div>`;
   const pane = document.querySelector<HTMLElement>("#settings");
   if (pane === null) throw new Error("fixture missing");
@@ -42,7 +44,8 @@ const initial: Settings = {
   arrowWidth: 2.5,
   arrowBowWidth: "constant",
   arrowHead: "end",
-  rotationPeriod: 6,
+  rotationSpeed: 0.15,
+  permutationSpeed: 1,
 };
 
 describe("settingsPanel", () => {
@@ -56,8 +59,10 @@ describe("settingsPanel", () => {
     expect(radio("middle", "arrow-head").checked).toBe(false);
     expect(slider().value).toBe("-0.5");
     expect(readout()).toBe("-0.5");
-    expect(slider("rotation-period").value).toBe("6");
-    expect(readout("rotation-period")).toBe("6");
+    expect(slider("rotation-speed").value).toBe("0.15");
+    expect(readout("rotation-speed")).toBe("0.15/sec");
+    expect(slider("permutation-speed").value).toBe("1");
+    expect(readout("permutation-speed")).toBe("1/sec");
   });
 
   it("sizes the slider to the curvature range", () => {
@@ -83,9 +88,10 @@ describe("settingsPanel", () => {
     expect(readout("arrow-width")).toBe("3.1");
   });
 
-  it("offers only positive rotation periods", () => {
+  it("offers only positive speeds", () => {
     settingsPanel(fixture(), initial, () => {});
-    expect(Number(slider("rotation-period").min)).toBeGreaterThan(0);
+    expect(Number(slider("rotation-speed").min)).toBeGreaterThan(0);
+    expect(Number(slider("permutation-speed").min)).toBeGreaterThan(0);
   });
 
   it("reports a theme change", () => {
@@ -123,18 +129,23 @@ describe("settingsPanel", () => {
     expect(readout()).toBe("1.5");
   });
 
-  it("reports the rotation period as it moves, keeping the other changes", () => {
+  it("reports the speeds as they move, keeping the other changes, per second", () => {
     const onChange = vi.fn();
     settingsPanel(fixture(), initial, onChange);
     slider().value = "2";
     slider().dispatchEvent(new Event("input"));
-    slider("rotation-period").value = "10";
-    slider("rotation-period").dispatchEvent(new Event("input"));
+    slider("rotation-speed").value = "0.5";
+    slider("rotation-speed").dispatchEvent(new Event("input"));
+    slider("permutation-speed").value = "2.5";
+    slider("permutation-speed").dispatchEvent(new Event("input"));
     expect(onChange).toHaveBeenLastCalledWith({
       ...initial,
       arrowCurvature: 2,
-      rotationPeriod: 10,
+      rotationSpeed: 0.5,
+      permutationSpeed: 2.5,
     });
-    expect(readout("rotation-period")).toBe("10");
+    expect(readout("rotation-speed")).toBe("0.5/sec");
+    expect(readout("permutation-speed")).toBe("2.5/sec");
+    expect(readout()).toBe("2");
   });
 });
