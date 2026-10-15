@@ -5,6 +5,7 @@ import {
   actionArrows,
   arrowheadDefs,
   HEAD_ONLY_DISTANCE,
+  headSize,
   renderArrows,
   shapeArrow,
   type ActionArrow,
@@ -238,6 +239,17 @@ describe("renderArrows between close nodes", () => {
     shapeArrow(path, arrowOf(HEAD_ONLY_DISTANCE * 2));
     expect(path.getAttribute("stroke-opacity")).toBe("1");
     expect(path.getAttribute("marker-end")).toBe("url(#arrowhead-0)");
+  });
+
+  it("sizes the heads in diagram units, not by the line", () => {
+    const marker = arrowheadDefs([arrowOf(10)], colorOf, 3).querySelector("marker");
+    expect(marker?.getAttribute("markerUnits")).toBe("userSpaceOnUse");
+    expect(Number(marker?.getAttribute("markerWidth"))).toBe(headSize(3));
+  });
+
+  it("grows a head less than in proportion to its line", () => {
+    expect(headSize(4)).toBeGreaterThan(headSize(2));
+    expect(headSize(4)).toBeLessThan(2 * headSize(2));
   });
 
   it("defines a centered head for every generator drawn", () => {

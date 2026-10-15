@@ -240,14 +240,31 @@ export const shapeArrow = (
   path.setAttribute("marker-end", headOnly ? midHead : head === "end" ? endHead : "none");
 };
 
+/** How long and wide an arrowhead is on a line of no width, in diagram units. */
+const HEAD_SIZE_BASE = 7.5;
+
+/**
+ * How much an arrowhead grows for each unit of line width. Well short of the
+ * five a head scaled with its line would grow by, so a thick line keeps a head
+ * in proportion to the nodes rather than to itself.
+ */
+const HEAD_SIZE_PER_WIDTH = 2;
+
+/** How long and wide an arrowhead is on a line `strokeWidth` thick, in diagram units. */
+export const headSize = (strokeWidth: number): number =>
+  HEAD_SIZE_BASE + HEAD_SIZE_PER_WIDTH * strokeWidth;
+
 /**
  * One arrowhead marker per generator drawn. Markers cannot be styled by the
  * path that uses them, so each generator needs its own in the color of its
- * edges.
+ * edges. They are sized in diagram units for lines `strokeWidth` thick,
+ * rather than scaled with the line, so that a thicker line grows its head
+ * only a little.
  */
 export const arrowheadDefs = (
   arrows: readonly ActionArrow[],
   colorOf: (generator: number) => string,
+  strokeWidth = DEFAULT_SETTINGS.arrowWidth,
 ): SVGDefsElement => {
   const defs = svg("defs");
   for (const generator of new Set(arrows.map((arrow) => arrow.generator))) {
@@ -262,8 +279,9 @@ export const arrowheadDefs = (
         viewBox: "0 0 10 10",
         refX,
         refY: 5,
-        markerWidth: 5,
-        markerHeight: 5,
+        markerUnits: "userSpaceOnUse",
+        markerWidth: headSize(strokeWidth),
+        markerHeight: headSize(strokeWidth),
         orient: "auto-start-reverse",
       });
       marker.append(svg("path", { d: "M 0 0 L 10 5 L 0 10 z", fill: colorOf(generator) }));

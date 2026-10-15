@@ -108,7 +108,7 @@ export const renderPermutationDiagram = (
   root.append(nodes);
 
   root.append(
-    arrowheadDefs(arrows, colorOf),
+    arrowheadDefs(arrows, colorOf, view.arrowWidth),
     renderArrows(arrows, colorOf, view.curvature, view.bowWidth, view.head, view.arrowWidth),
   );
 
