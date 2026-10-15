@@ -320,8 +320,6 @@ describe("renderArrows on hover", () => {
   const draw = (): SVGGElement => renderArrows(actionArrows(points, generators), colorOf);
   const pathsOf = (layer: SVGGElement): SVGPathElement[] =>
     Array.from(layer.querySelectorAll("path"));
-  const generatorsOf = (layer: SVGGElement): number[] =>
-    pathsOf(layer).map((path) => Number(path.dataset.generator));
   const ofGenerator = (layer: SVGGElement, generator: number): SVGPathElement => {
     const path = layer.querySelector<SVGPathElement>(`path[data-generator="${generator}"]`);
     if (path === null) throw new Error(`no arrow of generator ${generator}`);
@@ -334,25 +332,43 @@ describe("renderArrows on hover", () => {
     layer.dispatchEvent(new PointerEvent("pointerleave"));
   };
 
-  it("brings every arrow of the hovered generator to the top", () => {
+  /** The arrows a layer draws again on top, by the id each copy refers to. */
+  const raisedOf = (layer: SVGGElement): string[] =>
+    Array.from(layer.querySelectorAll(".raised use")).map((use) => use.getAttribute("href") ?? "");
+
+  it("draws every arrow of the hovered generator again on top", () => {
     const layer = draw();
-    expect(generatorsOf(layer).at(-1)).toBe(1);
     over(ofGenerator(layer, 0));
-    expect(generatorsOf(layer).slice(-6)).toEqual([0, 0, 0, 0, 0, 0]);
+    expect(layer.lastElementChild?.classList.contains("raised")).toBe(true);
+    const ofZero = pathsOf(layer).filter((path) => path.dataset.generator === "0");
+    expect(raisedOf(layer)).toEqual(ofZero.map((path) => `#${path.id}`));
   });
 
-  it("never moves the hovered generator's own arrows, so the browser keeps track of them", async () => {
+  it("leaves the copies on top to the arrows beneath them when it comes to the pointer", () => {
     const layer = draw();
-    const removed: Node[] = [];
+    over(ofGenerator(layer, 0));
+    expect(layer.querySelector(".raised")?.getAttribute("pointer-events")).toBe("none");
+  });
+
+  it("never moves an arrow, so each keeps its fade and its pointer events", async () => {
+    const layer = draw();
+    const moved: Node[] = [];
     const observer = new MutationObserver((records) => {
-      for (const record of records) removed.push(...record.removedNodes);
+      for (const record of records) moved.push(...record.removedNodes);
     });
     observer.observe(layer, { childList: true });
     over(ofGenerator(layer, 0));
+    over(ofGenerator(layer, 1));
+    leave(layer);
     await Promise.resolve();
     observer.disconnect();
-    expect(removed.length).toBeGreaterThan(0);
-    expect(removed.every((node) => (node as SVGPathElement).dataset.generator === "1")).toBe(true);
+    expect(moved.filter((node) => node.nodeName === "path")).toEqual([]);
+  });
+
+  it("gives every arrow an id of its own for the copies to refer to", () => {
+    const ids = pathsOf(draw()).map((path) => path.id);
+    expect(ids.every((id) => id !== "")).toBe(true);
+    expect(distinct(ids)).toBe(ids.length);
   });
 
   it("marks the hovered generator's arrows, and only those, as focused", () => {
@@ -369,15 +385,15 @@ describe("renderArrows on hover", () => {
     over(ofGenerator(layer, 0));
     over(ofGenerator(layer, 1));
     expect(layer.dataset.focus).toBe("1");
-    expect(generatorsOf(layer).slice(-3)).toEqual([1, 1, 1]);
+    const ofOne = pathsOf(layer).filter((path) => path.dataset.generator === "1");
+    expect(raisedOf(layer)).toEqual(ofOne.map((path) => `#${path.id}`));
   });
 
-  it("restores the drawing order and drops the focus when the pointer leaves", () => {
+  it("drops the copies and the focus when the pointer leaves", () => {
     const layer = draw();
-    const before = pathsOf(layer);
     over(ofGenerator(layer, 0));
     leave(layer);
-    expect(pathsOf(layer)).toEqual(before);
+    expect(layer.querySelector(".raised")).toBeNull();
     expect(layer.dataset.focus).toBeUndefined();
     expect(layer.querySelector(".focused")).toBeNull();
   });

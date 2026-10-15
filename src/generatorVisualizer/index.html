@@ -378,7 +378,8 @@
 
       /*
         Hovering an arrow singles out its generator: the rest fade towards the
-        background, which is darker in the dark theme and lighter in the light.
+        background, which is darker in the dark theme and lighter in the light,
+        and its own arrows fade in again on top of them.
       */
       .diagram .edges path {
         transition: opacity 0.25s;
@@ -386,6 +387,16 @@
 
       .diagram .edges[data-focus] path:not(.focused) {
         opacity: 0.15;
+      }
+
+      .diagram .edges .raised {
+        animation: raise 0.25s;
+      }
+
+      @keyframes raise {
+        from {
+          opacity: 0;
+        }
       }
 
       .element-sections {
