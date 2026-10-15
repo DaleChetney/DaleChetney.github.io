@@ -167,13 +167,13 @@ describe("groups page", () => {
     const swatches = Array.from(sectionFor("C₆").querySelectorAll<HTMLElement>(".element")).map(
       (row) => ({
         checked: row.dataset.drawn === "true",
-        background: row.querySelector<HTMLElement>(".swatch")?.style.background?.toLowerCase(),
+        color: row.querySelector<HTMLElement>(".swatch")?.style.color.toLowerCase(),
       }),
     );
     // An unselected element has no color: colors belong to the drawn series.
     expect(swatches.map((s) => s.checked)).toEqual([true, false]);
-    expect(swatches[0].background).not.toBe("currentcolor");
-    expect(swatches[1].background).toBe("currentcolor");
+    expect(swatches[0].color).toMatch(/^(#|rgb)/);
+    expect(swatches[1].color).toBe("currentcolor");
   });
 
   it("opens a second section, grouped by conjugate, when C_4 is selected", () => {

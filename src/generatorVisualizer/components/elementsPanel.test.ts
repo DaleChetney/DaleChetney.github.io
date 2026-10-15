@@ -106,7 +106,7 @@ describe("an element's play button", () => {
   it("takes the element's color, and names what it runs", () => {
     const { play } = firstRow(renderElementSections([section(c16)], view()));
     expect(play.disabled).toBe(false);
-    expect(play.style.background.toLowerCase()).not.toBe("currentcolor");
+    expect(play.style.color).toMatch(/^(#|rgb)/);
     expect(play.getAttribute("aria-label")).toMatch(/^Run /);
   });
 
@@ -131,9 +131,12 @@ describe("an element's play button", () => {
     expect(toggle.textContent).not.toContain("Run");
   });
 
-  it("uses the text presentation of the triangle", () => {
+  it("is itself a triangle in the element's color, with no glyph on it", () => {
     const { play } = firstRow(renderElementSections([section(c16)], view()));
-    expect(play.textContent).toBe("▶︎");
+    expect(play.textContent).toBe("");
+    const triangle = play.querySelector("svg polygon");
+    expect(triangle?.getAttribute("fill")).toBe("currentColor");
+    expect(play.querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
   });
 });
 
