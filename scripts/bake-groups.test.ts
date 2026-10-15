@@ -406,4 +406,10 @@ describe("bakeCatalogue", () => {
       bakeCatalogue([groupRow({ number_subgroup_classes: 7 })], [], subgroupRows(), []),
     ).toThrow(/12\.1.*6 subgroup rows.*7 classes/);
   });
+
+  it("refuses a group whose automorphism group has no order", () => {
+    expect(() => bakeCatalogue([groupRow({ aut_order: null })], [], subgroupRows(), [])).toThrow(
+      /12\.1.*Aut\(G\)/,
+    );
+  });
 });
