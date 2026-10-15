@@ -5,6 +5,7 @@ import { CenterPanel, diagramPointAt, NARROW_SCREEN, stage } from "./components/
 import type { PlacedRing } from "./components/diagram/permutationDiagram";
 import { NodeDrag } from "./interactions/nodeDrag";
 import { PermutationBuffer } from "./interactions/permutationBuffer";
+import { generatorForKey } from "./interactions/permutationKeys";
 import { PermuteNodes } from "./interactions/permuteNodes";
 import { RingDrag } from "./interactions/ringDrag";
 import { collapsiblePanel } from "./components/panels/collapsiblePanel";
@@ -230,6 +231,13 @@ function selectRepresentation(id: string): void {
 window.addEventListener("resize", () => {
   scene.relayout(stage());
   render();
+});
+
+// Experimental: the top-row digits run the first ten generators drawn, in the
+// order their colors are given out. Nothing on the page mentions it yet.
+document.addEventListener("keydown", (event) => {
+  const generator = generatorForKey(event);
+  if (generator !== null) queue(scene.palette[generator]);
 });
 
 render();

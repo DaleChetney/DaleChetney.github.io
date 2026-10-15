@@ -1324,6 +1324,43 @@ describe("running a generator's permutation", () => {
     }
   });
 
+  /** Press a top-row digit key on the page, as the reader would. */
+  const pressDigit = (digit: number): void => {
+    document.body.dispatchEvent(
+      new KeyboardEvent("keydown", { code: `Digit${String(digit)}`, bubbles: true }),
+    );
+  };
+  /** The drawn row whose arrows are the first palette entry's: every one of them is its map. */
+  const firstInPalette = (): HTMLElement => {
+    const edges = Array.from(
+      document.querySelectorAll<SVGPathElement>('#diagram .edges > path[data-generator="0"]'),
+      (path) => [Number(path.dataset.from), Number(path.dataset.to)],
+    );
+    const found = rows().find(
+      (row) =>
+        row.dataset.drawn === "true" &&
+        edges.every(([from, to]) => permutationOf(row)[from - 1] === to),
+    );
+    if (found === undefined) throw new Error("no drawn row matches the first arrows");
+    return found;
+  };
+
+  it("runs the first generator drawn from the 1 key", () => {
+    const before = placed();
+    pressDigit(1);
+    runOne();
+    expect(placed()).toEqual(after(before, permutationOf(firstInPalette())));
+  });
+
+  it("runs nothing from a digit past the generators drawn", () => {
+    const drawn = rows().filter((row) => row.dataset.drawn === "true").length;
+    expect(drawn).toBeLessThan(9);
+    const before = placed();
+    pressDigit(9);
+    runOne();
+    expect(placed()).toEqual(before);
+  });
+
   it("offers play only for a generator that is drawn", () => {
     for (const row of rows()) {
       expect(playOf(row).disabled).toBe(row.dataset.drawn !== "true");
