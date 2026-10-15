@@ -11,6 +11,8 @@ const fixture = (): HTMLElement => {
       <label><input type="radio" name="theme" value="system" /> System</label>
       <input type="radio" name="arrow-bow-width" value="constant" />
       <input type="radio" name="arrow-bow-width" value="relative" />
+      <input type="radio" name="arrow-head" value="end" />
+      <input type="radio" name="arrow-head" value="middle" />
       <input type="range" id="arrow-curvature" />
       <output for="arrow-curvature"></output>
       <input type="range" id="rotation-period" />
@@ -36,6 +38,7 @@ const initial: Settings = {
   theme: "dark",
   arrowCurvature: -0.5,
   arrowBowWidth: "constant",
+  arrowHead: "end",
   rotationPeriod: 6,
 };
 
@@ -46,6 +49,8 @@ describe("settingsPanel", () => {
     expect(radio("light").checked).toBe(false);
     expect(radio("constant", "arrow-bow-width").checked).toBe(true);
     expect(radio("relative", "arrow-bow-width").checked).toBe(false);
+    expect(radio("end", "arrow-head").checked).toBe(true);
+    expect(radio("middle", "arrow-head").checked).toBe(false);
     expect(slider().value).toBe("-0.5");
     expect(readout()).toBe("-0.5");
     expect(slider("rotation-period").value).toBe("6");
@@ -81,6 +86,13 @@ describe("settingsPanel", () => {
       theme: "light",
       arrowBowWidth: "relative",
     });
+  });
+
+  it("reports a change of where the arrowheads go", () => {
+    const onChange = vi.fn();
+    settingsPanel(fixture(), initial, onChange);
+    radio("middle", "arrow-head").click();
+    expect(onChange).toHaveBeenCalledWith({ ...initial, arrowHead: "middle" });
   });
 
   it("reports the slider as it moves, and shows the value", () => {

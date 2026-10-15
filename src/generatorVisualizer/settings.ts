@@ -1,5 +1,5 @@
 import { load, save } from "@shared/storage";
-import type { BowWidth } from "./components/diagram/arrow";
+import type { BowWidth, HeadPosition } from "./components/diagram/arrow";
 
 const STORAGE_KEY = "generatorVisualizer.settings";
 
@@ -8,6 +8,8 @@ export type Theme = "light" | "dark" | "system";
 const THEMES: readonly Theme[] = ["light", "dark", "system"];
 
 const BOW_WIDTHS: readonly BowWidth[] = ["constant", "relative"];
+
+const HEAD_POSITIONS: readonly HeadPosition[] = ["end", "middle"];
 
 /** What the reader has chosen about how the page looks, independent of any group. */
 export interface Settings {
@@ -22,6 +24,8 @@ export interface Settings {
    * keeps it in proportion to the chord.
    */
   arrowBowWidth: BowWidth;
+  /** Where along each arrow its head is drawn: at the end, or halfway along. */
+  arrowHead: HeadPosition;
   /** Seconds the innermost ring takes to turn once while the rings are playing. */
   rotationPeriod: number;
 }
@@ -36,12 +40,16 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: "system",
   arrowCurvature: 1,
   arrowBowWidth: "constant",
+  arrowHead: "end",
   rotationPeriod: 6,
 };
 
 const isTheme = (value: unknown): value is Theme => THEMES.includes(value as Theme);
 
 const isBowWidth = (value: unknown): value is BowWidth => BOW_WIDTHS.includes(value as BowWidth);
+
+const isHeadPosition = (value: unknown): value is HeadPosition =>
+  HEAD_POSITIONS.includes(value as HeadPosition);
 
 /** A stored number kept inside its slider's range, or the default if it is not a number. */
 const inRange = (value: unknown, range: { min: number; max: number }, fallback: number): number =>
@@ -61,6 +69,7 @@ export const loadSettings = (): Settings => {
     arrowBowWidth: isBowWidth(fields.arrowBowWidth)
       ? fields.arrowBowWidth
       : DEFAULT_SETTINGS.arrowBowWidth,
+    arrowHead: isHeadPosition(fields.arrowHead) ? fields.arrowHead : DEFAULT_SETTINGS.arrowHead,
     rotationPeriod: inRange(
       fields.rotationPeriod,
       ROTATION_PERIOD,

@@ -1,5 +1,12 @@
 import { svg } from "../../svg";
-import { arrowheadDefs, renderArrows, shapeArrow, type ActionArrow, type BowWidth } from "./arrow";
+import {
+  arrowheadDefs,
+  renderArrows,
+  shapeArrow,
+  type ActionArrow,
+  type BowWidth,
+  type HeadPosition,
+} from "./arrow";
 import { holdToDrag } from "../../interactions/holdToDrag";
 import { renderNode, type PlacedPoint } from "./node";
 
@@ -34,6 +41,8 @@ export interface DiagramView {
   curvature?: number;
   /** How the arrows' bow grows with their length; "constant" when absent. */
   bowWidth?: BowWidth;
+  /** Where along the arrows their heads are drawn; "end" when absent. */
+  head?: HeadPosition;
   /**
    * A node was held long enough to drag, with the pointer at these client
    * coordinates. Without it a node cannot be dragged, only clicked.
@@ -97,7 +106,7 @@ export const renderPermutationDiagram = (
 
   root.append(
     arrowheadDefs(arrows, colorOf),
-    renderArrows(arrows, colorOf, view.curvature, view.bowWidth),
+    renderArrows(arrows, colorOf, view.curvature, view.bowWidth, view.head),
   );
 
   return root;
@@ -113,6 +122,7 @@ export const moveDiagram = (
   points: readonly PlacedPoint[],
   curvature = 1,
   bowWidth: BowWidth = "constant",
+  head: HeadPosition = "end",
 ): void => {
   const byPoint = new Map(points.map((placed) => [placed.point, placed]));
   for (const node of root.querySelectorAll<SVGGElement>(".node[data-point]")) {
@@ -127,6 +137,7 @@ export const moveDiagram = (
     const from = byPoint.get(Number(path.dataset.from));
     const to = byPoint.get(Number(path.dataset.to));
     if (from === undefined || to === undefined) continue;
-    shapeArrow(path, { generator: Number(path.dataset.generator), from, to }, curvature, bowWidth);
+    const arrow = { generator: Number(path.dataset.generator), from, to };
+    shapeArrow(path, arrow, curvature, bowWidth, head);
   }
 };

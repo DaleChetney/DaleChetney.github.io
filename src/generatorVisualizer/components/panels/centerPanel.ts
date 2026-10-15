@@ -125,7 +125,13 @@ export class CenterPanel {
   turn(scene: Scene, settings: Settings): void {
     const drawn = document.querySelector<SVGSVGElement>("#diagram svg");
     if (drawn === null) return;
-    moveDiagram(drawn, scene.diagram.points, settings.arrowCurvature, settings.arrowBowWidth);
+    moveDiagram(
+      drawn,
+      scene.diagram.points,
+      settings.arrowCurvature,
+      settings.arrowBowWidth,
+      settings.arrowHead,
+    );
   }
 
   #showHeading(scene: Scene): void {
@@ -186,6 +192,7 @@ export class CenterPanel {
             onPick: this.#handlers.onPickPoint,
             curvature: settings.arrowCurvature,
             bowWidth: settings.arrowBowWidth,
+            head: settings.arrowHead,
             onDragStart: this.#handlers.onDragStart,
             onDragMove: this.#handlers.onDragMove,
             onDragEnd: this.#handlers.onDragEnd,

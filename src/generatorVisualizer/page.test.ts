@@ -765,6 +765,25 @@ describe("settings tab", () => {
     expect(arrowPaths()).toEqual(before);
   });
 
+  it("moves the arrowheads to the middle and back", () => {
+    groupRow(DEFAULT.label).click();
+    const head = (value: string): HTMLInputElement => {
+      const found = document.querySelector<HTMLInputElement>(
+        `input[name="arrow-head"][value="${value}"]`,
+      );
+      if (found === null) throw new Error(`no arrowhead position ${value}`);
+      return found;
+    };
+    expect(head("end").checked).toBe(true);
+    const before = arrowPaths();
+    head("middle").click();
+    expect(arrows().some((path) => path.getAttribute("marker-mid") !== "none")).toBe(true);
+    expect(arrowPaths()).toHaveLength(before.length);
+    head("end").click();
+    expect(arrows().every((path) => path.getAttribute("marker-mid") === "none")).toBe(true);
+    expect(arrowPaths()).toEqual(before);
+  });
+
   it("keeps the curvature across a change of group", () => {
     slider().value = "0";
     slider().dispatchEvent(new Event("input"));
