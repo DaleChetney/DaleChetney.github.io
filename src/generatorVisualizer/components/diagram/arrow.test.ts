@@ -7,8 +7,10 @@ import {
   focusGenerator,
   HEAD_ONLY_DISTANCE,
   headSize,
+  pointAlongArrow,
   renderArrows,
   shapeArrow,
+  stackPositions,
   type ActionArrow,
   type BowWidth,
 } from "./arrow";
@@ -434,5 +436,47 @@ describe("renderArrows on hover", () => {
     expect(layer.querySelector(".raised")).toBeNull();
     expect(layer.dataset.focus).toBeUndefined();
     expect(layer.querySelector(".focused")).toBeNull();
+  });
+});
+
+describe("pointAlongArrow", () => {
+  const from = { x: 0, y: 0 };
+  const to = { x: 100, y: 0 };
+
+  it("starts at the node it leaves and ends at the one it points to", () => {
+    expect(pointAlongArrow(from, to, 0, 1, "constant", 0)).toEqual(from);
+    const end = pointAlongArrow(from, to, 1, 1, "constant", 0);
+    expect(end.x).toBeCloseTo(100);
+    expect(end.y).toBeCloseTo(0);
+  });
+
+  it("runs along the chord at curvature 0", () => {
+    const middle = pointAlongArrow(from, to, 0.5, 0, "constant", 0);
+    expect(middle.x).toBeCloseTo(50);
+    expect(middle.y).toBeCloseTo(0);
+  });
+
+  it("bows halfway out to its control point at the middle", () => {
+    // A 100-unit chord bows 0.18 × 100 + 6 = 24 at curvature 1; the curve reaches half that.
+    expect(pointAlongArrow(from, to, 0.5, 1, "constant", 0).y).toBeCloseTo(12);
+    expect(pointAlongArrow(from, to, 0.5, -1, "constant", 0).y).toBeCloseTo(-12);
+  });
+
+  it("rides further out for an arrow further up its stack", () => {
+    expect(pointAlongArrow(from, to, 0.5, 1, "constant", 1).y).toBeCloseTo(12 * 1.35);
+  });
+});
+
+describe("stackPositions", () => {
+  it("numbers each further arrow on a shared path", () => {
+    const at = (point: number, x: number) => ({ point, x, y: 0 });
+    const [a, b, c] = [at(1, 0), at(2, 100), at(3, 200)];
+    expect(
+      stackPositions([
+        { generator: 0, from: a, to: b },
+        { generator: 1, from: a, to: b },
+        { generator: 1, from: b, to: c },
+      ]),
+    ).toEqual([0, 1, 0]);
   });
 });

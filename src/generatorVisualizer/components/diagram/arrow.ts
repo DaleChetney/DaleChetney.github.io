@@ -49,7 +49,7 @@ export const STACK_CURVATURE_STEP = 0.35;
  * path is the honest picture: it really is one map, induced by several
  * generators.
  */
-const stackPositions = (arrows: readonly ActionArrow[]): number[] => {
+export const stackPositions = (arrows: readonly ActionArrow[]): number[] => {
   const drawn = new Map<string, number>();
   return arrows.map((arrow) => {
     const key = `${arrow.from.point}->${arrow.to.point}`;
@@ -104,7 +104,7 @@ interface Point {
 
 /** Where the arrow's bowed curve bends towards, between the two node centers. */
 const controlPoint = (
-  arrow: Pick<ActionArrow, "from" | "to">,
+  arrow: { from: Point; to: Point },
   curvature: number,
   width: BowWidth,
 ): Point => {
@@ -211,6 +211,27 @@ const headOnlyPath = (
     0.5,
   );
   return `M ${start.x} ${start.y} Q ${middle.x} ${middle.y} ${end.x} ${end.y}`;
+};
+
+/**
+ * Where a node travelling an arrow is when it has come `t` of the way, from 0
+ * to 1: on the curve between the two node centers that the arrow's stroke is
+ * cut from, so the node rides its own arrow, fanned out with its stack.
+ */
+export const pointAlongArrow = (
+  from: Point,
+  to: Point,
+  t: number,
+  chosenCurvature: number,
+  width: BowWidth,
+  stack: number,
+): Point => {
+  const control = controlPoint({ from, to }, stackedCurvature(chosenCurvature, stack), width);
+  const [a, b, c] = [(1 - t) ** 2, 2 * (1 - t) * t, t ** 2];
+  return {
+    x: a * from.x + b * control.x + c * to.x,
+    y: a * from.y + b * control.y + c * to.y,
+  };
 };
 
 /**
