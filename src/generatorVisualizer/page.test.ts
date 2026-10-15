@@ -715,6 +715,16 @@ describe("settings tab", () => {
     expect(pane("settings").hidden).toBe(true);
   });
 
+  it("gives every slider's readout the same fixed room, so no slider changes length", () => {
+    const readouts = Array.from(document.querySelectorAll<HTMLOutputElement>(".slider-row output"));
+    expect(readouts.length).toBeGreaterThan(1);
+    const styles = readouts.map((output) => getComputedStyle(output));
+    const widths = new Set(styles.map((style) => style.width));
+    expect(widths.size).toBe(1);
+    expect([...widths][0]).not.toBe("auto");
+    expect(styles.every((style) => style.flexShrink === "0")).toBe(true);
+  });
+
   it("keeps the settings pane out of the layout while the generators tab is open", () => {
     expect(getComputedStyle(pane("settings")).display).toBe("none");
     tab("Settings").click();
