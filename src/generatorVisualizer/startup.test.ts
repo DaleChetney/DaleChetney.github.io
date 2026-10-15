@@ -40,7 +40,10 @@ const sectionLabels = (): string[] =>
     .map((label) => label ?? "")
     .sort();
 const checked = (): boolean[] =>
-  Array.from(document.querySelectorAll<HTMLInputElement>(".element input"), (box) => box.checked);
+  Array.from(
+    document.querySelectorAll(".element-toggle"),
+    (toggle) => toggle.getAttribute("aria-pressed") === "true",
+  );
 const latticeNode = (label: string): SVGGElement => {
   const found = Array.from(document.querySelectorAll<SVGGElement>(".lattice-node")).find(
     (node) => node.querySelector("text")?.textContent === label,
@@ -75,7 +78,7 @@ describe("starting the page", () => {
   it("opens on the group, representation and selection last looked at", async () => {
     await load();
     latticeNode("C₆").dispatchEvent(new MouseEvent("click"));
-    document.querySelectorAll<HTMLInputElement>(".element input")[1]?.click();
+    document.querySelectorAll<HTMLButtonElement>(".element-toggle")[1]?.click();
     document.querySelector<HTMLElement>('[data-representation="perm-7"]')?.click();
     const before = { nodes: nodeCount(), sections: sectionLabels(), checked: checked() };
     expect(before.nodes).toBe(7);

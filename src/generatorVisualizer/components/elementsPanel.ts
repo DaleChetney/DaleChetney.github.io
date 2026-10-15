@@ -10,6 +10,7 @@ import {
   orbitsUnder,
 } from "@shared/mathUtils/groups/autOrbits";
 import type { GeneratorChoices, GeneratorElement } from "@shared/mathUtils/groups/generatorChoices";
+import { svg } from "../svg";
 import { generatorNames } from "./generatorNames";
 
 /** How many generators a section lists at once. */
@@ -136,19 +137,31 @@ const rows = (
     elementRow(choice.permutation, names, view),
   ]);
 
+/**
+ * The play button's face: a triangle in the button's own color. A glyph on a
+ * disc of that color washes out on the lighter colors; the triangle is the color.
+ */
+const playTriangle = (): SVGSVGElement => {
+  const face = svg("svg", { viewBox: "0 0 10 12", "aria-hidden": "true" });
+  face.append(
+    svg("polygon", {
+      points: "1.5,1.5 8.5,6 1.5,10.5",
+      fill: "currentColor",
+      stroke: "currentColor",
+      "stroke-width": 2,
+      "stroke-linejoin": "round",
+    }),
+  );
+  return face;
+};
+
 const elementRow = (
   permutation: Permutation,
   names: Map<string, string>,
   view: ElementSelectionView,
 ): HTMLElement => {
   const key = permutationKey(permutation);
-  // The id ties the name's label to the checkbox, which the play button must stay out of.
-  const id = `element-${key.replaceAll(",", "-")}`;
-  const input = el("input", { type: "checkbox", id, checked: view.isSelected(key) });
-  input.addEventListener("change", () => {
-    view.onToggle(key);
-  });
-
+  const drawn = view.isSelected(key);
   // The full permutation is too long to list, so the row names the element as
   // a power of its conjugate's first generator and keeps the cycles for a hover.
   const cycles = formatPermutation(permutation);
@@ -158,22 +171,28 @@ const elementRow = (
   const play = el(
     "button",
     { type: "button", className: "swatch play", disabled: color === null },
-    ["▶︎"],
+    [playTriangle()],
   );
   // An unselected element has no color yet: colors are spread over the
   // selection, so which one it would take depends on what else is drawn.
-  play.style.background = color ?? "currentColor";
+  play.style.color = color ?? "currentColor";
   play.setAttribute("aria-label", `Run ${name}`);
   play.addEventListener("click", () => {
     view.onPlay(key);
   });
 
-  const row = el("div", { className: "element", title: cycles }, [
-    input,
-    play,
-    el("label", { htmlFor: id }, [el("code", {}, [name])]),
+  // The name is what draws the element or stops drawing it, pressed while it is drawn.
+  const toggle = el("button", { type: "button", className: "element-toggle" }, [
+    el("code", {}, [name]),
   ]);
+  toggle.setAttribute("aria-pressed", String(drawn));
+  toggle.addEventListener("click", () => {
+    view.onToggle(key);
+  });
+
+  const row = el("div", { className: "element", title: cycles }, [play, toggle]);
   row.dataset.element = key;
+  row.dataset.drawn = String(drawn);
   row.addEventListener("pointerenter", () => {
     view.onHover?.(key);
   });

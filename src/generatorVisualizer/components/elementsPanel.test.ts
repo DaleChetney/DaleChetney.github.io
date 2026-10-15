@@ -93,9 +93,9 @@ describe("an element's play button", () => {
   const firstRow = (root: HTMLElement) => {
     const row = root.querySelector<HTMLElement>(".element");
     const play = row?.querySelector<HTMLButtonElement>("button.swatch.play");
-    const input = row?.querySelector<HTMLInputElement>("input");
-    if (!row || !play || !input) throw new Error("no element row with a play button");
-    return { row, play, input };
+    const toggle = row?.querySelector<HTMLButtonElement>("button.element-toggle");
+    if (!row || !play || !toggle) throw new Error("no element row with a play button");
+    return { row, play, toggle };
   };
 
   it("is disabled while the element is not drawn", () => {
@@ -106,7 +106,7 @@ describe("an element's play button", () => {
   it("takes the element's color, and names what it runs", () => {
     const { play } = firstRow(renderElementSections([section(c16)], view()));
     expect(play.disabled).toBe(false);
-    expect(play.style.background.toLowerCase()).not.toBe("currentcolor");
+    expect(play.style.color).toMatch(/^(#|rgb)/);
     expect(play.getAttribute("aria-label")).toMatch(/^Run /);
   });
 
@@ -118,27 +118,25 @@ describe("an element's play button", () => {
       view({ isSelected: () => true, onPlay, onToggle }),
     );
     document.body.replaceChildren(root);
-    const { row, play, input } = firstRow(root);
+    const { row, play, toggle } = firstRow(root);
     play.click();
     expect(onPlay).toHaveBeenCalledWith(row.dataset.element);
     expect(onToggle).not.toHaveBeenCalled();
-    expect(input.checked).toBe(true);
+    expect(toggle.getAttribute("aria-pressed")).toBe("true");
   });
 
-  it("stays out of the checkbox's label, which is the name alone", () => {
-    const { row, play, input } = firstRow(renderElementSections([section(c16)], view()));
-    document.body.replaceChildren(row);
-    const label = row.querySelector<HTMLLabelElement>(`label[for="${input.id}"]`);
-    expect(input.id).not.toBe("");
-    expect(label?.contains(play)).toBe(false);
-    expect(label?.textContent).toBe(row.querySelector("code")?.textContent);
-    expect(label?.textContent).not.toContain("Run");
-    expect(input.labels?.[0]).toBe(label);
+  it("sits beside the name's toggle rather than in it", () => {
+    const { play, toggle } = firstRow(renderElementSections([section(c16)], view()));
+    expect(toggle.contains(play)).toBe(false);
+    expect(toggle.textContent).not.toContain("Run");
   });
 
-  it("uses the text presentation of the triangle", () => {
+  it("is itself a triangle in the element's color, with no glyph on it", () => {
     const { play } = firstRow(renderElementSections([section(c16)], view()));
-    expect(play.textContent).toBe("▶︎");
+    expect(play.textContent).toBe("");
+    const triangle = play.querySelector("svg polygon");
+    expect(triangle?.getAttribute("fill")).toBe("currentColor");
+    expect(play.querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
   });
 });
 
@@ -243,17 +241,20 @@ describe("renderElementSections", () => {
     const root = renderElementSections([section()], view({ isSelected: (key) => key === chosen }));
     const row = root.querySelector<HTMLElement>(`[data-element="${chosen}"]`);
     expect(row?.title).toBe("(2 3)(4 5 6 7)");
-    expect(row?.querySelector<HTMLInputElement>("input")?.checked).toBe(true);
-    expect(root.querySelectorAll<HTMLInputElement>("input:checked")).toHaveLength(1);
+    expect(row?.querySelector(".element-toggle")?.getAttribute("aria-pressed")).toBe("true");
+    expect(row?.dataset.drawn).toBe("true");
+    expect(root.querySelectorAll('.element-toggle[aria-pressed="true"]')).toHaveLength(1);
+    expect(root.querySelectorAll('.element[data-drawn="true"]')).toHaveLength(1);
   });
 
-  it("toggles the element it was clicked on", () => {
+  it("toggles the element whose name was clicked", () => {
     const onToggle = vi.fn();
     const root = renderElementSections([section()], view({ onToggle }));
-    // jsdom only runs a checkbox's activation behaviour once it is connected.
-    document.body.replaceChildren(root);
     const key = permutationKey([2, 1, 3, 5, 6, 7, 4]);
-    root.querySelector<HTMLInputElement>(`[data-element="${key}"] input`)?.click();
+    const toggle = root.querySelector<HTMLButtonElement>(`[data-element="${key}"] .element-toggle`);
+    expect(toggle?.getAttribute("aria-pressed")).toBe("false");
+    expect(toggle?.textContent).toBe(toggle?.querySelector("code")?.textContent);
+    toggle?.click();
     expect(onToggle).toHaveBeenCalledWith(key);
   });
 
