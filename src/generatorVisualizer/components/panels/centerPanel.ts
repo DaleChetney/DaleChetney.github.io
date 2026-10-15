@@ -7,6 +7,7 @@ import {
 } from "../diagram/permutationDiagram";
 import { renderRingControls } from "../diagram/ringControls";
 import { toDiagram, type DiagramPoint } from "../../interactions/ringDrag";
+import type { PlacedPoint } from "../diagram/node";
 import { DEFAULT_TARGET_WIDTH } from "../diagram/ringLayout";
 import { renderLattice } from "../lattice";
 import { renderRepresentationRow } from "../representationRow";
@@ -72,6 +73,8 @@ export interface CenterPanelHandlers {
   onToggleClass: (classIndex: number) => void;
   /** A point of the diagram was clicked, to be swapped with another. */
   onPickPoint: (point: number) => void;
+  /** An arrow was clicked, to run its generator's permutation, by palette index. */
+  onPlayGenerator: (generator: number) => void;
   /** Another representation of the same group was asked for. */
   onSelectRepresentation: (id: string) => void;
   /** Whether the catalogue holds a group, so that Aut(G) can be followed to it. */
@@ -113,29 +116,35 @@ export class CenterPanel {
     this.#handlers = handlers;
   }
 
-  /** Draw the scene, the way the settings say to. */
-  show(scene: Scene, settings: Settings): void {
+  /**
+   * Draw the scene, the way the settings say to, its points where `points`
+   * puts them: partway along their arrows while a permutation runs.
+   */
+  show(
+    scene: Scene,
+    settings: Settings,
+    points: readonly PlacedPoint[] = scene.diagram.points,
+  ): void {
     this.#showHeading(scene);
-    this.#showDiagram(scene, settings);
+    this.#showDiagram(scene, settings, points);
     this.#showRingControls(scene);
     this.#showLattice(scene);
   }
 
   /**
-   * Move the diagram already drawn to where the scene now places its points,
-   * without redrawing it: this runs every frame while the rings turn, and a
-   * redraw would drop any click on a node that straddled a frame.
+   * Move the diagram already drawn to `points`, where the scene now places its
+   * points unless a permutation is carrying them, without redrawing it: this
+   * runs every frame while anything moves, and a redraw would drop any click
+   * on a node that straddled a frame.
    */
-  turn(scene: Scene, settings: Settings): void {
+  turn(
+    scene: Scene,
+    settings: Settings,
+    points: readonly PlacedPoint[] = scene.diagram.points,
+  ): void {
     const drawn = document.querySelector<SVGSVGElement>("#diagram svg");
     if (drawn === null) return;
-    moveDiagram(
-      drawn,
-      scene.diagram.points,
-      settings.arrowCurvature,
-      settings.arrowBowWidth,
-      settings.arrowHead,
-    );
+    moveDiagram(drawn, points, settings.arrowCurvature, settings.arrowBowWidth, settings.arrowHead);
   }
 
   /** Single out one palette entry's arrows in the diagram already drawn, or none with null. */
@@ -188,8 +197,8 @@ export class CenterPanel {
    * One node per point, and an arrow `p -> g(p)` for each element being drawn.
    * A picked point, waiting to be swapped with the next one clicked, is marked.
    */
-  #showDiagram(scene: Scene, settings: Settings): void {
-    const { diagram } = scene;
+  #showDiagram(scene: Scene, settings: Settings, points: readonly PlacedPoint[]): void {
+    const diagram = { ...scene.diagram, points: [...points] };
     preservingFocus(diagramFocus, () => {
       mount(
         qs("#diagram"),
@@ -200,6 +209,7 @@ export class CenterPanel {
           {
             picked: scene.picked,
             onPick: this.#handlers.onPickPoint,
+            onPlayGenerator: this.#handlers.onPlayGenerator,
             curvature: settings.arrowCurvature,
             bowWidth: settings.arrowBowWidth,
             head: settings.arrowHead,

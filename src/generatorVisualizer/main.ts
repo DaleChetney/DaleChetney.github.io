@@ -53,6 +53,7 @@ const centerPanel = new CenterPanel({
     scene.pickPoint(point);
     render();
   },
+  onPlayGenerator: () => {},
   onSelectRepresentation: selectRepresentation,
   holdsGroup: (label) => groups.has(label),
   onSelectGroup: selectGroup,

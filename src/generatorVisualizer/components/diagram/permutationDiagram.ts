@@ -39,6 +39,8 @@ export interface DiagramView {
   picked: number | null;
   /** A node was clicked: pick it, or swap it with the one already picked. */
   onPick: (point: number) => void;
+  /** An arrow was clicked: run its generator's permutation. */
+  onPlayGenerator?: (generator: number) => void;
   /** How far the arrows bow, as a multiple of the usual amount; the default setting when absent. */
   curvature?: number;
   /** How the arrows' bow grows with their length; the default setting when absent. */
@@ -108,10 +110,19 @@ export const renderPermutationDiagram = (
   }
   root.append(nodes);
 
-  root.append(
-    arrowheadDefs(arrows, colorOf, view.arrowWidth),
-    renderArrows(arrows, colorOf, view.curvature, view.bowWidth, view.head, view.arrowWidth),
+  const edges = renderArrows(
+    arrows,
+    colorOf,
+    view.curvature,
+    view.bowWidth,
+    view.head,
+    view.arrowWidth,
   );
+  edges.addEventListener("click", (event) => {
+    const generator = (event.target as Element).closest("path")?.dataset.generator;
+    if (generator !== undefined) view.onPlayGenerator?.(Number(generator));
+  });
+  root.append(arrowheadDefs(arrows, colorOf, view.arrowWidth), edges);
 
   return root;
 };
