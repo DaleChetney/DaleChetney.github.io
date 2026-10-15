@@ -1,4 +1,5 @@
 import type { Permutation } from "@shared/mathUtils/groups/permutations";
+import { DEFAULT_SETTINGS } from "../../settings";
 import { svg } from "../../svg";
 import { NODE_RADIUS, type PlacedPoint } from "./node";
 
@@ -33,35 +34,39 @@ export const actionArrows = (
   return arrows;
 };
 
-/** Stroke width of an arrow that shares its path with no other. */
-const ARROW_WIDTH = 2.2;
-
-/** How much wider each further arrow on a shared path is drawn. */
-const ARROW_WIDTH_STEP = 1.3;
+/**
+ * How much further each arrow on a shared path bows than the one before it, as
+ * a curvature added on top of the chosen one.
+ */
+export const STACK_CURVATURE_STEP = 0.35;
 
 /**
- * Stroke widths, aligned with `arrows`. Different generators can send the same
- * point to the same image, and those arrows trace the same curve exactly. Rather
- * than hide all but the last, the ones sharing a path are widened in steps so
- * that drawing widest-first leaves each visible as a band inside the one behind
- * it. The shared path is the honest picture: it really is one map, induced by
- * several generators.
+ * Each arrow's place in its stack, aligned with `arrows`. Different generators
+ * can send the same point to the same image, and those arrows would trace the
+ * same curve exactly. Rather than hide all but the last, each further arrow on
+ * a shared path is given its place, 1, 2, …, and bowed that much further, so
+ * they fan out side by side; an arrow alone on its path is at 0. The shared
+ * path is the honest picture: it really is one map, induced by several
+ * generators.
  */
-const strokeWidths = (arrows: readonly ActionArrow[]): number[] => {
-  const pathKey = (arrow: ActionArrow): string => `${arrow.from.point}->${arrow.to.point}`;
-  const bundles = new Map<string, number>();
-  for (const arrow of arrows) {
-    bundles.set(pathKey(arrow), (bundles.get(pathKey(arrow)) ?? 0) + 1);
-  }
+const stackPositions = (arrows: readonly ActionArrow[]): number[] => {
   const drawn = new Map<string, number>();
   return arrows.map((arrow) => {
-    const key = pathKey(arrow);
+    const key = `${arrow.from.point}->${arrow.to.point}`;
     const position = drawn.get(key) ?? 0;
     drawn.set(key, position + 1);
-    const remaining = (bundles.get(key) ?? 1) - 1 - position;
-    return ARROW_WIDTH + remaining * ARROW_WIDTH_STEP;
+    return position;
   });
 };
+
+/**
+ * The curvature an arrow at `stack` in its stack is drawn with. Stacked arrows
+ * fan away from the chord on the side the chosen curvature bows to, so that a
+ * 2-cycle's two directions, which bow to opposite sides, never meet; a
+ * straight chord fans to the side a positive curvature would.
+ */
+const stackedCurvature = (curvature: number, stack: number): number =>
+  curvature + (curvature < 0 ? -1 : 1) * stack * STACK_CURVATURE_STEP;
 
 /**
  * How an arrow's bow grows with the length of its chord. "constant" caps it, so
@@ -83,7 +88,7 @@ const midArrowheadId = (generator: number): string => `arrowhead-mid-${generator
  * alone, halfway between them. Close nodes leave too little room between their
  * circles for a stroke to read as more than a smudge under the head.
  */
-export const HEAD_ONLY_DISTANCE = 50;
+export const HEAD_ONLY_DISTANCE = 55;
 
 /**
  * How much of the curve, as a fraction of it, a head-only arrow's path keeps
@@ -158,8 +163,8 @@ const quadraticPiece = (
 export const arrowPath = (
   arrow: Pick<ActionArrow, "from" | "to">,
   curvature: number,
-  width: BowWidth = "constant",
-  head: HeadPosition = "end",
+  width: BowWidth = DEFAULT_SETTINGS.arrowBowWidth,
+  head: HeadPosition = DEFAULT_SETTINGS.arrowHead,
 ): string => {
   const control = controlPoint(arrow, curvature, width);
 
@@ -217,11 +222,12 @@ const headOnlyPath = (
  */
 export const shapeArrow = (
   path: SVGPathElement,
-  arrow: ActionArrow,
-  curvature = 1,
-  width: BowWidth = "constant",
-  head: HeadPosition = "end",
+  arrow: ActionArrow & { stack?: number },
+  chosenCurvature = DEFAULT_SETTINGS.arrowCurvature,
+  width: BowWidth = DEFAULT_SETTINGS.arrowBowWidth,
+  head: HeadPosition = DEFAULT_SETTINGS.arrowHead,
 ): void => {
+  const curvature = stackedCurvature(chosenCurvature, arrow.stack ?? 0);
   const endHead = `url(#${arrowheadId(arrow.generator)})`;
   const midHead = `url(#${midArrowheadId(arrow.generator)})`;
   const headOnly = isHeadOnly(arrow);
@@ -234,14 +240,31 @@ export const shapeArrow = (
   path.setAttribute("marker-end", headOnly ? midHead : head === "end" ? endHead : "none");
 };
 
+/** How long and wide an arrowhead is on a line of no width, in diagram units. */
+const HEAD_SIZE_BASE = 7.5;
+
+/**
+ * How much an arrowhead grows for each unit of line width. Well short of the
+ * five a head scaled with its line would grow by, so a thick line keeps a head
+ * in proportion to the nodes rather than to itself.
+ */
+const HEAD_SIZE_PER_WIDTH = 2;
+
+/** How long and wide an arrowhead is on a line `strokeWidth` thick, in diagram units. */
+export const headSize = (strokeWidth: number): number =>
+  HEAD_SIZE_BASE + HEAD_SIZE_PER_WIDTH * strokeWidth;
+
 /**
  * One arrowhead marker per generator drawn. Markers cannot be styled by the
  * path that uses them, so each generator needs its own in the color of its
- * edges.
+ * edges. They are sized in diagram units for lines `strokeWidth` thick,
+ * rather than scaled with the line, so that a thicker line grows its head
+ * only a little.
  */
 export const arrowheadDefs = (
   arrows: readonly ActionArrow[],
   colorOf: (generator: number) => string,
+  strokeWidth = DEFAULT_SETTINGS.arrowWidth,
 ): SVGDefsElement => {
   const defs = svg("defs");
   for (const generator of new Set(arrows.map((arrow) => arrow.generator))) {
@@ -256,8 +279,9 @@ export const arrowheadDefs = (
         viewBox: "0 0 10 10",
         refX,
         refY: 5,
-        markerWidth: 5,
-        markerHeight: 5,
+        markerUnits: "userSpaceOnUse",
+        markerWidth: headSize(strokeWidth),
+        markerHeight: headSize(strokeWidth),
         orient: "auto-start-reverse",
       });
       marker.append(svg("path", { d: "M 0 0 L 10 5 L 0 10 z", fill: colorOf(generator) }));
@@ -270,32 +294,68 @@ export const arrowheadDefs = (
 /**
  * The edge layer: every arrow as a curve, tagged with the action it stands for.
  * `curvature` is how far the arrows bow, as a multiple of the usual amount,
- * `width` how that bow grows with an arrow's length, and `head` where along it
- * the head is drawn.
+ * `width` how that bow grows with an arrow's length, `head` where along it the
+ * head is drawn, and `strokeWidth` how thick its line is; the heads scale with it.
  */
 export const renderArrows = (
   arrows: readonly ActionArrow[],
   colorOf: (generator: number) => string,
-  curvature = 1,
-  width: BowWidth = "constant",
-  head: HeadPosition = "end",
+  curvature = DEFAULT_SETTINGS.arrowCurvature,
+  width: BowWidth = DEFAULT_SETTINGS.arrowBowWidth,
+  head: HeadPosition = DEFAULT_SETTINGS.arrowHead,
+  strokeWidth = DEFAULT_SETTINGS.arrowWidth,
 ): SVGGElement => {
   const edges = svg("g", { class: "edges", fill: "none" });
-  const widths = strokeWidths(arrows);
-  // Widest first, so an arrow sharing a path is drawn over the ones behind it
-  // rather than under them.
-  const order = arrows.map((_, index) => index).sort((a, b) => widths[b] - widths[a]);
-  for (const index of order) {
-    const arrow = arrows[index];
+  const stacks = stackPositions(arrows);
+  arrows.forEach((arrow, index) => {
     const path = svg("path", {
       stroke: colorOf(arrow.generator),
-      "stroke-width": widths[index],
+      "stroke-width": strokeWidth,
       "data-generator": arrow.generator,
       "data-from": arrow.from.point,
       "data-to": arrow.to.point,
+      "data-stack": stacks[index],
+      id: `arrow-${index}`,
     });
-    shapeArrow(path, arrow, curvature, width, head);
+    shapeArrow(path, { ...arrow, stack: stacks[index] }, curvature, width, head);
     edges.append(path);
-  }
+  });
+  focusOnHover(edges);
   return edges;
+};
+
+/**
+ * While the pointer is over an arrow, single out its generator: every arrow of
+ * that generator is marked `focused`, the layer carries the generator as
+ * `data-focus` so the stylesheet can fade the rest, and the focused arrows are
+ * drawn again on top, as `<use>` copies in a `raised` group at the end of the
+ * layer. Leaving the layer drops the copies and the focus.
+ *
+ * No arrow is ever moved. A browser forgets the transition of an element taken
+ * out and put back, so a moved arrow would jump to its new opacity instead of
+ * fading; and one moved from under the pointer can lose its leave events too.
+ * The copies ignore the pointer, so it is always the arrows themselves that
+ * are hovered.
+ */
+const focusOnHover = (edges: SVGGElement): void => {
+  const drawn = Array.from(edges.querySelectorAll<SVGPathElement>("path"));
+  const raised = svg("g", { class: "raised", "pointer-events": "none" });
+
+  edges.addEventListener("pointerover", (event) => {
+    const generator = drawn.find((path) => path === event.target)?.dataset.generator;
+    if (generator === undefined || generator === edges.dataset.focus) return;
+    edges.dataset.focus = generator;
+    const focused = drawn.filter((path) => path.dataset.generator === generator);
+    for (const path of drawn) path.classList.toggle("focused", focused.includes(path));
+    raised.replaceChildren(...focused.map((path) => svg("use", { href: `#${path.id}` })));
+    // Put back in, so its fade-in starts over for the new generator.
+    edges.append(raised);
+  });
+
+  edges.addEventListener("pointerleave", () => {
+    delete edges.dataset.focus;
+    for (const path of drawn) path.classList.remove("focused");
+    raised.replaceChildren();
+    raised.remove();
+  });
 };

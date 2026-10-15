@@ -5,6 +5,7 @@ import {
   actionArrows,
   arrowheadDefs,
   HEAD_ONLY_DISTANCE,
+  headSize,
   renderArrows,
   shapeArrow,
   type ActionArrow,
@@ -53,10 +54,8 @@ describe("renderArrows on a shared path", () => {
     [4, 5, 6, 7],
   ]);
   const colorOf = (generator: number): string => ["#aa1144", "#008866"][generator];
-  const widthsOf = (layer: SVGGElement, selector = "path"): number[] =>
-    Array.from(layer.querySelectorAll(selector)).map((path) =>
-      Number(path.getAttribute("stroke-width")),
-    );
+  const curvesOf = (layer: SVGGElement, selector = "path"): string[] =>
+    Array.from(layer.querySelectorAll(selector)).map((path) => path.getAttribute("d") ?? "");
 
   const shared = renderArrows(actionArrows(points, overlapping), colorOf);
 
@@ -64,28 +63,55 @@ describe("renderArrows on a shared path", () => {
     expect(shared.querySelectorAll("path")).toHaveLength(12);
   });
 
-  it("leaves arrows that share no path all at the same width", () => {
-    const alone = renderArrows(actionArrows(points, [overlapping[0]]), colorOf);
-    expect(distinct(widthsOf(alone))).toBe(1);
+  it("draws every arrow at the same width", () => {
+    const widths = Array.from(shared.querySelectorAll("path")).map((path) =>
+      path.getAttribute("stroke-width"),
+    );
+    expect(distinct(widths)).toBe(1);
   });
 
-  it("widens only the arrows that share a path", () => {
-    const widths = widthsOf(shared);
-    const base = Math.min(...widths);
-    // 12 arrows: four shared paths carrying two each, plus four unshared.
-    expect(widths.filter((w) => w === base)).toHaveLength(8);
-    expect(widths.filter((w) => w > base)).toHaveLength(4);
-  });
-
-  it("gives every arrow on one shared path a distinct width", () => {
-    const onePath = widthsOf(shared, 'path[data-from="4"][data-to="5"]');
+  it("gives every arrow on one shared path a curve of its own", () => {
+    const onePath = curvesOf(shared, 'path[data-from="4"][data-to="5"]');
     expect(onePath).toHaveLength(2);
     expect(distinct(onePath)).toBe(2);
   });
 
-  it("draws the widest first, so the narrower sits on top", () => {
-    const widths = widthsOf(shared);
-    expect([...widths].sort((a, b) => b - a)).toEqual(widths);
+  it("bows each further arrow on a shared path further, on the same side", () => {
+    const controlY = (stack: number): number => {
+      const arrow = {
+        generator: 0,
+        from: { point: 1, x: 0, y: 0 },
+        to: { point: 2, x: 400, y: 0 },
+      };
+      const layer = renderArrows(
+        [arrow, { ...arrow, generator: 1 }, { ...arrow, generator: 2 }],
+        colorOf,
+      );
+      const d = layer.querySelectorAll("path")[stack].getAttribute("d") ?? "";
+      return Number(/Q -?[\d.]+ (-?[\d.]+)/.exec(d)?.[1]);
+    };
+    expect(controlY(0)).toBeGreaterThan(0);
+    expect(controlY(1)).toBeGreaterThan(controlY(0));
+    expect(controlY(2)).toBeGreaterThan(controlY(1));
+  });
+
+  it("leaves an arrow alone on its path at the chosen curvature", () => {
+    const alone = renderArrows(actionArrows(points, [overlapping[0]]), colorOf);
+    expect(curvesOf(alone)).toEqual(curvesOf(shared, '[data-generator="0"]'));
+  });
+
+  it("draws every arrow at the stroke width it is given", () => {
+    const thick = renderArrows(
+      actionArrows(points, overlapping),
+      colorOf,
+      1,
+      "constant",
+      "end",
+      3.4,
+    );
+    for (const path of thick.querySelectorAll("path")) {
+      expect(path.getAttribute("stroke-width")).toBe("3.4");
+    }
   });
 
   it("handles no arrows", () => {
@@ -215,6 +241,17 @@ describe("renderArrows between close nodes", () => {
     expect(path.getAttribute("marker-end")).toBe("url(#arrowhead-0)");
   });
 
+  it("sizes the heads in diagram units, not by the line", () => {
+    const marker = arrowheadDefs([arrowOf(10)], colorOf, 3).querySelector("marker");
+    expect(marker?.getAttribute("markerUnits")).toBe("userSpaceOnUse");
+    expect(Number(marker?.getAttribute("markerWidth"))).toBe(headSize(3));
+  });
+
+  it("grows a head less than in proportion to its line", () => {
+    expect(headSize(4)).toBeGreaterThan(headSize(2));
+    expect(headSize(4)).toBeLessThan(2 * headSize(2));
+  });
+
   it("defines a centered head for every generator drawn", () => {
     const defs = arrowheadDefs([arrowOf(10)], colorOf);
     expect(defs.querySelector("#arrowhead-mid-0")?.getAttribute("refX")).toBe("5");
@@ -278,5 +315,98 @@ describe("renderArrows with the head in the middle", () => {
     shapeArrow(path, arrowOf(HEAD_ONLY_DISTANCE * 4), 1, "constant", "end");
     expect(path.getAttribute("marker-mid")).toBe("none");
     expect(path.getAttribute("marker-end")).toBe("url(#arrowhead-0)");
+  });
+});
+
+describe("renderArrows on hover", () => {
+  // (2 3)(4 5 6 7) and (1 2 3): six arrows of one generator, three of the other.
+  const generators = [
+    [1, 3, 2, 5, 6, 7, 4],
+    [2, 3, 1, 4, 5, 6, 7],
+  ];
+  const { points } = layoutOrbits([
+    [1, 2, 3],
+    [4, 5, 6, 7],
+  ]);
+  const colorOf = (generator: number): string => ["#aa1144", "#008866"][generator];
+  const draw = (): SVGGElement => renderArrows(actionArrows(points, generators), colorOf);
+  const pathsOf = (layer: SVGGElement): SVGPathElement[] =>
+    Array.from(layer.querySelectorAll("path"));
+  const ofGenerator = (layer: SVGGElement, generator: number): SVGPathElement => {
+    const path = layer.querySelector<SVGPathElement>(`path[data-generator="${generator}"]`);
+    if (path === null) throw new Error(`no arrow of generator ${generator}`);
+    return path;
+  };
+  const over = (path: Element): void => {
+    path.dispatchEvent(new PointerEvent("pointerover", { bubbles: true }));
+  };
+  const leave = (layer: SVGGElement): void => {
+    layer.dispatchEvent(new PointerEvent("pointerleave"));
+  };
+
+  /** The arrows a layer draws again on top, by the id each copy refers to. */
+  const raisedOf = (layer: SVGGElement): string[] =>
+    Array.from(layer.querySelectorAll(".raised use")).map((use) => use.getAttribute("href") ?? "");
+
+  it("draws every arrow of the hovered generator again on top", () => {
+    const layer = draw();
+    over(ofGenerator(layer, 0));
+    expect(layer.lastElementChild?.classList.contains("raised")).toBe(true);
+    const ofZero = pathsOf(layer).filter((path) => path.dataset.generator === "0");
+    expect(raisedOf(layer)).toEqual(ofZero.map((path) => `#${path.id}`));
+  });
+
+  it("leaves the copies on top to the arrows beneath them when it comes to the pointer", () => {
+    const layer = draw();
+    over(ofGenerator(layer, 0));
+    expect(layer.querySelector(".raised")?.getAttribute("pointer-events")).toBe("none");
+  });
+
+  it("never moves an arrow, so each keeps its fade and its pointer events", async () => {
+    const layer = draw();
+    const moved: Node[] = [];
+    const observer = new MutationObserver((records) => {
+      for (const record of records) moved.push(...record.removedNodes);
+    });
+    observer.observe(layer, { childList: true });
+    over(ofGenerator(layer, 0));
+    over(ofGenerator(layer, 1));
+    leave(layer);
+    await Promise.resolve();
+    observer.disconnect();
+    expect(moved.filter((node) => node.nodeName === "path")).toEqual([]);
+  });
+
+  it("gives every arrow an id of its own for the copies to refer to", () => {
+    const ids = pathsOf(draw()).map((path) => path.id);
+    expect(ids.every((id) => id !== "")).toBe(true);
+    expect(distinct(ids)).toBe(ids.length);
+  });
+
+  it("marks the hovered generator's arrows, and only those, as focused", () => {
+    const layer = draw();
+    over(ofGenerator(layer, 0));
+    expect(layer.dataset.focus).toBe("0");
+    for (const path of pathsOf(layer)) {
+      expect(path.classList.contains("focused")).toBe(path.dataset.generator === "0");
+    }
+  });
+
+  it("switches focus when the pointer moves to another generator's arrow", () => {
+    const layer = draw();
+    over(ofGenerator(layer, 0));
+    over(ofGenerator(layer, 1));
+    expect(layer.dataset.focus).toBe("1");
+    const ofOne = pathsOf(layer).filter((path) => path.dataset.generator === "1");
+    expect(raisedOf(layer)).toEqual(ofOne.map((path) => `#${path.id}`));
+  });
+
+  it("drops the copies and the focus when the pointer leaves", () => {
+    const layer = draw();
+    over(ofGenerator(layer, 0));
+    leave(layer);
+    expect(layer.querySelector(".raised")).toBeNull();
+    expect(layer.dataset.focus).toBeUndefined();
+    expect(layer.querySelector(".focused")).toBeNull();
   });
 });

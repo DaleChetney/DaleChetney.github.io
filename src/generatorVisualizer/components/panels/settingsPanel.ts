@@ -1,16 +1,16 @@
 import { qs } from "@shared/dom";
-import { CURVATURE, ROTATION_PERIOD, type Settings } from "../../settings";
+import { ARROW_WIDTHS, CURVATURE, ROTATION_PERIOD, type Settings } from "../../settings";
 
 /** The settings chosen from a few named options, each with a radio group of its own. */
 type ChoiceSetting = "theme" | "arrowBowWidth" | "arrowHead";
 
 /** The numeric settings, each with a slider of its own. */
-type SliderSetting = "arrowCurvature" | "rotationPeriod";
+type SliderSetting = "arrowCurvature" | "arrowWidth" | "rotationPeriod";
 
 /**
  * Wire the settings pane's controls: a radio group each for the theme, the
  * arrows' bow width and where their heads go, and a slider each for the arrow
- * curvature and the rotation period, all in the static markup.
+ * curvature, the arrow width and the rotation period, all in the static markup.
  *
  * The pane holds no state. It is shown `initial` once, and from then on every
  * change is reported whole through `onChange`; whoever owns the settings
@@ -59,5 +59,6 @@ export const settingsPanel = (
   choice("arrow-bow-width", "arrowBowWidth");
   choice("arrow-head", "arrowHead");
   slider("arrow-curvature", "arrowCurvature", CURVATURE);
+  slider("arrow-width", "arrowWidth", ARROW_WIDTHS);
   slider("rotation-period", "rotationPeriod", ROTATION_PERIOD);
 };

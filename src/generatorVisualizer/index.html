@@ -376,6 +376,29 @@
         stroke-width: 2.5;
       }
 
+      /*
+        Hovering an arrow singles out its generator: the rest fade towards the
+        background, which is darker in the dark theme and lighter in the light,
+        and its own arrows fade in again on top of them.
+      */
+      .diagram .edges path {
+        transition: opacity 0.25s;
+      }
+
+      .diagram .edges[data-focus] path:not(.focused) {
+        opacity: 0.15;
+      }
+
+      .diagram .edges .raised {
+        animation: raise 0.25s;
+      }
+
+      @keyframes raise {
+        from {
+          opacity: 0;
+        }
+      }
+
       .element-sections {
         display: flex;
         flex-direction: column;
@@ -788,6 +811,13 @@
           <div class="slider-row">
             <input type="range" id="arrow-curvature" />
             <output for="arrow-curvature"></output>
+          </div>
+        </div>
+        <div class="setting">
+          <label for="arrow-width">Arrow width</label>
+          <div class="slider-row">
+            <input type="range" id="arrow-width" />
+            <output for="arrow-width"></output>
           </div>
         </div>
         <fieldset class="setting">

@@ -15,6 +15,8 @@ const fixture = (): HTMLElement => {
       <input type="radio" name="arrow-head" value="middle" />
       <input type="range" id="arrow-curvature" />
       <output for="arrow-curvature"></output>
+      <input type="range" id="arrow-width" />
+      <output for="arrow-width"></output>
       <input type="range" id="rotation-period" />
       <output for="rotation-period"></output>
     </div>`;
@@ -37,6 +39,7 @@ const readout = (id = "arrow-curvature"): string | null | undefined =>
 const initial: Settings = {
   theme: "dark",
   arrowCurvature: -0.5,
+  arrowWidth: 2.5,
   arrowBowWidth: "constant",
   arrowHead: "end",
   rotationPeriod: 6,
@@ -62,6 +65,22 @@ describe("settingsPanel", () => {
     expect(Number(slider().min)).toBeLessThan(0);
     expect(Number(slider().max)).toBeGreaterThan(0);
     expect(Number(slider().step)).toBeGreaterThan(0);
+  });
+
+  it("sizes the arrow width slider from 2 to 5", () => {
+    settingsPanel(fixture(), initial, () => {});
+    expect(slider("arrow-width").min).toBe("2");
+    expect(slider("arrow-width").max).toBe("5");
+    expect(slider("arrow-width").value).toBe("2.5");
+  });
+
+  it("reports the arrow width as it moves", () => {
+    const onChange = vi.fn();
+    settingsPanel(fixture(), initial, onChange);
+    slider("arrow-width").value = "3.1";
+    slider("arrow-width").dispatchEvent(new Event("input"));
+    expect(onChange).toHaveBeenCalledWith({ ...initial, arrowWidth: 3.1 });
+    expect(readout("arrow-width")).toBe("3.1");
   });
 
   it("offers only positive rotation periods", () => {

@@ -193,13 +193,13 @@ describe("groups page", () => {
     expect(generating()).toEqual(["₃C₄"]);
   });
 
-  it("thins the arrows that now share a path", () => {
-    // Both chosen generators contain the 4-cycle (4 5 6 7), so four arrows coincide.
+  it("fans out the arrows that now share a path", () => {
+    // Both chosen generators contain the 4-cycle (4 5 6 7), so four pairs of arrows coincide.
     const bundles = sharedPaths();
     expect(bundles).toHaveLength(4);
     for (const bundle of bundles) {
-      const widths = bundle.map((path) => Number(path.getAttribute("stroke-width")));
-      expect(new Set(widths).size).toBe(widths.length);
+      const curves = bundle.map((path) => path.getAttribute("d"));
+      expect(new Set(curves).size).toBe(curves.length);
     }
   });
 
