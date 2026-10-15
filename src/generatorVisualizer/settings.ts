@@ -1,5 +1,5 @@
 import { load, save } from "@shared/storage";
-import type { BowWidth, HeadPosition } from "./components/diagram/arrow";
+import { ARROW_WIDTH, type BowWidth, type HeadPosition } from "./components/diagram/arrow";
 
 const STORAGE_KEY = "generatorVisualizer.settings";
 
@@ -19,6 +19,8 @@ export interface Settings {
    * chord; negative bows them the other way round.
    */
   arrowCurvature: number;
+  /** How thick the arrows' lines are, in diagram units; their heads scale with it. */
+  arrowWidth: number;
   /**
    * How the bow grows with an arrow's length: "constant" caps it, "relative"
    * keeps it in proportion to the chord.
@@ -33,12 +35,16 @@ export interface Settings {
 /** The range the curvature slider offers. */
 export const CURVATURE = { min: -3, max: 3, step: 0.1 } as const;
 
+/** The range the arrow width slider offers. */
+export const ARROW_WIDTHS = { min: 2, max: 4, step: 0.1 } as const;
+
 /** The range the rotation period slider offers, in seconds per turn. */
 export const ROTATION_PERIOD = { min: 1, max: 20, step: 0.5 } as const;
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: "system",
   arrowCurvature: 1,
+  arrowWidth: ARROW_WIDTH,
   arrowBowWidth: "constant",
   arrowHead: "end",
   rotationPeriod: 6,
@@ -66,6 +72,7 @@ export const loadSettings = (): Settings => {
   return {
     theme: isTheme(fields.theme) ? fields.theme : DEFAULT_SETTINGS.theme,
     arrowCurvature: inRange(fields.arrowCurvature, CURVATURE, DEFAULT_SETTINGS.arrowCurvature),
+    arrowWidth: inRange(fields.arrowWidth, ARROW_WIDTHS, DEFAULT_SETTINGS.arrowWidth),
     arrowBowWidth: isBowWidth(fields.arrowBowWidth)
       ? fields.arrowBowWidth
       : DEFAULT_SETTINGS.arrowBowWidth,

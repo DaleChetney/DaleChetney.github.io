@@ -2,6 +2,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import {
   applyTheme,
+  ARROW_WIDTHS,
   CURVATURE,
   DEFAULT_SETTINGS,
   loadSettings,
@@ -19,6 +20,7 @@ describe("settings", () => {
     expect(DEFAULT_SETTINGS).toEqual({
       theme: "system",
       arrowCurvature: 1,
+      arrowWidth: 2.3,
       arrowBowWidth: "constant",
       arrowHead: "end",
       rotationPeriod: 6,
@@ -29,6 +31,7 @@ describe("settings", () => {
     const saved = {
       theme: "dark",
       arrowCurvature: -0.5,
+      arrowWidth: 3.5,
       arrowBowWidth: "relative",
       arrowHead: "middle",
       rotationPeriod: 7.5,
@@ -43,6 +46,7 @@ describe("settings", () => {
       JSON.stringify({
         theme: "sepia",
         arrowCurvature: "wide",
+        arrowWidth: "thick",
         arrowBowWidth: "elastic",
         arrowHead: "start",
         rotationPeriod: "slow",
@@ -56,6 +60,13 @@ describe("settings", () => {
     expect(loadSettings().arrowCurvature).toBe(CURVATURE.max);
     localStorage.setItem(KEY, JSON.stringify({ arrowCurvature: -99 }));
     expect(loadSettings().arrowCurvature).toBe(CURVATURE.min);
+  });
+
+  it("keeps a stored arrow width within the slider's range", () => {
+    localStorage.setItem(KEY, JSON.stringify({ arrowWidth: 9 }));
+    expect(loadSettings().arrowWidth).toBe(ARROW_WIDTHS.max);
+    localStorage.setItem(KEY, JSON.stringify({ arrowWidth: 1 }));
+    expect(loadSettings().arrowWidth).toBe(ARROW_WIDTHS.min);
   });
 
   it("keeps a stored rotation period within the slider's range", () => {

@@ -193,6 +193,7 @@ export class CenterPanel {
             curvature: settings.arrowCurvature,
             bowWidth: settings.arrowBowWidth,
             head: settings.arrowHead,
+            arrowWidth: settings.arrowWidth,
             onDragStart: this.#handlers.onDragStart,
             onDragMove: this.#handlers.onDragMove,
             onDragEnd: this.#handlers.onDragEnd,

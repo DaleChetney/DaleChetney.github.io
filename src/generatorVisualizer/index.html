@@ -381,7 +381,7 @@
         background, which is darker in the dark theme and lighter in the light.
       */
       .diagram .edges path {
-        transition: opacity 0.15s;
+        transition: opacity 0.25s;
       }
 
       .diagram .edges[data-focus] path:not(.focused) {
@@ -800,6 +800,13 @@
           <div class="slider-row">
             <input type="range" id="arrow-curvature" />
             <output for="arrow-curvature"></output>
+          </div>
+        </div>
+        <div class="setting">
+          <label for="arrow-width">Arrow width</label>
+          <div class="slider-row">
+            <input type="range" id="arrow-width" />
+            <output for="arrow-width"></output>
           </div>
         </div>
         <fieldset class="setting">

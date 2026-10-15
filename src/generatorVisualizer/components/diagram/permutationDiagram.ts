@@ -43,6 +43,8 @@ export interface DiagramView {
   bowWidth?: BowWidth;
   /** Where along the arrows their heads are drawn; "end" when absent. */
   head?: HeadPosition;
+  /** How thick the arrows' lines are; the usual width when absent. */
+  arrowWidth?: number;
   /**
    * A node was held long enough to drag, with the pointer at these client
    * coordinates. Without it a node cannot be dragged, only clicked.
@@ -106,7 +108,7 @@ export const renderPermutationDiagram = (
 
   root.append(
     arrowheadDefs(arrows, colorOf),
-    renderArrows(arrows, colorOf, view.curvature, view.bowWidth, view.head),
+    renderArrows(arrows, colorOf, view.curvature, view.bowWidth, view.head, view.arrowWidth),
   );
 
   return root;

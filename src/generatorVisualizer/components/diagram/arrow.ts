@@ -33,14 +33,14 @@ export const actionArrows = (
   return arrows;
 };
 
-/** Stroke width of every arrow. */
-const ARROW_WIDTH = 2.2;
+/** Stroke width of every arrow, unless the reader chooses another. */
+export const ARROW_WIDTH = 2.3;
 
 /**
  * How much further each arrow on a shared path bows than the one before it, as
  * a curvature added on top of the chosen one.
  */
-export const STACK_CURVATURE_STEP = 0.6;
+export const STACK_CURVATURE_STEP = 0.35;
 
 /**
  * Each arrow's place in its stack, aligned with `arrows`. Different generators
@@ -278,8 +278,8 @@ export const arrowheadDefs = (
 /**
  * The edge layer: every arrow as a curve, tagged with the action it stands for.
  * `curvature` is how far the arrows bow, as a multiple of the usual amount,
- * `width` how that bow grows with an arrow's length, and `head` where along it
- * the head is drawn.
+ * `width` how that bow grows with an arrow's length, `head` where along it the
+ * head is drawn, and `strokeWidth` how thick its line is; the heads scale with it.
  */
 export const renderArrows = (
   arrows: readonly ActionArrow[],
@@ -287,13 +287,14 @@ export const renderArrows = (
   curvature = 1,
   width: BowWidth = "constant",
   head: HeadPosition = "end",
+  strokeWidth = ARROW_WIDTH,
 ): SVGGElement => {
   const edges = svg("g", { class: "edges", fill: "none" });
   const stacks = stackPositions(arrows);
   arrows.forEach((arrow, index) => {
     const path = svg("path", {
       stroke: colorOf(arrow.generator),
-      "stroke-width": ARROW_WIDTH,
+      "stroke-width": strokeWidth,
       "data-generator": arrow.generator,
       "data-from": arrow.from.point,
       "data-to": arrow.to.point,

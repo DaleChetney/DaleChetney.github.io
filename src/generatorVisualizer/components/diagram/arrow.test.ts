@@ -99,6 +99,20 @@ describe("renderArrows on a shared path", () => {
     expect(curvesOf(alone)).toEqual(curvesOf(shared, '[data-generator="0"]'));
   });
 
+  it("draws every arrow at the stroke width it is given", () => {
+    const thick = renderArrows(
+      actionArrows(points, overlapping),
+      colorOf,
+      1,
+      "constant",
+      "end",
+      3.4,
+    );
+    for (const path of thick.querySelectorAll("path")) {
+      expect(path.getAttribute("stroke-width")).toBe("3.4");
+    }
+  });
+
   it("handles no arrows", () => {
     expect(renderArrows([], colorOf).querySelectorAll("path")).toHaveLength(0);
   });
