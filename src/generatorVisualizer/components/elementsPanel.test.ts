@@ -88,6 +88,19 @@ const view = (over: Partial<ElementSelectionView> = {}): ElementSelectionView =>
   ...over,
 });
 
+describe("hovering an element's row", () => {
+  it("reports the element the pointer comes onto, and null when it leaves", () => {
+    const onHover = vi.fn();
+    const root = renderElementSections([section(c16)], view({ onHover }));
+    const row = root.querySelector<HTMLElement>(".element");
+    if (row === null) throw new Error("no element row");
+    row.dispatchEvent(new PointerEvent("pointerenter"));
+    expect(onHover).toHaveBeenLastCalledWith(row.dataset.element);
+    row.dispatchEvent(new PointerEvent("pointerleave"));
+    expect(onHover).toHaveBeenLastCalledWith(null);
+  });
+});
+
 describe("renderElementSections", () => {
   it("prompts when nothing is selected", () => {
     const root = renderElementSections([], view());

@@ -2,6 +2,7 @@ import { DEFAULT_SETTINGS } from "../../settings";
 import { svg } from "../../svg";
 import {
   arrowheadDefs,
+  focusGenerator,
   renderArrows,
   shapeArrow,
   type ActionArrow,
@@ -148,4 +149,13 @@ export const moveDiagram = (
     };
     shapeArrow(path, arrow, curvature, bowWidth, head);
   }
+};
+
+/**
+ * Single out one generator's arrows in a drawn diagram, as hovering one of
+ * them does, or none with null.
+ */
+export const focusDiagramGenerator = (root: SVGSVGElement, generator: number | null): void => {
+  const edges = root.querySelector<SVGGElement>(".edges");
+  if (edges !== null) focusGenerator(edges, generator);
 };

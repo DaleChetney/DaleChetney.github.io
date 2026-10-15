@@ -4,6 +4,7 @@ import { decodePermutation, permutationOrbits } from "@shared/mathUtils/groups/p
 import {
   actionArrows,
   arrowheadDefs,
+  focusGenerator,
   HEAD_ONLY_DISTANCE,
   headSize,
   renderArrows,
@@ -399,6 +400,31 @@ describe("renderArrows on hover", () => {
     expect(layer.dataset.focus).toBe("1");
     const ofOne = pathsOf(layer).filter((path) => path.dataset.generator === "1");
     expect(raisedOf(layer)).toEqual(ofOne.map((path) => `#${path.id}`));
+  });
+
+  it("focuses a generator when asked, as hovering one of its arrows does", () => {
+    const layer = draw();
+    focusGenerator(layer, 1);
+    expect(layer.dataset.focus).toBe("1");
+    const ofOne = pathsOf(layer).filter((path) => path.dataset.generator === "1");
+    expect(raisedOf(layer)).toEqual(ofOne.map((path) => `#${path.id}`));
+  });
+
+  it("drops the focus when asked for none", () => {
+    const layer = draw();
+    focusGenerator(layer, 0);
+    focusGenerator(layer, null);
+    expect(layer.querySelector(".raised")).toBeNull();
+    expect(layer.dataset.focus).toBeUndefined();
+    expect(layer.querySelector(".focused")).toBeNull();
+  });
+
+  it("keeps one set of copies however often a generator is focused", () => {
+    const layer = draw();
+    focusGenerator(layer, 0);
+    focusGenerator(layer, 1);
+    focusGenerator(layer, 1);
+    expect(layer.querySelectorAll(".raised")).toHaveLength(1);
   });
 
   it("drops the copies and the focus when the pointer leaves", () => {

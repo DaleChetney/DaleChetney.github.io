@@ -34,14 +34,20 @@ const elementFocus = (active: Element): string | null => {
  */
 export class RightPanel {
   readonly #onToggle: (key: string) => void;
+  readonly #onHover: (key: string | null) => void;
   #scene: Scene | null = null;
   /** The page each section is turned to, by class; a section not in it is on its first. */
   readonly #pages = new Map<number, number>();
   /** The exponent each conjugate is arranged under, by class, then conjugate. */
   readonly #orbits = new Map<number, Map<number, number>>();
 
-  constructor(onToggle: (key: string) => void) {
+  /**
+   * `onHover` hears the element whose row the pointer is over, and null when
+   * it leaves the row.
+   */
+  constructor(onToggle: (key: string) => void, onHover: (key: string | null) => void = () => {}) {
     this.#onToggle = onToggle;
+    this.#onHover = onHover;
   }
 
   show(scene: Scene): void {
@@ -57,6 +63,7 @@ export class RightPanel {
           isSelected: (key) => scene.isDrawn(key),
           colorOf: (key) => scene.colorOf(key),
           onToggle: this.#onToggle,
+          onHover: this.#onHover,
           onPage: (classIndex, page) => {
             this.#pages.set(classIndex, page);
             this.show(scene);

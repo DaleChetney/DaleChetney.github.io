@@ -1,6 +1,10 @@
 import { el, mount, preservingFocus, qs } from "@shared/dom";
 import { actionArrows } from "../diagram/arrow";
-import { moveDiagram, renderPermutationDiagram } from "../diagram/permutationDiagram";
+import {
+  focusDiagramGenerator,
+  moveDiagram,
+  renderPermutationDiagram,
+} from "../diagram/permutationDiagram";
 import { renderRingControls } from "../diagram/ringControls";
 import { toDiagram, type DiagramPoint } from "../../interactions/ringDrag";
 import { DEFAULT_TARGET_WIDTH } from "../diagram/ringLayout";
@@ -132,6 +136,12 @@ export class CenterPanel {
       settings.arrowBowWidth,
       settings.arrowHead,
     );
+  }
+
+  /** Single out one palette entry's arrows in the diagram already drawn, or none with null. */
+  focusGenerator(generator: number | null): void {
+    const drawn = document.querySelector<SVGSVGElement>("#diagram svg");
+    if (drawn !== null) focusDiagramGenerator(drawn, generator);
   }
 
   #showHeading(scene: Scene): void {

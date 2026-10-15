@@ -325,11 +325,11 @@ export const renderArrows = (
 };
 
 /**
- * While the pointer is over an arrow, single out its generator: every arrow of
- * that generator is marked `focused`, the layer carries the generator as
- * `data-focus` so the stylesheet can fade the rest, and the focused arrows are
- * drawn again on top, as `<use>` copies in a `raised` group at the end of the
- * layer. Leaving the layer drops the copies and the focus.
+ * Single out one generator's arrows in an edge layer, or none with null: every
+ * arrow of that generator is marked `focused`, the layer carries the generator
+ * as `data-focus` so the stylesheet can fade the rest, and the focused arrows
+ * are drawn again on top, as `<use>` copies in a `raised` group at the end of
+ * the layer. Focusing the generator already focused changes nothing.
  *
  * No arrow is ever moved. A browser forgets the transition of an element taken
  * out and put back, so a moved arrow would jump to its new opacity instead of
@@ -337,25 +337,32 @@ export const renderArrows = (
  * The copies ignore the pointer, so it is always the arrows themselves that
  * are hovered.
  */
-const focusOnHover = (edges: SVGGElement): void => {
-  const drawn = Array.from(edges.querySelectorAll<SVGPathElement>("path"));
-  const raised = svg("g", { class: "raised", "pointer-events": "none" });
-
-  edges.addEventListener("pointerover", (event) => {
-    const generator = drawn.find((path) => path === event.target)?.dataset.generator;
-    if (generator === undefined || generator === edges.dataset.focus) return;
-    edges.dataset.focus = generator;
-    const focused = drawn.filter((path) => path.dataset.generator === generator);
-    for (const path of drawn) path.classList.toggle("focused", focused.includes(path));
-    raised.replaceChildren(...focused.map((path) => svg("use", { href: `#${path.id}` })));
-    // Put back in, so its fade-in starts over for the new generator.
-    edges.append(raised);
-  });
-
-  edges.addEventListener("pointerleave", () => {
+export const focusGenerator = (edges: SVGGElement, generator: number | null): void => {
+  const focus = generator === null ? undefined : String(generator);
+  if (focus === edges.dataset.focus) return;
+  const drawn = Array.from(edges.querySelectorAll<SVGPathElement>(":scope > path"));
+  edges.querySelector(":scope > .raised")?.remove();
+  if (focus === undefined) {
     delete edges.dataset.focus;
     for (const path of drawn) path.classList.remove("focused");
-    raised.replaceChildren();
-    raised.remove();
+    return;
+  }
+  edges.dataset.focus = focus;
+  const focused = drawn.filter((path) => path.dataset.generator === focus);
+  for (const path of drawn) path.classList.toggle("focused", focused.includes(path));
+  // A fresh group each time, so its fade-in starts over for the new generator.
+  const raised = svg("g", { class: "raised", "pointer-events": "none" });
+  raised.append(...focused.map((path) => svg("use", { href: `#${path.id}` })));
+  edges.append(raised);
+};
+
+/** While the pointer is over an arrow, single out its generator. */
+const focusOnHover = (edges: SVGGElement): void => {
+  edges.addEventListener("pointerover", (event) => {
+    const generator = (event.target as Element).closest("path")?.dataset.generator;
+    if (generator !== undefined) focusGenerator(edges, Number(generator));
+  });
+  edges.addEventListener("pointerleave", () => {
+    focusGenerator(edges, null);
   });
 };
