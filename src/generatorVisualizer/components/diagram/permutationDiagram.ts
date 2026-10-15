@@ -137,7 +137,12 @@ export const moveDiagram = (
     const from = byPoint.get(Number(path.dataset.from));
     const to = byPoint.get(Number(path.dataset.to));
     if (from === undefined || to === undefined) continue;
-    const arrow = { generator: Number(path.dataset.generator), from, to };
+    const arrow = {
+      generator: Number(path.dataset.generator),
+      from,
+      to,
+      stack: Number(path.dataset.stack),
+    };
     shapeArrow(path, arrow, curvature, bowWidth, head);
   }
 };

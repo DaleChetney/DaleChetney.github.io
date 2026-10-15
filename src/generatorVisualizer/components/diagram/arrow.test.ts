@@ -53,10 +53,8 @@ describe("renderArrows on a shared path", () => {
     [4, 5, 6, 7],
   ]);
   const colorOf = (generator: number): string => ["#aa1144", "#008866"][generator];
-  const widthsOf = (layer: SVGGElement, selector = "path"): number[] =>
-    Array.from(layer.querySelectorAll(selector)).map((path) =>
-      Number(path.getAttribute("stroke-width")),
-    );
+  const curvesOf = (layer: SVGGElement, selector = "path"): string[] =>
+    Array.from(layer.querySelectorAll(selector)).map((path) => path.getAttribute("d") ?? "");
 
   const shared = renderArrows(actionArrows(points, overlapping), colorOf);
 
@@ -64,28 +62,41 @@ describe("renderArrows on a shared path", () => {
     expect(shared.querySelectorAll("path")).toHaveLength(12);
   });
 
-  it("leaves arrows that share no path all at the same width", () => {
-    const alone = renderArrows(actionArrows(points, [overlapping[0]]), colorOf);
-    expect(distinct(widthsOf(alone))).toBe(1);
+  it("draws every arrow at the same width", () => {
+    const widths = Array.from(shared.querySelectorAll("path")).map((path) =>
+      path.getAttribute("stroke-width"),
+    );
+    expect(distinct(widths)).toBe(1);
   });
 
-  it("widens only the arrows that share a path", () => {
-    const widths = widthsOf(shared);
-    const base = Math.min(...widths);
-    // 12 arrows: four shared paths carrying two each, plus four unshared.
-    expect(widths.filter((w) => w === base)).toHaveLength(8);
-    expect(widths.filter((w) => w > base)).toHaveLength(4);
-  });
-
-  it("gives every arrow on one shared path a distinct width", () => {
-    const onePath = widthsOf(shared, 'path[data-from="4"][data-to="5"]');
+  it("gives every arrow on one shared path a curve of its own", () => {
+    const onePath = curvesOf(shared, 'path[data-from="4"][data-to="5"]');
     expect(onePath).toHaveLength(2);
     expect(distinct(onePath)).toBe(2);
   });
 
-  it("draws the widest first, so the narrower sits on top", () => {
-    const widths = widthsOf(shared);
-    expect([...widths].sort((a, b) => b - a)).toEqual(widths);
+  it("bows each further arrow on a shared path further, on the same side", () => {
+    const controlY = (stack: number): number => {
+      const arrow = {
+        generator: 0,
+        from: { point: 1, x: 0, y: 0 },
+        to: { point: 2, x: 400, y: 0 },
+      };
+      const layer = renderArrows(
+        [arrow, { ...arrow, generator: 1 }, { ...arrow, generator: 2 }],
+        colorOf,
+      );
+      const d = layer.querySelectorAll("path")[stack].getAttribute("d") ?? "";
+      return Number(/Q -?[\d.]+ (-?[\d.]+)/.exec(d)?.[1]);
+    };
+    expect(controlY(0)).toBeGreaterThan(0);
+    expect(controlY(1)).toBeGreaterThan(controlY(0));
+    expect(controlY(2)).toBeGreaterThan(controlY(1));
+  });
+
+  it("leaves an arrow alone on its path at the chosen curvature", () => {
+    const alone = renderArrows(actionArrows(points, [overlapping[0]]), colorOf);
+    expect(curvesOf(alone)).toEqual(curvesOf(shared, '[data-generator="0"]'));
   });
 
   it("handles no arrows", () => {
@@ -302,20 +313,37 @@ describe("renderArrows on hover", () => {
     if (path === null) throw new Error(`no arrow of generator ${generator}`);
     return path;
   };
-  const hover = (path: Element, type: string, relatedTarget: Element | null = null): void => {
-    path.dispatchEvent(new PointerEvent(type, { bubbles: true, relatedTarget }));
+  const over = (path: Element): void => {
+    path.dispatchEvent(new PointerEvent("pointerover", { bubbles: true }));
+  };
+  const leave = (layer: SVGGElement): void => {
+    layer.dispatchEvent(new PointerEvent("pointerleave"));
   };
 
   it("brings every arrow of the hovered generator to the top", () => {
     const layer = draw();
     expect(generatorsOf(layer).at(-1)).toBe(1);
-    hover(ofGenerator(layer, 0), "pointerover");
+    over(ofGenerator(layer, 0));
     expect(generatorsOf(layer).slice(-6)).toEqual([0, 0, 0, 0, 0, 0]);
+  });
+
+  it("never moves the hovered generator's own arrows, so the browser keeps track of them", async () => {
+    const layer = draw();
+    const removed: Node[] = [];
+    const observer = new MutationObserver((records) => {
+      for (const record of records) removed.push(...record.removedNodes);
+    });
+    observer.observe(layer, { childList: true });
+    over(ofGenerator(layer, 0));
+    await Promise.resolve();
+    observer.disconnect();
+    expect(removed.length).toBeGreaterThan(0);
+    expect(removed.every((node) => (node as SVGPathElement).dataset.generator === "1")).toBe(true);
   });
 
   it("marks the hovered generator's arrows, and only those, as focused", () => {
     const layer = draw();
-    hover(ofGenerator(layer, 0), "pointerover");
+    over(ofGenerator(layer, 0));
     expect(layer.dataset.focus).toBe("0");
     for (const path of pathsOf(layer)) {
       expect(path.classList.contains("focused")).toBe(path.dataset.generator === "0");
@@ -324,9 +352,8 @@ describe("renderArrows on hover", () => {
 
   it("switches focus when the pointer moves to another generator's arrow", () => {
     const layer = draw();
-    hover(ofGenerator(layer, 0), "pointerover");
-    hover(ofGenerator(layer, 0), "pointerout", ofGenerator(layer, 1));
-    hover(ofGenerator(layer, 1), "pointerover");
+    over(ofGenerator(layer, 0));
+    over(ofGenerator(layer, 1));
     expect(layer.dataset.focus).toBe("1");
     expect(generatorsOf(layer).slice(-3)).toEqual([1, 1, 1]);
   });
@@ -334,8 +361,8 @@ describe("renderArrows on hover", () => {
   it("restores the drawing order and drops the focus when the pointer leaves", () => {
     const layer = draw();
     const before = pathsOf(layer);
-    hover(ofGenerator(layer, 0), "pointerover");
-    hover(ofGenerator(layer, 0), "pointerout");
+    over(ofGenerator(layer, 0));
+    leave(layer);
     expect(pathsOf(layer)).toEqual(before);
     expect(layer.dataset.focus).toBeUndefined();
     expect(layer.querySelector(".focused")).toBeNull();

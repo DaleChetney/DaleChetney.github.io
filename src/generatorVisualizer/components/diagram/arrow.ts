@@ -33,35 +33,42 @@ export const actionArrows = (
   return arrows;
 };
 
-/** Stroke width of an arrow that shares its path with no other. */
+/** Stroke width of every arrow. */
 const ARROW_WIDTH = 2.2;
 
-/** How much wider each further arrow on a shared path is drawn. */
-const ARROW_WIDTH_STEP = 1.3;
+/**
+ * How much further each arrow on a shared path bows than the one before it, as
+ * a curvature added on top of the chosen one.
+ */
+export const STACK_CURVATURE_STEP = 0.6;
 
 /**
- * Stroke widths, aligned with `arrows`. Different generators can send the same
- * point to the same image, and those arrows trace the same curve exactly. Rather
- * than hide all but the last, the ones sharing a path are widened in steps so
- * that drawing widest-first leaves each visible as a band inside the one behind
- * it. The shared path is the honest picture: it really is one map, induced by
- * several generators.
+ * Each arrow's place in its stack, aligned with `arrows`. Different generators
+ * can send the same point to the same image, and those arrows would trace the
+ * same curve exactly. Rather than hide all but the last, each further arrow on
+ * a shared path is given its place, 1, 2, …, and bowed that much further, so
+ * they fan out side by side; an arrow alone on its path is at 0. The shared
+ * path is the honest picture: it really is one map, induced by several
+ * generators.
  */
-const strokeWidths = (arrows: readonly ActionArrow[]): number[] => {
-  const pathKey = (arrow: ActionArrow): string => `${arrow.from.point}->${arrow.to.point}`;
-  const bundles = new Map<string, number>();
-  for (const arrow of arrows) {
-    bundles.set(pathKey(arrow), (bundles.get(pathKey(arrow)) ?? 0) + 1);
-  }
+const stackPositions = (arrows: readonly ActionArrow[]): number[] => {
   const drawn = new Map<string, number>();
   return arrows.map((arrow) => {
-    const key = pathKey(arrow);
+    const key = `${arrow.from.point}->${arrow.to.point}`;
     const position = drawn.get(key) ?? 0;
     drawn.set(key, position + 1);
-    const remaining = (bundles.get(key) ?? 1) - 1 - position;
-    return ARROW_WIDTH + remaining * ARROW_WIDTH_STEP;
+    return position;
   });
 };
+
+/**
+ * The curvature an arrow at `stack` in its stack is drawn with. Stacked arrows
+ * fan away from the chord on the side the chosen curvature bows to, so that a
+ * 2-cycle's two directions, which bow to opposite sides, never meet; a
+ * straight chord fans to the side a positive curvature would.
+ */
+const stackedCurvature = (curvature: number, stack: number): number =>
+  curvature + (curvature < 0 ? -1 : 1) * stack * STACK_CURVATURE_STEP;
 
 /**
  * How an arrow's bow grows with the length of its chord. "constant" caps it, so
@@ -83,7 +90,7 @@ const midArrowheadId = (generator: number): string => `arrowhead-mid-${generator
  * alone, halfway between them. Close nodes leave too little room between their
  * circles for a stroke to read as more than a smudge under the head.
  */
-export const HEAD_ONLY_DISTANCE = 50;
+export const HEAD_ONLY_DISTANCE = 55;
 
 /**
  * How much of the curve, as a fraction of it, a head-only arrow's path keeps
@@ -217,11 +224,12 @@ const headOnlyPath = (
  */
 export const shapeArrow = (
   path: SVGPathElement,
-  arrow: ActionArrow,
-  curvature = 1,
+  arrow: ActionArrow & { stack?: number },
+  chosenCurvature = 1,
   width: BowWidth = "constant",
   head: HeadPosition = "end",
 ): void => {
+  const curvature = stackedCurvature(chosenCurvature, arrow.stack ?? 0);
   const endHead = `url(#${arrowheadId(arrow.generator)})`;
   const midHead = `url(#${midArrowheadId(arrow.generator)})`;
   const headOnly = isHeadOnly(arrow);
@@ -281,50 +289,47 @@ export const renderArrows = (
   head: HeadPosition = "end",
 ): SVGGElement => {
   const edges = svg("g", { class: "edges", fill: "none" });
-  const widths = strokeWidths(arrows);
-  // Widest first, so an arrow sharing a path is drawn over the ones behind it
-  // rather than under them.
-  const order = arrows.map((_, index) => index).sort((a, b) => widths[b] - widths[a]);
-  for (const index of order) {
-    const arrow = arrows[index];
+  const stacks = stackPositions(arrows);
+  arrows.forEach((arrow, index) => {
     const path = svg("path", {
       stroke: colorOf(arrow.generator),
-      "stroke-width": widths[index],
+      "stroke-width": ARROW_WIDTH,
       "data-generator": arrow.generator,
       "data-from": arrow.from.point,
       "data-to": arrow.to.point,
+      "data-stack": stacks[index],
     });
-    shapeArrow(path, arrow, curvature, width, head);
+    shapeArrow(path, { ...arrow, stack: stacks[index] }, curvature, width, head);
     edges.append(path);
-  }
+  });
   focusOnHover(edges);
   return edges;
 };
 
 /**
  * While the pointer is over an arrow, single out its generator: every arrow of
- * that generator is lifted to the top of the layer and marked `focused`, and
+ * that generator is raised to the top of the layer and marked `focused`, and
  * the layer carries the generator as `data-focus` so the stylesheet can fade
- * the rest. Lifting keeps the lifted arrows' own order, widest first, and
- * leaving puts every arrow back where it was drawn.
+ * the rest. Leaving the layer puts every arrow back where it was drawn.
+ *
+ * Raising is done by moving every other arrow underneath, never the arrows
+ * being raised: an element taken out from under the pointer and put back is
+ * one the browser can lose track of, and then never tells it the pointer left.
  */
 const focusOnHover = (edges: SVGGElement): void => {
   const drawn = Array.from(edges.querySelectorAll<SVGPathElement>("path"));
-  const arrowOf = (target: EventTarget | null): SVGPathElement | undefined =>
-    drawn.find((path) => path === target);
 
   edges.addEventListener("pointerover", (event) => {
-    const generator = arrowOf(event.target)?.dataset.generator;
+    const generator = drawn.find((path) => path === event.target)?.dataset.generator;
     if (generator === undefined || generator === edges.dataset.focus) return;
     edges.dataset.focus = generator;
-    const focused = drawn.filter((path) => path.dataset.generator === generator);
-    for (const path of drawn) path.classList.toggle("focused", focused.includes(path));
-    edges.append(...drawn.filter((path) => !focused.includes(path)), ...focused);
+    for (const path of drawn) {
+      path.classList.toggle("focused", path.dataset.generator === generator);
+    }
+    edges.prepend(...drawn.filter((path) => path.dataset.generator !== generator));
   });
 
-  edges.addEventListener("pointerout", (event) => {
-    // Moving straight onto another arrow is the next pointerover's to handle.
-    if (arrowOf(event.relatedTarget) !== undefined) return;
+  edges.addEventListener("pointerleave", () => {
     delete edges.dataset.focus;
     for (const path of drawn) path.classList.remove("focused");
     edges.append(...drawn);
