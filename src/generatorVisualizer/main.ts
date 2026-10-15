@@ -105,7 +105,7 @@ let drag: { ring: PlacedRing; tracker: RingDrag } | { point: number; tracker: No
 // Each frame turns the orbits that are playing, and moves the diagram already
 // drawn rather than drawing it again.
 const rotation = new Rotation((seconds) => {
-  scene.turnBy(seconds / settings.rotationPeriod);
+  scene.turnBy(seconds * settings.rotationSpeed);
   centerPanel.turn(scene, settings);
 });
 const rightPanel = new RightPanel(

@@ -28,8 +28,10 @@ export interface Settings {
   arrowBowWidth: BowWidth;
   /** Where along each arrow its head is drawn: at the end, or halfway along. */
   arrowHead: HeadPosition;
-  /** Seconds the innermost ring takes to turn once while the rings are playing. */
-  rotationPeriod: number;
+  /** Turns the innermost ring makes each second while the rings are playing. */
+  rotationSpeed: number;
+  /** Permutations run each second, one after another, while any are queued. */
+  permutationSpeed: number;
 }
 
 /** The range the curvature slider offers. */
@@ -38,8 +40,11 @@ export const CURVATURE = { min: -3, max: 3, step: 0.1 } as const;
 /** The range the arrow width slider offers. */
 export const ARROW_WIDTHS = { min: 2, max: 5, step: 0.1 } as const;
 
-/** The range the rotation period slider offers, in seconds per turn. */
-export const ROTATION_PERIOD = { min: 1, max: 20, step: 0.5 } as const;
+/** The range the rotation speed slider offers, in turns per second. */
+export const ROTATION_SPEED = { min: 0.05, max: 1, step: 0.05 } as const;
+
+/** The range the permutation speed slider offers, in permutations per second. */
+export const PERMUTATION_SPEED = { min: 0.5, max: 5, step: 0.25 } as const;
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: "system",
@@ -47,7 +52,8 @@ export const DEFAULT_SETTINGS: Settings = {
   arrowWidth: 2.5,
   arrowBowWidth: "constant",
   arrowHead: "end",
-  rotationPeriod: 6,
+  rotationSpeed: 0.15,
+  permutationSpeed: 1,
 };
 
 const isTheme = (value: unknown): value is Theme => THEMES.includes(value as Theme);
@@ -77,10 +83,11 @@ export const loadSettings = (): Settings => {
       ? fields.arrowBowWidth
       : DEFAULT_SETTINGS.arrowBowWidth,
     arrowHead: isHeadPosition(fields.arrowHead) ? fields.arrowHead : DEFAULT_SETTINGS.arrowHead,
-    rotationPeriod: inRange(
-      fields.rotationPeriod,
-      ROTATION_PERIOD,
-      DEFAULT_SETTINGS.rotationPeriod,
+    rotationSpeed: inRange(fields.rotationSpeed, ROTATION_SPEED, DEFAULT_SETTINGS.rotationSpeed),
+    permutationSpeed: inRange(
+      fields.permutationSpeed,
+      PERMUTATION_SPEED,
+      DEFAULT_SETTINGS.permutationSpeed,
     ),
   };
 };

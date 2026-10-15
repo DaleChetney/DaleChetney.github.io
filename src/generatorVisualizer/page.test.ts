@@ -856,14 +856,14 @@ describe("turning the rings", () => {
       play(orbit).click();
     }
   };
-  const periodSlider = (): HTMLInputElement => {
-    const found = document.querySelector<HTMLInputElement>("#rotation-period");
-    if (found === null) throw new Error("no rotation period slider");
+  const speedSlider = (): HTMLInputElement => {
+    const found = document.querySelector<HTMLInputElement>("#rotation-speed");
+    if (found === null) throw new Error("no rotation speed slider");
     return found;
   };
-  const setPeriod = (seconds: number): void => {
-    periodSlider().value = String(seconds);
-    periodSlider().dispatchEvent(new Event("input"));
+  const setSpeed = (turns: number): void => {
+    speedSlider().value = String(turns);
+    speedSlider().dispatchEvent(new Event("input"));
   };
   const node = (point: number): SVGGElement => {
     const found = document.querySelector<SVGGElement>(`#diagram .node[data-point="${point}"]`);
@@ -939,14 +939,14 @@ describe("turning the rings", () => {
     expect(play().getAttribute("aria-label")).toBe("Play rotation");
   });
 
-  it("turns the innermost ring once per the default period, the next at 0.66 of that", () => {
-    const period = DEFAULT_SETTINGS.rotationPeriod;
-    expect(periodSlider().value).toBe(String(period));
+  it("turns the innermost ring at the default speed, the next at 0.66 of that", () => {
+    const speed = DEFAULT_SETTINGS.rotationSpeed;
+    expect(speedSlider().value).toBe(String(speed));
     const [inner, outer] = innerAndOuter();
     const before = [angleOf(inner), angleOf(outer)];
     playFor(1);
-    expect(swept(before[0], angleOf(inner))).toBeCloseTo(1 / period);
-    expect(swept(before[1], angleOf(outer))).toBeCloseTo(0.66 / period);
+    expect(swept(before[0], angleOf(inner))).toBeCloseTo(speed);
+    expect(swept(before[1], angleOf(outer))).toBeCloseTo(0.66 * speed);
   });
 
   it("stays put while paused", () => {
@@ -955,13 +955,13 @@ describe("turning the rings", () => {
     expect(placed()).toEqual(before);
   });
 
-  it("turns at the period the settings give", () => {
-    setPeriod(8);
+  it("turns at the speed the settings give", () => {
+    setSpeed(0.25);
     const [inner] = innerAndOuter();
     const before = angleOf(inner);
     playFor(1);
-    expect(swept(before, angleOf(inner))).toBeCloseTo(0.125);
-    setPeriod(DEFAULT_SETTINGS.rotationPeriod);
+    expect(swept(before, angleOf(inner))).toBeCloseTo(0.25);
+    setSpeed(DEFAULT_SETTINGS.rotationSpeed);
   });
 
   it("moves the nodes it has rather than drawing new ones, so a click lands mid-turn", () => {
