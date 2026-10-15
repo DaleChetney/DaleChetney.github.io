@@ -82,4 +82,15 @@ describe("Rotation", () => {
     rotation.play();
     expect(pending.size).toBe(1);
   });
+
+  it("stays paused when a tick pauses it", () => {
+    const rotation: Rotation = new Rotation(() => {
+      rotation.pause();
+    });
+    rotation.play();
+    runFrame(0);
+    runFrame(16);
+    expect(rotation.playing).toBe(false);
+    expect(pending.size).toBe(0);
+  });
 });
