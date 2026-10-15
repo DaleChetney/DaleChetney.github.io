@@ -7,6 +7,7 @@ import {
 } from "@shared/mathUtils/groups/generatorChoices";
 import { findIsomorphism } from "@shared/mathUtils/groups/isomorphism";
 import {
+  invertPermutation,
   permutationKey,
   permutationOrbits,
   type Permutation,
@@ -474,6 +475,27 @@ export class Scene {
     this.#freed.delete(b);
     if (freedA !== undefined) this.#freed.set(b, freedA);
     if (freedB !== undefined) this.#freed.set(a, freedB);
+  }
+
+  /**
+   * Run a permutation of the points: every point p moves into the slot σ(p)
+   * held, which is where a node travelling along its arrow comes to rest. A
+   * node dragged off its ring is a slot too, so that place passes along the
+   * same way. A generator keeps every point in its orbit, so no orbit changes
+   * size. Picking is by point, not slot, so a picked point stays picked.
+   */
+  permute(permutation: Permutation): void {
+    const inverse = invertPermutation(permutation);
+    const preimage = (point: number): number => inverse[point - 1] ?? point;
+    for (const slots of this.#arrangement) {
+      slots.forEach((point, slot) => {
+        slots[slot] = preimage(point);
+      });
+    }
+    const freed = [...this.#freed];
+    this.#freed.clear();
+    for (const [point, offset] of freed) this.#freed.set(preimage(point), offset);
+    this.relayout(this.#stage);
   }
 
   // --- what is chosen in it --------------------------------------------------

@@ -292,3 +292,56 @@ describe("Scene center", () => {
     ]);
   });
 });
+
+describe("Scene.permute", () => {
+  /** The 3-cycle 1 → 2 → 3 → 1 on twelve points. */
+  const cycle = [2, 3, 1, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+
+  it("moves each point into the slot its image held", () => {
+    const scene = twelve();
+    const before = positions(scene);
+    scene.permute(cycle);
+    const after = positions(scene);
+    expect(after.get(1)).toBe(before.get(2));
+    expect(after.get(2)).toBe(before.get(3));
+    expect(after.get(3)).toBe(before.get(1));
+    for (let point = 4; point <= 12; point++) expect(after.get(point)).toBe(before.get(point));
+  });
+
+  it("moves points between the rings of an orbit", () => {
+    const scene = twelve();
+    scene.stepRings(0, 1);
+    const [outer, inner] = scene.diagram.rings;
+    const [a, b] = [outer.points[0], inner.points[0]];
+    const swap = Array.from({ length: 12 }, (_, i) => (i + 1 === a ? b : i + 1 === b ? a : i + 1));
+    const before = positions(scene);
+    scene.permute(swap);
+    expect(positions(scene).get(a)).toBe(before.get(b));
+    expect(scene.ringOf(a)?.ring).toBe(1);
+  });
+
+  it("passes a dragged node's place along with its slot", () => {
+    const scene = twelve();
+    scene.stepRings(0, 1);
+    scene.toggleLock(0);
+    scene.movePoint(2, { x: 100, y: 90 });
+    scene.permute(cycle);
+    expect(scene.pointAt(1)).toEqual({ x: 100, y: 90 });
+  });
+
+  it("is undone by the inverse permutation", () => {
+    const scene = twelve();
+    scene.turnRing(0, 0, 0.1);
+    const before = positions(scene);
+    scene.permute(cycle);
+    scene.permute([3, 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    expect(positions(scene)).toEqual(before);
+  });
+
+  it("leaves a picked point picked", () => {
+    const scene = twelve();
+    scene.pickPoint(5);
+    scene.permute(cycle);
+    expect(scene.picked).toBe(5);
+  });
+});
