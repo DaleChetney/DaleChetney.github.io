@@ -134,10 +134,16 @@
         min-width: 0;
       }
 
+      /*
+        Every readout gets the same fixed room, wide enough for the longest
+        ("0.15/sec"), so a slider never changes length as its value does, and
+        all of them line up.
+      */
       .slider-row output {
         font-variant-numeric: tabular-nums;
         font-size: 0.85rem;
-        min-width: 2.5ch;
+        flex: none;
+        width: 8ch;
         text-align: right;
       }
 
