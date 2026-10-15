@@ -20,7 +20,7 @@ describe("settings", () => {
     expect(DEFAULT_SETTINGS).toEqual({
       theme: "system",
       arrowCurvature: 1,
-      arrowWidth: 2.3,
+      arrowWidth: 2.5,
       arrowBowWidth: "constant",
       arrowHead: "end",
       rotationPeriod: 6,

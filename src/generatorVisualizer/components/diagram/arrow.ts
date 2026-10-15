@@ -1,4 +1,5 @@
 import type { Permutation } from "@shared/mathUtils/groups/permutations";
+import { DEFAULT_SETTINGS } from "../../settings";
 import { svg } from "../../svg";
 import { NODE_RADIUS, type PlacedPoint } from "./node";
 
@@ -32,9 +33,6 @@ export const actionArrows = (
   });
   return arrows;
 };
-
-/** Stroke width of every arrow, unless the reader chooses another. */
-export const ARROW_WIDTH = 2.3;
 
 /**
  * How much further each arrow on a shared path bows than the one before it, as
@@ -287,7 +285,7 @@ export const renderArrows = (
   curvature = 1,
   width: BowWidth = "constant",
   head: HeadPosition = "end",
-  strokeWidth = ARROW_WIDTH,
+  strokeWidth = DEFAULT_SETTINGS.arrowWidth,
 ): SVGGElement => {
   const edges = svg("g", { class: "edges", fill: "none" });
   const stacks = stackPositions(arrows);

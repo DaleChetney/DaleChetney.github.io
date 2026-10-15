@@ -39,7 +39,7 @@ const readout = (id = "arrow-curvature"): string | null | undefined =>
 const initial: Settings = {
   theme: "dark",
   arrowCurvature: -0.5,
-  arrowWidth: 2.3,
+  arrowWidth: 2.5,
   arrowBowWidth: "constant",
   arrowHead: "end",
   rotationPeriod: 6,
@@ -67,11 +67,11 @@ describe("settingsPanel", () => {
     expect(Number(slider().step)).toBeGreaterThan(0);
   });
 
-  it("sizes the arrow width slider from 2 to 4", () => {
+  it("sizes the arrow width slider from 2 to 5", () => {
     settingsPanel(fixture(), initial, () => {});
     expect(slider("arrow-width").min).toBe("2");
-    expect(slider("arrow-width").max).toBe("4");
-    expect(slider("arrow-width").value).toBe("2.3");
+    expect(slider("arrow-width").max).toBe("5");
+    expect(slider("arrow-width").value).toBe("2.5");
   });
 
   it("reports the arrow width as it moves", () => {

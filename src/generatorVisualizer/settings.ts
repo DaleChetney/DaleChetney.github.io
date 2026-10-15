@@ -1,5 +1,5 @@
 import { load, save } from "@shared/storage";
-import { ARROW_WIDTH, type BowWidth, type HeadPosition } from "./components/diagram/arrow";
+import type { BowWidth, HeadPosition } from "./components/diagram/arrow";
 
 const STORAGE_KEY = "generatorVisualizer.settings";
 
@@ -36,7 +36,7 @@ export interface Settings {
 export const CURVATURE = { min: -3, max: 3, step: 0.1 } as const;
 
 /** The range the arrow width slider offers. */
-export const ARROW_WIDTHS = { min: 2, max: 4, step: 0.1 } as const;
+export const ARROW_WIDTHS = { min: 2, max: 5, step: 0.1 } as const;
 
 /** The range the rotation period slider offers, in seconds per turn. */
 export const ROTATION_PERIOD = { min: 1, max: 20, step: 0.5 } as const;
@@ -44,7 +44,7 @@ export const ROTATION_PERIOD = { min: 1, max: 20, step: 0.5 } as const;
 export const DEFAULT_SETTINGS: Settings = {
   theme: "system",
   arrowCurvature: 1,
-  arrowWidth: ARROW_WIDTH,
+  arrowWidth: 2.5,
   arrowBowWidth: "constant",
   arrowHead: "end",
   rotationPeriod: 6,
