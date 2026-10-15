@@ -33,6 +33,15 @@ const node = (root: SVGSVGElement, point: number): SVGGElement => {
 };
 
 describe("renderPermutationDiagram", () => {
+  it("reports a click on an arrow as its generator, to be run", () => {
+    const onPlayGenerator = vi.fn();
+    const root = render([0, 1], { onPlayGenerator });
+    const arrow = root.querySelector<SVGPathElement>('.edges path[data-generator="1"]');
+    if (arrow === null) throw new Error("no arrow for generator 1");
+    arrow.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(onPlayGenerator).toHaveBeenCalledWith(1);
+  });
+
   it("draws one node per point", () => {
     expect(render([]).querySelectorAll(".node")).toHaveLength(7);
   });

@@ -382,6 +382,7 @@
         and its own arrows fade in again on top of them.
       */
       .diagram .edges path {
+        cursor: pointer;
         transition: opacity 0.25s;
       }
 
@@ -488,6 +489,10 @@
         align-items: center;
         gap: 0.4rem;
         padding: 0.12rem 0;
+      }
+
+      .element label,
+      .element input {
         cursor: pointer;
       }
 
@@ -496,10 +501,22 @@
       }
 
       .swatch {
-        width: 0.7rem;
-        height: 0.7rem;
+        display: grid;
+        place-items: center;
+        width: 1.1rem;
+        height: 1.1rem;
+        padding: 0 0 0 0.1rem;
+        border: none;
         border-radius: 50%;
         flex: none;
+        color: white;
+        font-size: 0.5rem;
+        line-height: 1;
+        cursor: pointer;
+      }
+
+      .swatch:disabled {
+        cursor: default;
       }
 
       .element input:not(:checked) + .swatch {

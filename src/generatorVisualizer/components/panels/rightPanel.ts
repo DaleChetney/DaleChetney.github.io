@@ -11,7 +11,10 @@ import type { Scene } from "../../scene";
  */
 const elementFocus = (active: Element): string | null => {
   const element = active.closest("[data-element]")?.getAttribute("data-element");
-  if (element != null) return `[data-element="${element}"] input`;
+  if (element != null) {
+    const control = active.closest(".play") === null ? "input" : ".play";
+    return `[data-element="${element}"] ${control}`;
+  }
   const section = active.closest("[data-class]")?.getAttribute("data-class");
   if (section == null) return null;
   const step = active.closest("[data-step]")?.getAttribute("data-step");
@@ -35,6 +38,7 @@ const elementFocus = (active: Element): string | null => {
 export class RightPanel {
   readonly #onToggle: (key: string) => void;
   readonly #onHover: (key: string | null) => void;
+  readonly #onPlay: (key: string) => void;
   #scene: Scene | null = null;
   /** The page each section is turned to, by class; a section not in it is on its first. */
   readonly #pages = new Map<number, number>();
@@ -43,11 +47,16 @@ export class RightPanel {
 
   /**
    * `onHover` hears the element whose row the pointer is over, and null when
-   * it leaves the row.
+   * it leaves the row. `onPlay` hears the element whose play button was pressed.
    */
-  constructor(onToggle: (key: string) => void, onHover: (key: string | null) => void = () => {}) {
+  constructor(
+    onToggle: (key: string) => void,
+    onHover: (key: string | null) => void = () => {},
+    onPlay: (key: string) => void = () => {},
+  ) {
     this.#onToggle = onToggle;
     this.#onHover = onHover;
+    this.#onPlay = onPlay;
   }
 
   show(scene: Scene): void {
@@ -64,6 +73,7 @@ export class RightPanel {
           colorOf: (key) => scene.colorOf(key),
           onToggle: this.#onToggle,
           onHover: this.#onHover,
+          onPlay: this.#onPlay,
           onPage: (classIndex, page) => {
             this.#pages.set(classIndex, page);
             this.show(scene);
