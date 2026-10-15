@@ -1337,6 +1337,8 @@ describe("running a generator's permutation", () => {
 
   it("stops the clock once the queue is empty", () => {
     playOf(drawnRow()).click();
+    advance(0.05);
+    expect(pending.length).toBeGreaterThan(0);
     runOne();
     expect(pending).toHaveLength(0);
   });
@@ -1373,6 +1375,8 @@ describe("running a generator's permutation", () => {
 
   it("forgets the queue when another group is opened", () => {
     playOf(drawnRow()).click();
+    advance(0.05);
+    expect(pending.length).toBeGreaterThan(0);
     groupRow(DEFAULT.label).click();
     advance(1);
     expect(pending).toHaveLength(0);

@@ -142,7 +142,9 @@ const elementRow = (
   view: ElementSelectionView,
 ): HTMLElement => {
   const key = permutationKey(permutation);
-  const input = el("input", { type: "checkbox", checked: view.isSelected(key) });
+  // The id ties the name's label to the checkbox, which the play button must stay out of.
+  const id = `element-${key.replaceAll(",", "-")}`;
+  const input = el("input", { type: "checkbox", id, checked: view.isSelected(key) });
   input.addEventListener("change", () => {
     view.onToggle(key);
   });
@@ -156,22 +158,20 @@ const elementRow = (
   const play = el(
     "button",
     { type: "button", className: "swatch play", disabled: color === null },
-    ["▶"],
+    ["▶︎"],
   );
   // An unselected element has no color yet: colors are spread over the
   // selection, so which one it would take depends on what else is drawn.
   play.style.background = color ?? "currentColor";
   play.setAttribute("aria-label", `Run ${name}`);
-  play.addEventListener("click", (event) => {
-    // The button sits in the row's label, whose click would toggle the checkbox too.
-    event.preventDefault();
+  play.addEventListener("click", () => {
     view.onPlay(key);
   });
 
-  const row = el("label", { className: "element", title: cycles }, [
+  const row = el("div", { className: "element", title: cycles }, [
     input,
     play,
-    el("code", {}, [name]),
+    el("label", { htmlFor: id }, [el("code", {}, [name])]),
   ]);
   row.dataset.element = key;
   row.addEventListener("pointerenter", () => {

@@ -155,8 +155,9 @@ let scene = startingScene();
 /**
  * The two panels that show the selection. The left one is not among them: its
  * 402 rows change only when the group does. The clock runs only while some
- * orbit of the scene is turning or a permutation is queued, and every change of scene passes through here,
- * so here is where it is remembered for next time.
+ * orbit of the scene is turning or a permutation is queued, and every change
+ * of scene passes through here, so here is where it is remembered for next
+ * time.
  */
 function render(): void {
   saveLastView({

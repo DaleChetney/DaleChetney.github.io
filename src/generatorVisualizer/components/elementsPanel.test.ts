@@ -124,6 +124,22 @@ describe("an element's play button", () => {
     expect(onToggle).not.toHaveBeenCalled();
     expect(input.checked).toBe(true);
   });
+
+  it("stays out of the checkbox's label, which is the name alone", () => {
+    const { row, play, input } = firstRow(renderElementSections([section(c16)], view()));
+    document.body.replaceChildren(row);
+    const label = row.querySelector<HTMLLabelElement>(`label[for="${input.id}"]`);
+    expect(input.id).not.toBe("");
+    expect(label?.contains(play)).toBe(false);
+    expect(label?.textContent).toBe(row.querySelector("code")?.textContent);
+    expect(label?.textContent).not.toContain("Run");
+    expect(input.labels?.[0]).toBe(label);
+  });
+
+  it("uses the text presentation of the triangle", () => {
+    const { play } = firstRow(renderElementSections([section(c16)], view()));
+    expect(play.textContent).toBe("▶︎");
+  });
 });
 
 describe("hovering an element's row", () => {
