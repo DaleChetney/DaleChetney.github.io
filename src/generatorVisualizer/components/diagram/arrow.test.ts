@@ -280,3 +280,64 @@ describe("renderArrows with the head in the middle", () => {
     expect(path.getAttribute("marker-end")).toBe("url(#arrowhead-0)");
   });
 });
+
+describe("renderArrows on hover", () => {
+  // (2 3)(4 5 6 7) and (1 2 3): six arrows of one generator, three of the other.
+  const generators = [
+    [1, 3, 2, 5, 6, 7, 4],
+    [2, 3, 1, 4, 5, 6, 7],
+  ];
+  const { points } = layoutOrbits([
+    [1, 2, 3],
+    [4, 5, 6, 7],
+  ]);
+  const colorOf = (generator: number): string => ["#aa1144", "#008866"][generator];
+  const draw = (): SVGGElement => renderArrows(actionArrows(points, generators), colorOf);
+  const pathsOf = (layer: SVGGElement): SVGPathElement[] =>
+    Array.from(layer.querySelectorAll("path"));
+  const generatorsOf = (layer: SVGGElement): number[] =>
+    pathsOf(layer).map((path) => Number(path.dataset.generator));
+  const ofGenerator = (layer: SVGGElement, generator: number): SVGPathElement => {
+    const path = layer.querySelector<SVGPathElement>(`path[data-generator="${generator}"]`);
+    if (path === null) throw new Error(`no arrow of generator ${generator}`);
+    return path;
+  };
+  const hover = (path: Element, type: string, relatedTarget: Element | null = null): void => {
+    path.dispatchEvent(new PointerEvent(type, { bubbles: true, relatedTarget }));
+  };
+
+  it("brings every arrow of the hovered generator to the top", () => {
+    const layer = draw();
+    expect(generatorsOf(layer).at(-1)).toBe(1);
+    hover(ofGenerator(layer, 0), "pointerover");
+    expect(generatorsOf(layer).slice(-6)).toEqual([0, 0, 0, 0, 0, 0]);
+  });
+
+  it("marks the hovered generator's arrows, and only those, as focused", () => {
+    const layer = draw();
+    hover(ofGenerator(layer, 0), "pointerover");
+    expect(layer.dataset.focus).toBe("0");
+    for (const path of pathsOf(layer)) {
+      expect(path.classList.contains("focused")).toBe(path.dataset.generator === "0");
+    }
+  });
+
+  it("switches focus when the pointer moves to another generator's arrow", () => {
+    const layer = draw();
+    hover(ofGenerator(layer, 0), "pointerover");
+    hover(ofGenerator(layer, 0), "pointerout", ofGenerator(layer, 1));
+    hover(ofGenerator(layer, 1), "pointerover");
+    expect(layer.dataset.focus).toBe("1");
+    expect(generatorsOf(layer).slice(-3)).toEqual([1, 1, 1]);
+  });
+
+  it("restores the drawing order and drops the focus when the pointer leaves", () => {
+    const layer = draw();
+    const before = pathsOf(layer);
+    hover(ofGenerator(layer, 0), "pointerover");
+    hover(ofGenerator(layer, 0), "pointerout");
+    expect(pathsOf(layer)).toEqual(before);
+    expect(layer.dataset.focus).toBeUndefined();
+    expect(layer.querySelector(".focused")).toBeNull();
+  });
+});

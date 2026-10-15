@@ -376,6 +376,18 @@
         stroke-width: 2.5;
       }
 
+      /*
+        Hovering an arrow singles out its generator: the rest fade towards the
+        background, which is darker in the dark theme and lighter in the light.
+      */
+      .diagram .edges path {
+        transition: opacity 0.15s;
+      }
+
+      .diagram .edges[data-focus] path:not(.focused) {
+        opacity: 0.15;
+      }
+
       .element-sections {
         display: flex;
         flex-direction: column;

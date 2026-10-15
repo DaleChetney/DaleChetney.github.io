@@ -297,5 +297,36 @@ export const renderArrows = (
     shapeArrow(path, arrow, curvature, width, head);
     edges.append(path);
   }
+  focusOnHover(edges);
   return edges;
+};
+
+/**
+ * While the pointer is over an arrow, single out its generator: every arrow of
+ * that generator is lifted to the top of the layer and marked `focused`, and
+ * the layer carries the generator as `data-focus` so the stylesheet can fade
+ * the rest. Lifting keeps the lifted arrows' own order, widest first, and
+ * leaving puts every arrow back where it was drawn.
+ */
+const focusOnHover = (edges: SVGGElement): void => {
+  const drawn = Array.from(edges.querySelectorAll<SVGPathElement>("path"));
+  const arrowOf = (target: EventTarget | null): SVGPathElement | undefined =>
+    drawn.find((path) => path === target);
+
+  edges.addEventListener("pointerover", (event) => {
+    const generator = arrowOf(event.target)?.dataset.generator;
+    if (generator === undefined || generator === edges.dataset.focus) return;
+    edges.dataset.focus = generator;
+    const focused = drawn.filter((path) => path.dataset.generator === generator);
+    for (const path of drawn) path.classList.toggle("focused", focused.includes(path));
+    edges.append(...drawn.filter((path) => !focused.includes(path)), ...focused);
+  });
+
+  edges.addEventListener("pointerout", (event) => {
+    // Moving straight onto another arrow is the next pointerover's to handle.
+    if (arrowOf(event.relatedTarget) !== undefined) return;
+    delete edges.dataset.focus;
+    for (const path of drawn) path.classList.remove("focused");
+    edges.append(...drawn);
+  });
 };
