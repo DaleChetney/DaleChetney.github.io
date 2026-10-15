@@ -29,6 +29,21 @@ const byKey =
 /** `12.9` before `12.10`: LMFDB labels compare on their numbers, not their text. */
 const labels = new Intl.Collator("en", { numeric: true });
 
+const byAutOrder = byKey((group) => group.autOrder ?? Infinity);
+
+/**
+ * Groups sharing an Aut(G) side by side. Labels lead with the order, so this
+ * only splits ties left by `byAutOrder`; an unlabelled Aut(G) goes after its order's labelled ones.
+ */
+const byAutLabel: Comparator = (a, b) =>
+  a.autLabel === b.autLabel
+    ? 0
+    : a.autLabel === null
+      ? 1
+      : b.autLabel === null
+        ? -1
+        : labels.compare(a.autLabel, b.autLabel);
+
 /** The trivial group has no prime factor; 1 keeps it first, as every other order-based key does. */
 const smallestPrime = (n: number): number => primeFactorization(n)[0]?.[0] ?? 1;
 
@@ -52,7 +67,7 @@ const COMPARATORS: Readonly<Record<GroupSort, Comparator>> = {
   label: (a, b) => labels.compare(a.label, b.label),
   rank: byKey((group) => group.rank),
   length: byKey(seriesLength),
-  automorphisms: byKey((group) => group.autOrder ?? Infinity),
+  automorphisms: (a, b) => byAutOrder(a, b) || byAutLabel(a, b),
   subgroups: byKey((group) => group.subgroups.all),
   "subgroup-classes": byKey((group) => group.subgroups.classes.length),
   "smallest-prime": byKey((group) => smallestPrime(group.order)),

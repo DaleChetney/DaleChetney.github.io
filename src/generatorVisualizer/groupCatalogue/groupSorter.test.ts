@@ -106,6 +106,17 @@ describe("GroupSorter", () => {
     expect(labels(sorted(auts, "automorphisms"))).toEqual(["c", "b", "a"]);
   });
 
+  it("keeps groups with the same automorphism group together", () => {
+    const auts = [
+      group({ label: "a", autOrder: 12, autLabel: "12.4" }),
+      group({ label: "b", autOrder: 12, autLabel: "12.10" }),
+      group({ label: "c", autOrder: 12, autLabel: null }),
+      group({ label: "d", autOrder: 12, autLabel: "12.4" }),
+      group({ label: "e", autOrder: 12, autLabel: "12.3" }),
+    ];
+    expect(labels(sorted(auts, "automorphisms"))).toEqual(["e", "a", "d", "b", "c"]);
+  });
+
   it("sorts by number of subgroups", () => {
     const counted = [10, 4, 6].map((all) =>
       group({ label: `s${String(all)}`, subgroups: { all, classes: [] } }),
