@@ -163,8 +163,8 @@ const quadraticPiece = (
 export const arrowPath = (
   arrow: Pick<ActionArrow, "from" | "to">,
   curvature: number,
-  width: BowWidth = "constant",
-  head: HeadPosition = "end",
+  width: BowWidth = DEFAULT_SETTINGS.arrowBowWidth,
+  head: HeadPosition = DEFAULT_SETTINGS.arrowHead,
 ): string => {
   const control = controlPoint(arrow, curvature, width);
 
@@ -223,9 +223,9 @@ const headOnlyPath = (
 export const shapeArrow = (
   path: SVGPathElement,
   arrow: ActionArrow & { stack?: number },
-  chosenCurvature = 1,
-  width: BowWidth = "constant",
-  head: HeadPosition = "end",
+  chosenCurvature = DEFAULT_SETTINGS.arrowCurvature,
+  width: BowWidth = DEFAULT_SETTINGS.arrowBowWidth,
+  head: HeadPosition = DEFAULT_SETTINGS.arrowHead,
 ): void => {
   const curvature = stackedCurvature(chosenCurvature, arrow.stack ?? 0);
   const endHead = `url(#${arrowheadId(arrow.generator)})`;
@@ -282,9 +282,9 @@ export const arrowheadDefs = (
 export const renderArrows = (
   arrows: readonly ActionArrow[],
   colorOf: (generator: number) => string,
-  curvature = 1,
-  width: BowWidth = "constant",
-  head: HeadPosition = "end",
+  curvature = DEFAULT_SETTINGS.arrowCurvature,
+  width: BowWidth = DEFAULT_SETTINGS.arrowBowWidth,
+  head: HeadPosition = DEFAULT_SETTINGS.arrowHead,
   strokeWidth = DEFAULT_SETTINGS.arrowWidth,
 ): SVGGElement => {
   const edges = svg("g", { class: "edges", fill: "none" });

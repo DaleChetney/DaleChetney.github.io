@@ -1,3 +1,4 @@
+import { DEFAULT_SETTINGS } from "../../settings";
 import { svg } from "../../svg";
 import {
   arrowheadDefs,
@@ -37,13 +38,13 @@ export interface DiagramView {
   picked: number | null;
   /** A node was clicked: pick it, or swap it with the one already picked. */
   onPick: (point: number) => void;
-  /** How far the arrows bow, as a multiple of the usual amount; 1 when absent. */
+  /** How far the arrows bow, as a multiple of the usual amount; the default setting when absent. */
   curvature?: number;
-  /** How the arrows' bow grows with their length; "constant" when absent. */
+  /** How the arrows' bow grows with their length; the default setting when absent. */
   bowWidth?: BowWidth;
-  /** Where along the arrows their heads are drawn; "end" when absent. */
+  /** Where along the arrows their heads are drawn; the default setting when absent. */
   head?: HeadPosition;
-  /** How thick the arrows' lines are; the usual width when absent. */
+  /** How thick the arrows' lines are; the default setting when absent. */
   arrowWidth?: number;
   /**
    * A node was held long enough to drag, with the pointer at these client
@@ -122,9 +123,9 @@ export const renderPermutationDiagram = (
 export const moveDiagram = (
   root: SVGSVGElement,
   points: readonly PlacedPoint[],
-  curvature = 1,
-  bowWidth: BowWidth = "constant",
-  head: HeadPosition = "end",
+  curvature = DEFAULT_SETTINGS.arrowCurvature,
+  bowWidth: BowWidth = DEFAULT_SETTINGS.arrowBowWidth,
+  head: HeadPosition = DEFAULT_SETTINGS.arrowHead,
 ): void => {
   const byPoint = new Map(points.map((placed) => [placed.point, placed]));
   for (const node of root.querySelectorAll<SVGGElement>(".node[data-point]")) {
