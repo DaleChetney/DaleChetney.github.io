@@ -1,8 +1,11 @@
 import { byLabel, fetchCatalogue, type CatalogueGroup } from "./groupCatalogue/catalogue";
 import { qs } from "@shared/dom";
+import type { Permutation } from "@shared/mathUtils/groups/permutations";
 import { CenterPanel, diagramPointAt, NARROW_SCREEN, stage } from "./components/panels/centerPanel";
 import type { PlacedRing } from "./components/diagram/permutationDiagram";
 import { NodeDrag } from "./interactions/nodeDrag";
+import { PermutationBuffer } from "./interactions/permutationBuffer";
+import { PermuteNodes } from "./interactions/permuteNodes";
 import { RingDrag } from "./interactions/ringDrag";
 import { collapsiblePanel } from "./components/panels/collapsiblePanel";
 import { loadLastView, saveLastView, type LastView } from "./lastView";
@@ -44,20 +47,37 @@ settingsPanel(qs("#settings"), settings, (changed) => {
 });
 
 const leftPanel = new LeftPanel(catalogue.groups, selectGroup);
+// Permutations wait in the buffer and run one at a time on the clock the rings
+// turn by, so both can move at once.
+const permutations = new PermutationBuffer();
+const permuteNodes = new PermuteNodes(permutations);
+
+/** Queue a permutation to run on the nodes, and start the clock if it was idle. */
+const queue = (permutation: Permutation | undefined): void => {
+  if (permutation === undefined) return;
+  permutations.push(permutation);
+  syncClock();
+};
+
 const centerPanel = new CenterPanel({
   onToggleClass: (classIndex) => {
     scene.toggleClass(classIndex);
     render();
   },
+  // Rearranging the slots under a running permutation would strand it, so it finishes first.
   onPickPoint: (point) => {
+    permuteNodes.finish(scene);
     scene.pickPoint(point);
     render();
   },
-  onPlayGenerator: () => {},
+  onPlayGenerator: (generator) => {
+    queue(scene.palette[generator]);
+  },
   onSelectRepresentation: selectRepresentation,
   holdsGroup: (label) => groups.has(label),
   onSelectGroup: selectGroup,
   onStepRings: (orbit, step) => {
+    permuteNodes.finish(scene);
     scene.stepRings(orbit, step);
     render();
   },
@@ -66,10 +86,12 @@ const centerPanel = new CenterPanel({
     render();
   },
   onToggleLock: (orbit) => {
+    permuteNodes.finish(scene);
     scene.toggleLock(orbit);
     render();
   },
   onToggleCenter: (orbit) => {
+    permuteNodes.finish(scene);
     scene.toggleCenter(orbit);
     render();
   },
@@ -79,6 +101,7 @@ const centerPanel = new CenterPanel({
     const orbit = scene.ringOf(point)?.orbit;
     if (at === null || orbit === undefined) return;
     if (!scene.isLocked(orbit)) {
+      permuteNodes.finish(scene);
       const node = scene.pointAt(point);
       if (node !== undefined) drag = { point, tracker: new NodeDrag(node, at) };
       return;
@@ -93,7 +116,7 @@ const centerPanel = new CenterPanel({
     if (drag === null || at === null) return;
     if ("point" in drag) scene.movePoint(drag.point, drag.tracker.moveTo(at));
     else scene.turnRing(drag.ring.orbit, drag.ring.ring, drag.tracker.moveTo(at));
-    centerPanel.turn(scene, settings);
+    centerPanel.turn(scene, settings, permuteNodes.points(scene, settings));
   },
   onDragEnd: () => {
     drag = null;
@@ -103,11 +126,14 @@ const centerPanel = new CenterPanel({
 /** The drag in progress and the ring or node it has hold of; null while there is none. */
 let drag: { ring: PlacedRing; tracker: RingDrag } | { point: number; tracker: NodeDrag } | null =
   null;
-// Each frame turns the orbits that are playing, and moves the diagram already
-// drawn rather than drawing it again.
+// Each frame turns the orbits that are playing and runs the queued permutations
+// on, moving the diagram already drawn rather than drawing it again; once
+// nothing is left to move, the clock stops.
 const rotation = new Rotation((seconds) => {
-  scene.turnBy(seconds * settings.rotationSpeed);
-  centerPanel.turn(scene, settings);
+  if (scene.turning) scene.turnBy(seconds * settings.rotationSpeed);
+  permuteNodes.advance(scene, seconds, settings.permutationSpeed);
+  centerPanel.turn(scene, settings, permuteNodes.points(scene, settings));
+  syncClock();
 });
 const rightPanel = new RightPanel(
   (key) => {
@@ -118,6 +144,10 @@ const rightPanel = new RightPanel(
   (key) => {
     centerPanel.focusGenerator(key === null ? null : scene.generatorOf(key));
   },
+  (key) => {
+    const generator = scene.generatorOf(key);
+    if (generator !== null) queue(scene.palette[generator]);
+  },
 );
 
 let scene = startingScene();
@@ -125,7 +155,7 @@ let scene = startingScene();
 /**
  * The two panels that show the selection. The left one is not among them: its
  * 402 rows change only when the group does. The clock runs only while some
- * orbit of the scene is turning, and every change of scene passes through here,
+ * orbit of the scene is turning or a permutation is queued, and every change of scene passes through here,
  * so here is where it is remembered for next time.
  */
 function render(): void {
@@ -134,10 +164,15 @@ function render(): void {
     representation: scene.representation.id,
     selection: scene.storedSelection(),
   });
-  if (scene.turning) rotation.play();
-  else rotation.pause();
-  centerPanel.show(scene, settings);
+  syncClock();
+  centerPanel.show(scene, settings, permuteNodes.points(scene, settings));
   rightPanel.show(scene);
+}
+
+/** Run the clock while anything moves, and only then. */
+function syncClock(): void {
+  if (scene.turning || permuteNodes.busy) rotation.play();
+  else rotation.pause();
 }
 
 /** A scene on a group's first representation, its largest, opened so the diagram is never bare. */
@@ -171,6 +206,7 @@ function sceneOf(view: LastView): Scene | null {
 }
 
 function selectGroup(label: string): void {
+  permuteNodes.drop();
   scene = sceneFor(groupFor(label));
   render();
   leftPanel.show(label);
@@ -183,6 +219,7 @@ function selectRepresentation(id: string): void {
   if (representation.id === scene.representation.id) return;
   const next = new Scene(scene.group, representation, stage(), catalogue.cyclicAutExponents);
   next.open(scene.carrySelectionTo(next));
+  permuteNodes.drop();
   scene = next;
   render();
 }

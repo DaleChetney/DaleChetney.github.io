@@ -1252,3 +1252,129 @@ describe("arranging generators by orbit", () => {
     expect(picker().value).toBe("3");
   });
 });
+
+describe("running a generator's permutation", () => {
+  let pending: FrameRequestCallback[] = [];
+  let clock = 0;
+  const advance = (seconds: number, step = 0.05): void => {
+    for (let elapsed = 0; elapsed < seconds - 1e-9; elapsed += step) {
+      clock += step * 1000;
+      const frames = pending;
+      pending = [];
+      for (const frame of frames) frame(clock);
+    }
+  };
+  /** Advance by one permutation at the default speed, plus the frame that only marks the time. */
+  const runOne = (): void => {
+    advance(0.05);
+    advance(1 / DEFAULT_SETTINGS.permutationSpeed + 0.05);
+  };
+  const rows = (): HTMLElement[] =>
+    Array.from(document.querySelectorAll<HTMLElement>("#element-sections .element"));
+  const playOf = (row: HTMLElement): HTMLButtonElement => {
+    const found = row.querySelector<HTMLButtonElement>(".play");
+    if (found === null) throw new Error("no play button");
+    return found;
+  };
+  const drawnRow = (): HTMLElement => {
+    const found = rows().find((row) => row.querySelector("input")?.checked);
+    if (found === undefined) throw new Error("nothing drawn");
+    return found;
+  };
+  /** The permutation a row carries, from its key. */
+  const permutationOf = (row: HTMLElement): number[] =>
+    (row.dataset.element ?? "").split(",").map(Number);
+  /** Where each node is drawn, rounded so tiny float error does not count. */
+  const placed = (): Map<number, string> =>
+    new Map(
+      Array.from(document.querySelectorAll<SVGGElement>("#diagram .node"), (node) => {
+        const circle = node.querySelector("circle");
+        const x = Number(circle?.getAttribute("cx")).toFixed(3);
+        const y = Number(circle?.getAttribute("cy")).toFixed(3);
+        return [Number(node.dataset.point), `${x},${y}`];
+      }),
+    );
+  /** Where the nodes should be after `permutation` runs from `before`. */
+  const after = (before: Map<number, string>, permutation: number[]): Map<number, string> =>
+    new Map([...before].map(([point]) => [point, before.get(permutation[point - 1]) ?? ""]));
+
+  beforeAll(() => {
+    vi.stubGlobal("requestAnimationFrame", (frame: FrameRequestCallback) => {
+      pending.push(frame);
+      return pending.length;
+    });
+    vi.stubGlobal("cancelAnimationFrame", () => {
+      pending = [];
+    });
+    groupRow(DEFAULT.label).click();
+    if (!rows().some((row) => row.querySelector("input")?.checked)) {
+      rows()[0].querySelector("input")?.click();
+    }
+  });
+
+  it("offers play only for a generator that is drawn", () => {
+    for (const row of rows()) {
+      expect(playOf(row).disabled).toBe(!row.querySelector("input")?.checked);
+    }
+  });
+
+  it("moves every node to its image's place, leaving the row drawn", () => {
+    const row = drawnRow();
+    const before = placed();
+    playOf(row).click();
+    advance(0.05);
+    advance(0.5 / DEFAULT_SETTINGS.permutationSpeed);
+    const halfway = placed();
+    const permutation = permutationOf(row);
+    const moving = [...before.keys()].find((point) => permutation[point - 1] !== point);
+    if (moving === undefined) throw new Error("the generator moves nothing");
+    expect(halfway.get(moving)).not.toBe(before.get(moving));
+    expect(halfway.get(moving)).not.toBe(after(before, permutation).get(moving));
+    advance(0.5 / DEFAULT_SETTINGS.permutationSpeed + 0.05);
+    expect(placed()).toEqual(after(before, permutation));
+    expect(drawnRow().querySelector("input")?.checked).toBe(true);
+  });
+
+  it("stops the clock once the queue is empty", () => {
+    playOf(drawnRow()).click();
+    runOne();
+    expect(pending).toHaveLength(0);
+  });
+
+  it("runs an arrow's generator when the arrow is clicked", () => {
+    const arrow = document.querySelector<SVGPathElement>(
+      '#diagram .edges path[data-generator="0"]',
+    );
+    if (arrow === null) throw new Error("no arrow for the first generator");
+    const row = drawnRow();
+    const before = placed();
+    arrow.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    runOne();
+    expect(placed()).toEqual(after(before, permutationOf(row)));
+  });
+
+  it("finishes a running permutation, and drops the queue, before a node is picked", () => {
+    const row = drawnRow();
+    const before = placed();
+    playOf(row).click();
+    playOf(drawnRow()).click();
+    advance(0.05);
+    advance(0.3);
+    document.querySelector<SVGGElement>("#diagram .node")?.dispatchEvent(new MouseEvent("click"));
+    expect(placed()).toEqual(after(before, permutationOf(row)));
+    const settled = placed();
+    advance(1);
+    expect(placed()).toEqual(settled);
+    // Put the picked node down again.
+    document
+      .querySelector<SVGGElement>("#diagram .node.picked")
+      ?.dispatchEvent(new MouseEvent("click"));
+  });
+
+  it("forgets the queue when another group is opened", () => {
+    playOf(drawnRow()).click();
+    groupRow(DEFAULT.label).click();
+    advance(1);
+    expect(pending).toHaveLength(0);
+  });
+});
