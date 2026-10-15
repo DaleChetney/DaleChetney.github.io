@@ -76,6 +76,46 @@ const bowOffset = (distance: number, width: BowWidth): number =>
 
 const arrowheadId = (generator: number): string => `arrowhead-${generator}`;
 
+const midArrowheadId = (generator: number): string => `arrowhead-mid-${generator}`;
+
+/**
+ * Below this distance between two nodes' centers, an arrow is drawn as its head
+ * alone, halfway between them. Close nodes leave too little room between their
+ * circles for a stroke to read as more than a smudge under the head.
+ */
+export const HEAD_ONLY_DISTANCE = 80;
+
+/**
+ * How much of the curve, as a fraction of it, a head-only arrow's path keeps
+ * before the midpoint. The path is never seen; it only has to point the head
+ * along the curve.
+ */
+const HEAD_ONLY_SPAN = 0.01;
+
+interface Point {
+  x: number;
+  y: number;
+}
+
+/** Where the arrow's bowed curve bends towards, between the two node centers. */
+const controlPoint = (
+  arrow: Pick<ActionArrow, "from" | "to">,
+  curvature: number,
+  width: BowWidth,
+): Point => {
+  const dx = arrow.to.x - arrow.from.x;
+  const dy = arrow.to.y - arrow.from.y;
+  const distance = Math.hypot(dx, dy) || 1;
+  const offset = bowOffset(distance, width) * curvature;
+  return {
+    x: (arrow.from.x + arrow.to.x) / 2 - (dy / distance) * offset,
+    y: (arrow.from.y + arrow.to.y) / 2 + (dx / distance) * offset,
+  };
+};
+
+const isHeadOnly = (arrow: Pick<ActionArrow, "from" | "to">): boolean =>
+  Math.hypot(arrow.to.x - arrow.from.x, arrow.to.y - arrow.from.y) < HEAD_ONLY_DISTANCE;
+
 /**
  * A quadratic curve from one node's boundary to another's. Arrows bow to one
  * side so that a 2-cycle's two arrows separate instead of overlapping, and both
@@ -88,16 +128,11 @@ export const arrowPath = (
   curvature: number,
   width: BowWidth = "constant",
 ): string => {
-  const dx = arrow.to.x - arrow.from.x;
-  const dy = arrow.to.y - arrow.from.y;
-  const distance = Math.hypot(dx, dy) || 1;
-  const offset = bowOffset(distance, width) * curvature;
-  const controlX = (arrow.from.x + arrow.to.x) / 2 - (dy / distance) * offset;
-  const controlY = (arrow.from.y + arrow.to.y) / 2 + (dx / distance) * offset;
+  const control = controlPoint(arrow, curvature, width);
 
-  const pullBack = (node: PlacedPoint, gap: number): { x: number; y: number } => {
-    const toControlX = controlX - node.x;
-    const toControlY = controlY - node.y;
+  const pullBack = (node: PlacedPoint, gap: number): Point => {
+    const toControlX = control.x - node.x;
+    const toControlY = control.y - node.y;
     const length = Math.hypot(toControlX, toControlY) || 1;
     return {
       x: node.x + (toControlX / length) * gap,
@@ -107,7 +142,59 @@ export const arrowPath = (
 
   const start = pullBack(arrow.from, NODE_RADIUS + 2);
   const end = pullBack(arrow.to, NODE_RADIUS + 8);
-  return `M ${start.x} ${start.y} Q ${controlX} ${controlY} ${end.x} ${end.y}`;
+  return `M ${start.x} ${start.y} Q ${control.x} ${control.y} ${end.x} ${end.y}`;
+};
+
+/**
+ * The short piece of the center-to-center curve that ends at its midpoint, as a
+ * quadratic of its own. A head-only arrow draws this unstroked, so that the
+ * head sits halfway along where the stroke would have run, pointing the way it
+ * would have pointed, and a 2-cycle's two heads stay on their own sides.
+ */
+const headOnlyPath = (
+  arrow: Pick<ActionArrow, "from" | "to">,
+  curvature: number,
+  width: BowWidth,
+): string => {
+  const control = controlPoint(arrow, curvature, width);
+  // The quadratic restricted to [t0, t1] has these Bernstein weights for the
+  // original start, control and end, at each of its own three points.
+  const at = (u: number, v: number): Point => {
+    const weights = [(1 - u) * (1 - v), u * (1 - v) + (1 - u) * v, u * v];
+    return {
+      x: weights[0] * arrow.from.x + weights[1] * control.x + weights[2] * arrow.to.x,
+      y: weights[0] * arrow.from.y + weights[1] * control.y + weights[2] * arrow.to.y,
+    };
+  };
+  const t0 = 0.5 - HEAD_ONLY_SPAN;
+  const t1 = 0.5;
+  const start = at(t0, t0);
+  const middle = at(t0, t1);
+  const end = at(t1, t1);
+  return `M ${start.x} ${start.y} Q ${middle.x} ${middle.y} ${end.x} ${end.y}`;
+};
+
+/**
+ * Give a drawn arrow its shape for where its nodes now are: the full stroke
+ * with the head at its end, or, between close nodes, the head alone at the
+ * midpoint. Run on every move, since a turn of the rings can carry two nodes
+ * across the threshold either way.
+ */
+export const shapeArrow = (
+  path: SVGPathElement,
+  arrow: ActionArrow,
+  curvature = 1,
+  width: BowWidth = "constant",
+): void => {
+  if (isHeadOnly(arrow)) {
+    path.setAttribute("d", headOnlyPath(arrow, curvature, width));
+    path.setAttribute("stroke-opacity", "0");
+    path.setAttribute("marker-end", `url(#${midArrowheadId(arrow.generator)})`);
+  } else {
+    path.setAttribute("d", arrowPath(arrow, curvature, width));
+    path.removeAttribute("stroke-opacity");
+    path.setAttribute("marker-end", `url(#${arrowheadId(arrow.generator)})`);
+  }
 };
 
 /**
@@ -121,17 +208,24 @@ export const arrowheadDefs = (
 ): SVGDefsElement => {
   const defs = svg("defs");
   for (const generator of new Set(arrows.map((arrow) => arrow.generator))) {
-    const marker = svg("marker", {
-      id: arrowheadId(generator),
-      viewBox: "0 0 10 10",
-      refX: 9,
-      refY: 5,
-      markerWidth: 5,
-      markerHeight: 5,
-      orient: "auto-start-reverse",
-    });
-    marker.append(svg("path", { d: "M 0 0 L 10 5 L 0 10 z", fill: colorOf(generator) }));
-    defs.append(marker);
+    // The end-of-stroke head puts its tip at the path's end; the head-only one
+    // centers itself there instead, so it sits squarely between the nodes.
+    for (const [id, refX] of [
+      [arrowheadId(generator), 9],
+      [midArrowheadId(generator), 5],
+    ] as const) {
+      const marker = svg("marker", {
+        id,
+        viewBox: "0 0 10 10",
+        refX,
+        refY: 5,
+        markerWidth: 5,
+        markerHeight: 5,
+        orient: "auto-start-reverse",
+      });
+      marker.append(svg("path", { d: "M 0 0 L 10 5 L 0 10 z", fill: colorOf(generator) }));
+      defs.append(marker);
+    }
   }
   return defs;
 };
@@ -154,17 +248,15 @@ export const renderArrows = (
   const order = arrows.map((_, index) => index).sort((a, b) => widths[b] - widths[a]);
   for (const index of order) {
     const arrow = arrows[index];
-    edges.append(
-      svg("path", {
-        d: arrowPath(arrow, curvature, width),
-        stroke: colorOf(arrow.generator),
-        "stroke-width": widths[index],
-        "marker-end": `url(#${arrowheadId(arrow.generator)})`,
-        "data-generator": arrow.generator,
-        "data-from": arrow.from.point,
-        "data-to": arrow.to.point,
-      }),
-    );
+    const path = svg("path", {
+      stroke: colorOf(arrow.generator),
+      "stroke-width": widths[index],
+      "data-generator": arrow.generator,
+      "data-from": arrow.from.point,
+      "data-to": arrow.to.point,
+    });
+    shapeArrow(path, arrow, curvature, width);
+    edges.append(path);
   }
   return edges;
 };

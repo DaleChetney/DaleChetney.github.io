@@ -1,5 +1,5 @@
 import { svg } from "../../svg";
-import { arrowheadDefs, arrowPath, renderArrows, type ActionArrow, type BowWidth } from "./arrow";
+import { arrowheadDefs, renderArrows, shapeArrow, type ActionArrow, type BowWidth } from "./arrow";
 import { holdToDrag } from "../../interactions/holdToDrag";
 import { renderNode, type PlacedPoint } from "./node";
 
@@ -127,6 +127,6 @@ export const moveDiagram = (
     const from = byPoint.get(Number(path.dataset.from));
     const to = byPoint.get(Number(path.dataset.to));
     if (from === undefined || to === undefined) continue;
-    path.setAttribute("d", arrowPath({ from, to }, curvature, bowWidth));
+    shapeArrow(path, { generator: Number(path.dataset.generator), from, to }, curvature, bowWidth);
   }
 };
