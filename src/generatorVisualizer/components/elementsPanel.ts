@@ -43,6 +43,8 @@ export interface ElementSelectionView {
   /** The color this element is drawn in, or null when it is not being drawn. */
   colorOf: (key: string) => string | null;
   onToggle: (key: string) => void;
+  /** Run a drawn element's permutation on the diagram's nodes. */
+  onPlay: (key: string) => void;
   /** The pointer came onto an element's row, or with null, left it. */
   onHover?: (key: string | null) => void;
   /** Turn a section to another page. */
@@ -145,18 +147,31 @@ const elementRow = (
     view.onToggle(key);
   });
 
-  const swatch = el("span", { className: "swatch" });
-  // An unselected element has no color yet: colors are spread over the
-  // selection, so which one it would take depends on what else is drawn.
-  swatch.style.background = view.colorOf(key) ?? "currentColor";
-
   // The full permutation is too long to list, so the row names the element as
   // a power of its conjugate's first generator and keeps the cycles for a hover.
   const cycles = formatPermutation(permutation);
+  const name = names.get(key) ?? cycles;
+  const color = view.colorOf(key);
+  // Only a drawn element has arrows to run its nodes along, and a color to match them by.
+  const play = el(
+    "button",
+    { type: "button", className: "swatch play", disabled: color === null },
+    ["▶"],
+  );
+  // An unselected element has no color yet: colors are spread over the
+  // selection, so which one it would take depends on what else is drawn.
+  play.style.background = color ?? "currentColor";
+  play.setAttribute("aria-label", `Run ${name}`);
+  play.addEventListener("click", (event) => {
+    // The button sits in the row's label, whose click would toggle the checkbox too.
+    event.preventDefault();
+    view.onPlay(key);
+  });
+
   const row = el("label", { className: "element", title: cycles }, [
     input,
-    swatch,
-    el("code", {}, [names.get(key) ?? cycles]),
+    play,
+    el("code", {}, [name]),
   ]);
   row.dataset.element = key;
   row.addEventListener("pointerenter", () => {

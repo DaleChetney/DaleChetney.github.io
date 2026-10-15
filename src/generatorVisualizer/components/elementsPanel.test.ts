@@ -83,9 +83,47 @@ const view = (over: Partial<ElementSelectionView> = {}): ElementSelectionView =>
   isSelected: () => false,
   colorOf: () => "#c1436d",
   onToggle: () => {},
+  onPlay: () => {},
   onPage: () => {},
   onOrbit: () => {},
   ...over,
+});
+
+describe("an element's play button", () => {
+  const firstRow = (root: HTMLElement) => {
+    const row = root.querySelector<HTMLElement>(".element");
+    const play = row?.querySelector<HTMLButtonElement>("button.swatch.play");
+    const input = row?.querySelector<HTMLInputElement>("input");
+    if (!row || !play || !input) throw new Error("no element row with a play button");
+    return { row, play, input };
+  };
+
+  it("is disabled while the element is not drawn", () => {
+    const { play } = firstRow(renderElementSections([section(c16)], view({ colorOf: () => null })));
+    expect(play.disabled).toBe(true);
+  });
+
+  it("takes the element's color, and names what it runs", () => {
+    const { play } = firstRow(renderElementSections([section(c16)], view()));
+    expect(play.disabled).toBe(false);
+    expect(play.style.background.toLowerCase()).not.toBe("currentcolor");
+    expect(play.getAttribute("aria-label")).toMatch(/^Run /);
+  });
+
+  it("reports the element to run, without toggling its row", () => {
+    const onPlay = vi.fn();
+    const onToggle = vi.fn();
+    const root = renderElementSections(
+      [section(c16)],
+      view({ isSelected: () => true, onPlay, onToggle }),
+    );
+    document.body.replaceChildren(root);
+    const { row, play, input } = firstRow(root);
+    play.click();
+    expect(onPlay).toHaveBeenCalledWith(row.dataset.element);
+    expect(onToggle).not.toHaveBeenCalled();
+    expect(input.checked).toBe(true);
+  });
 });
 
 describe("hovering an element's row", () => {
