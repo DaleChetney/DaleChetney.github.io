@@ -233,8 +233,8 @@ window.addEventListener("resize", () => {
   render();
 });
 
-// Experimental: the top-row digits run the first ten generators drawn, in the
-// order their colors are given out. Nothing on the page mentions it yet.
+// Experimental: the top-row 1–9, 0, - and = run the first twelve generators
+// drawn, in the order their colors are given out. Nothing on the page mentions it yet.
 document.addEventListener("keydown", (event) => {
   const generator = generatorForKey(event);
   if (generator !== null) queue(scene.palette[generator]);

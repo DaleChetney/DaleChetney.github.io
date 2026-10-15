@@ -17,8 +17,14 @@ describe("generatorForKey", () => {
     ]);
   });
 
+  it("runs the eleventh from - and the twelfth from =", () => {
+    expect(generatorForKey(press("Minus"))).toBe(10);
+    expect(generatorForKey(press("Equal"))).toBe(11);
+  });
+
   it("leaves the numpad and every other key alone", () => {
     expect(generatorForKey(press("Numpad1"))).toBeNull();
+    expect(generatorForKey(press("NumpadSubtract"))).toBeNull();
     expect(generatorForKey(press("KeyA"))).toBeNull();
   });
 
