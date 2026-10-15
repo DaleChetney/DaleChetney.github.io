@@ -377,7 +377,7 @@ export const bakeGroup = (
     autLabel: row.aut_group,
     autTexName: row.aut_tex,
     autDisplayName: row.aut_tex === null ? null : texToUnicode(row.aut_tex),
-    autOrder: row.aut_order === null ? null : Number(row.aut_order),
+    autOrder: Number(row.aut_order ?? fail(`${row.label} has no order for Aut(G)`)),
     subgroups: { all: row.number_subgroups, classes },
     representations,
   };

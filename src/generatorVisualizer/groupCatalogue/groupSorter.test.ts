@@ -100,21 +100,25 @@ describe("GroupSorter", () => {
     ]);
   });
 
-  it("sorts by automorphism group order, unknown last", () => {
-    const auts = [group({ label: "a", autOrder: null }), group({ label: "b", autOrder: 48 })];
-    auts.push(group({ label: "c", autOrder: 2 }));
-    expect(labels(sorted(auts, "automorphisms"))).toEqual(["c", "b", "a"]);
-  });
-
-  it("keeps groups with the same automorphism group together", () => {
+  it("sorts by automorphism group, keeping groups that share one together", () => {
     const auts = [
       group({ label: "a", autOrder: 12, autLabel: "12.4" }),
       group({ label: "b", autOrder: 12, autLabel: "12.10" }),
-      group({ label: "c", autOrder: 12, autLabel: null }),
+      group({ label: "c", autOrder: 2, autLabel: "2.1" }),
       group({ label: "d", autOrder: 12, autLabel: "12.4" }),
       group({ label: "e", autOrder: 12, autLabel: "12.3" }),
     ];
-    expect(labels(sorted(auts, "automorphisms"))).toEqual(["e", "a", "d", "b", "c"]);
+    expect(labels(sorted(auts, "automorphisms"))).toEqual(["c", "e", "a", "d", "b"]);
+  });
+
+  it("sorts an unlabelled automorphism group as if its label were `order.0`", () => {
+    const auts = [
+      group({ label: "a", autOrder: 12, autLabel: "12.1" }),
+      group({ label: "b", autOrder: 13, autLabel: "13.1" }),
+      group({ label: "c", autOrder: 12, autLabel: null }),
+      group({ label: "d", autOrder: 2, autLabel: "2.1" }),
+    ];
+    expect(labels(sorted(auts, "automorphisms"))).toEqual(["d", "c", "a", "b"]);
   });
 
   it("sorts by number of subgroups", () => {

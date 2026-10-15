@@ -67,7 +67,7 @@ export interface CatalogueGroup {
   autLabel: string | null;
   autTexName: string | null;
   autDisplayName: string | null;
-  autOrder: number | null;
+  autOrder: number;
 
   subgroups: {
     /** Number of subgroups altogether, across every class. */
