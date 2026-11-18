@@ -9,10 +9,10 @@ import {
 import { groupListCaption, renderGroupList } from "../groupList";
 import { GroupSorter, type GroupSort } from "../../groupCatalogue/groupSorter";
 
-const STORAGE_KEY = "generatorVisualizer.groupList";
+const STORAGE_KEY = "generatorVisualizer.listOptions";
 
-/** How the reader last left the list, as stored. */
-interface StoredGroupList {
+/** The filter and sort the reader last chose for the list, as stored. */
+interface ListOptions {
   /** A `GROUP_CATEGORIES` code, or `null` for every group. */
   category: number | null;
   /** The sort last chosen, or `null` if none has been. */
@@ -20,16 +20,16 @@ interface StoredGroupList {
 }
 
 /**
- * What was stored, keeping only what still makes sense: a category no group
- * falls in any more reads as every group, and a sort that no longer exists as
- * none chosen.
+ * The options last saved, with anything not of the right shape read as not
+ * chosen. A sort that no longer exists reads as none; whether the category
+ * still has an option is for the dropdown to say.
  */
-const loadGroupList = (categories: ReadonlySet<number>): StoredGroupList => {
+const loadListOptions = (): ListOptions => {
   const stored: unknown = load(STORAGE_KEY, null);
   if (typeof stored !== "object" || stored === null) return { category: null, sort: null };
-  const { category, sort } = stored as Partial<Record<keyof StoredGroupList, unknown>>;
+  const { category, sort } = stored as Partial<Record<keyof ListOptions, unknown>>;
   return {
-    category: typeof category === "number" && categories.has(category) ? category : null,
+    category: typeof category === "number" ? category : null,
     sort: GroupSorter.isSort(sort) ? sort : null,
   };
 };
@@ -65,15 +65,16 @@ export class LeftPanel {
   constructor(groups: readonly CatalogueGroup[], onSelect: (label: string) => void) {
     this.#sorter = new GroupSorter(groups);
     this.#onSelect = onSelect;
-    const options = categoryOptions(groups);
-    const stored = loadGroupList(new Set(options.map((option) => option.code)));
-    this.#category = stored.category;
+    const stored = loadListOptions();
     this.#sort = stored.sort;
     if (this.#sort !== null) this.#sorter.sortBy(this.#sort);
 
     const filter = qs<HTMLSelectElement>("#group-filter");
-    filter.replaceChildren(...renderFilterOptions(options));
-    filter.value = this.#category === null ? "" : String(this.#category);
+    filter.replaceChildren(...renderFilterOptions(categoryOptions(groups)));
+    filter.value = stored.category === null ? "" : String(stored.category);
+    // A category no group falls in any more has no option, so the dropdown
+    // refuses it; the list then shows every group, as the dropdown does.
+    this.#category = filter.value === "" ? null : stored.category;
     filter.addEventListener("change", (event) => {
       const value = (event.currentTarget as HTMLSelectElement).value;
       this.#category = value === "" ? null : Number(value);
@@ -99,7 +100,7 @@ export class LeftPanel {
   }
 
   #save(): void {
-    save<StoredGroupList>(STORAGE_KEY, {
+    save<ListOptions>(STORAGE_KEY, {
       category: this.#category,
       sort: this.#sort,
     });

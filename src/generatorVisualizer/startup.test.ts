@@ -122,8 +122,8 @@ describe("starting the page", () => {
   });
 });
 
-describe("remembering the group list", () => {
-  const LIST_KEY = "generatorVisualizer.groupList";
+describe("remembering the list's filter and sort", () => {
+  const OPTIONS_KEY = "generatorVisualizer.listOptions";
   const select = (id: string): HTMLSelectElement => {
     const found = document.querySelector<HTMLSelectElement>(id);
     if (found === null) throw new Error(`no ${id}`);
@@ -167,20 +167,23 @@ describe("remembering the group list", () => {
   });
 
   it("shows every group when the stored category has none", async () => {
-    localStorage.setItem(LIST_KEY, JSON.stringify({ category: 9999, sort: "order" }));
+    await load();
+    const everyGroup = rowLabels().length;
+    localStorage.setItem(OPTIONS_KEY, JSON.stringify({ category: 9999, sort: "order" }));
     await load();
     expect(select("#group-filter").value).toBe("");
+    expect(rowLabels()).toHaveLength(everyGroup);
     expect(select("#group-sort").value).toBe("order");
   });
 
   it("sorts by label when the stored sort no longer exists", async () => {
-    localStorage.setItem(LIST_KEY, JSON.stringify({ category: null, sort: "bogus" }));
+    localStorage.setItem(OPTIONS_KEY, JSON.stringify({ category: null, sort: "bogus" }));
     await load();
     expect(select("#group-sort").value).toBe("label");
   });
 
-  it("starts afresh when what is stored is not a list's state", async () => {
-    localStorage.setItem(LIST_KEY, JSON.stringify("order"));
+  it("starts afresh when what is stored is not a filter and sort", async () => {
+    localStorage.setItem(OPTIONS_KEY, JSON.stringify("order"));
     await load();
     expect(select("#group-filter").value).toBe("");
     expect(select("#group-sort").value).toBe("label");
