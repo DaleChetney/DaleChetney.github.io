@@ -107,7 +107,7 @@ export class GroupSorter {
   }
 
   /** Whether `value` is one of the keys the list can be sorted by. */
-  static isSort(value: unknown): value is GroupSort {
+  static isValidSortingOption(value: unknown): value is GroupSort {
     return typeof value === "string" && Object.hasOwn(COMPARATORS, value);
   }
 

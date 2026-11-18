@@ -30,7 +30,7 @@ const loadListOptions = (): ListOptions => {
   const { category, sort } = stored as Partial<Record<keyof ListOptions, unknown>>;
   return {
     category: typeof category === "number" ? category : null,
-    sort: GroupSorter.isSort(sort) ? sort : null,
+    sort: GroupSorter.isValidSortingOption(sort) ? sort : null,
   };
 };
 
