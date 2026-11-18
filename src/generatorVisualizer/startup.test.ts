@@ -121,3 +121,68 @@ describe("starting the page", () => {
     expect(checked().filter(Boolean)).toHaveLength(0);
   });
 });
+
+describe("remembering the group list", () => {
+  const LIST_KEY = "generatorVisualizer.groupList";
+  const select = (id: string): HTMLSelectElement => {
+    const found = document.querySelector<HTMLSelectElement>(id);
+    if (found === null) throw new Error(`no ${id}`);
+    return found;
+  };
+  const choose = (id: string, value: string): void => {
+    select(id).value = value;
+    select(id).dispatchEvent(new Event("change"));
+  };
+  const rowLabels = (): string[] =>
+    Array.from(
+      document.querySelectorAll(".group-row"),
+      (row) => row.getAttribute("data-label") ?? "",
+    );
+  /** A category some groups fall in, but not every one. */
+  const someCategory = (): string => select("#group-filter").options[1].value;
+
+  it("shows every group in label order on a first visit", async () => {
+    await load();
+    expect(select("#group-filter").value).toBe("");
+    expect(select("#group-sort").value).toBe("label");
+    expect(rowLabels()).toEqual(
+      [...rowLabels()].sort(new Intl.Collator("en", { numeric: true }).compare),
+    );
+  });
+
+  it("opens with the category and sort last chosen", async () => {
+    await load();
+    const category = someCategory();
+    choose("#group-filter", category);
+    choose("#group-sort", "subgroups");
+    choose("#group-sort", "order");
+
+    await load();
+    expect(select("#group-filter").value).toBe(category);
+    expect(select("#group-sort").value).toBe("order");
+    const orders = Array.from(document.querySelectorAll(".group-row"), (row) =>
+      Number(row.getAttribute("data-label")?.split(".")[0]),
+    );
+    expect(orders).toEqual([...orders].sort((a, b) => a - b));
+  });
+
+  it("shows every group when the stored category has none", async () => {
+    localStorage.setItem(LIST_KEY, JSON.stringify({ category: 9999, sort: "order" }));
+    await load();
+    expect(select("#group-filter").value).toBe("");
+    expect(select("#group-sort").value).toBe("order");
+  });
+
+  it("sorts by label when the stored sort no longer exists", async () => {
+    localStorage.setItem(LIST_KEY, JSON.stringify({ category: null, sort: "bogus" }));
+    await load();
+    expect(select("#group-sort").value).toBe("label");
+  });
+
+  it("starts afresh when what is stored is not a list's state", async () => {
+    localStorage.setItem(LIST_KEY, JSON.stringify("order"));
+    await load();
+    expect(select("#group-filter").value).toBe("");
+    expect(select("#group-sort").value).toBe("label");
+  });
+});
