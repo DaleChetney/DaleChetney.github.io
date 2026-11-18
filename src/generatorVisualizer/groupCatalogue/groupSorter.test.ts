@@ -187,6 +187,14 @@ describe("GroupSorter", () => {
     expect(orders(input)).toEqual([16, 7]);
   });
 
+  it("tells its keys from anything else", () => {
+    expect(GroupSorter.isValidSortingOption("order")).toBe(true);
+    expect(GroupSorter.isValidSortingOption("smallest-prime")).toBe(true);
+    expect(GroupSorter.isValidSortingOption("toString")).toBe(false);
+    expect(GroupSorter.isValidSortingOption("bogus")).toBe(false);
+    expect(GroupSorter.isValidSortingOption(3)).toBe(false);
+  });
+
   it("offers label first, then the order-based keys, then the structural ones", () => {
     expect(GroupSorter.renderOptions().map((option) => option.value)).toEqual([
       "label",

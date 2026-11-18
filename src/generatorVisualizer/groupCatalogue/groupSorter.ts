@@ -106,6 +106,11 @@ export class GroupSorter {
     return this.#groups;
   }
 
+  /** Whether `value` is one of the keys the list can be sorted by. */
+  static isValidSortingOption(value: unknown): value is GroupSort {
+    return typeof value === "string" && Object.hasOwn(COMPARATORS, value);
+  }
+
   static renderOptions(): HTMLOptionElement[] {
     return GroupSorter.OPTIONS.map((option) =>
       el("option", { value: option.value }, [option.name]),
